@@ -46,26 +46,26 @@ body {
 }
 
 /* ── Textarea caret ───────────────────────────────────────────────────────── */
-textarea { caret-color: #22d3ee; }
+textarea { caret-color: #38bdf8; }
 
 /* ── PromptEditor token colors ────────────────────────────────────────────── */
 
-/* [Tag:] — cyan accent */
-.pe-tag  { color: #22d3ee; }
-/* tag value — near-white */
-.pe-val  { color: #e2e8f0; }
-/* bare section like [Structure:] sub-items */
-.pe-section { color: #7dd3fc; }
-/* comments / other lines */
-.pe-plain { color: #71717a; }
+/* [Tag:] — sky-400, readable cyan, medium weight */
+.pe-tag  { color: #38bdf8; font-weight: 500; }
+/* tag value — slate-100, near-white body text */
+.pe-val  { color: #f1f5f9; }
+/* bare [Section] lines — blue-300, medium weight */
+.pe-section { color: #93c5fd; font-weight: 500; }
+/* plain/comment lines — slate-400, clearly secondary */
+.pe-plain { color: #94a3b8; }
 
 /* ── LyricsEditor token colors ────────────────────────────────────────────── */
 
-/* [Chorus], [Verse 1] etc. — violet, bold, slightly dimmed */
+/* [Chorus], [Verse 1] etc. — violet-300, bold, high-saturation */
 .le-tag  {
-  color: #a78bfa;
+  color: #c4b5fd;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
-/* Regular lyric lines — warm near-white */
-.le-line { color: #e4e4e7; }
+/* Regular lyric lines — slate-100, near-white for long-form reading */
+.le-line { color: #f1f5f9; }

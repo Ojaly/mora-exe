@@ -42,7 +42,7 @@ function highlight(text: string): string {
 
 // ─── Shared style tokens ─────────────────────────────────────────────────────
 
-const MONO = "font-mono text-[13px] leading-[1.85]";
+const MONO = "font-mono text-[15px] leading-[2]";
 const PAD  = "px-5 py-4";
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ export default function PromptEditor({ value, onChange, isSample }: Props) {
         onChange={(e) => onChange(e.target.value)}
         onScroll={syncScroll}
         className={`absolute inset-0 ${PAD} ${MONO} bg-transparent text-transparent resize-none focus:outline-none whitespace-pre-wrap`}
-        style={{ caretColor: "#22d3ee", color: "transparent" }}
+        style={{ caretColor: "#38bdf8", color: "transparent" }}
         spellCheck={false}
       />
     </div>

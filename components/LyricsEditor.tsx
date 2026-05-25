@@ -33,7 +33,7 @@ function highlight(text: string): string {
 
 // ─── Shared tokens ───────────────────────────────────────────────────────────
 
-const MONO = "font-mono text-[13px] leading-[1.85]";
+const MONO = "font-mono text-[15px] leading-[2]";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ export default function LyricsEditor({ value, onChange, isSample }: Props) {
         className={`shrink-0 w-11 select-none border-r border-zinc-800/50 ${MONO} text-right`}
         style={{ background: "rgba(0,0,0,0.25)", overflowY: "hidden", overflowX: "hidden" }}
       >
-        <div className="px-2 py-4 text-zinc-700">
+        <div className="px-2 py-4 text-zinc-600">
           {Array.from({ length: lineCount }, (_, i) => (
             <div key={i}>{i + 1}</div>
           ))}
@@ -84,7 +84,7 @@ export default function LyricsEditor({ value, onChange, isSample }: Props) {
           onChange={(e) => onChange(e.target.value)}
           onScroll={syncScroll}
           className={`absolute inset-0 px-4 py-4 ${MONO} bg-transparent resize-none focus:outline-none whitespace-pre-wrap`}
-          style={{ caretColor: "#22d3ee", color: "transparent" }}
+          style={{ caretColor: "#38bdf8", color: "transparent" }}
           spellCheck={false}
         />
       </div>

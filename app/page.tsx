@@ -114,8 +114,8 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       onClick={onClick}
       className={`px-3 h-full text-[10px] font-mono tracking-wider border-b-2 transition-colors ${
         active
-          ? "border-cyan-500 text-zinc-100 bg-zinc-900/40"
-          : "border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/20"
+          ? "border-cyan-400 text-white bg-white/5"
+          : "border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]"
       }`}
     >
       {children}
@@ -127,7 +127,7 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="shrink-0 h-8 border-b border-zinc-800 flex items-stretch"
-      style={{ background: "#111115" }}
+      style={{ background: "#17171c" }}
     >
       {children}
     </div>
@@ -264,7 +264,7 @@ export default function Home() {
   // ─── Rewrite bar (shared mobile/desktop) ────────────────────────────────
 
   const rewriteBar = (
-    <div className="shrink-0 border-t border-zinc-800/50 px-3 py-2" style={{ background: "#0c0d10" }}>
+    <div className="shrink-0 border-t border-zinc-800/50 px-3 py-2" style={{ background: "#111318" }}>
       <div className="flex flex-wrap gap-1">
         {REWRITE_MODES.map(([mode, label]) => (
           <button key={mode} onClick={() => handleRewrite(mode)}
@@ -296,7 +296,7 @@ export default function Home() {
       {/* ── Titlebar ──────────────────────────────────────────────────────── */}
       <header
         className="relative z-20 shrink-0 h-9 border-b border-zinc-800/80 flex items-center px-4 gap-4 select-none"
-        style={{ background: "#0a0a0d" }}
+        style={{ background: "#0f0f14" }}
       >
         <span className="font-mono font-bold text-[13px] text-cyan-400 neon-cyan tracking-widest">
           MORA<span className="text-zinc-700">.</span>exe
@@ -332,7 +332,7 @@ export default function Home() {
       {/* ── Mobile tab strip ──────────────────────────────────────────────── */}
       <div
         className="relative z-10 shrink-0 flex h-8 border-b border-zinc-800 lg:hidden"
-        style={{ background: "#0c0c0f" }}
+        style={{ background: "#111116" }}
       >
         {(["concept", "prompt", "lyrics", "tuner"] as MobileTab[]).map((t) => (
           <TabBtn key={t} active={mobileTab === t} onClick={() => setMobile(t)}>
@@ -347,13 +347,13 @@ export default function Home() {
         {/* ── LEFT: Sidebar ───────────────────────────────────────────────── */}
         <aside
           className="w-[252px] shrink-0 flex flex-col border-r border-zinc-800/80"
-          style={{ background: "#0e0e11" }}
+          style={{ background: "#141419" }}
         >
           <div
             className="shrink-0 h-8 border-b border-zinc-800 flex items-center px-3"
-            style={{ background: "#111115" }}
+            style={{ background: "#17171c" }}
           >
-            <span className="text-[9px] font-mono text-zinc-600 tracking-[0.2em]">CONCEPT</span>
+            <span className="text-[9px] font-mono text-zinc-500 tracking-[0.2em]">CONCEPT</span>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto p-3">
             <ConceptInput
@@ -367,10 +367,10 @@ export default function Home() {
         {/* ── CENTER: Style Prompt ─────────────────────────────────────────── */}
         <section
           className="flex-1 flex flex-col border-r border-zinc-800/60 min-w-0"
-          style={{ background: "#0d0f13" }}
+          style={{ background: "#13151b" }}
         >
           <PanelHeader>
-            <span className="flex items-center px-3 text-[9px] font-mono text-zinc-500 tracking-[0.2em]">
+            <span className="flex items-center px-3 text-[9px] font-mono text-zinc-400 tracking-[0.2em]">
               STYLE PROMPT
             </span>
             {isSample && <SampleBadge />}
@@ -389,10 +389,10 @@ export default function Home() {
           {/* Negative prompt dock */}
           <div
             className="shrink-0 border-t border-zinc-800/50"
-            style={{ background: "#0b0c0f" }}
+            style={{ background: "#10111a" }}
           >
             <div className="flex items-center px-4 pt-2 pb-1 gap-2">
-              <span className="text-[9px] font-mono text-zinc-700 tracking-[0.15em]">NEGATIVE</span>
+              <span className="text-[9px] font-mono text-zinc-500 tracking-[0.15em]">NEGATIVE</span>
               <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
             </div>
             <textarea
@@ -400,7 +400,7 @@ export default function Home() {
               onChange={(e) => setNeg(e.target.value)}
               rows={2}
               className="w-full bg-transparent resize-none px-4 pb-2 font-mono text-[11px] leading-relaxed focus:outline-none"
-              style={{ color: "#4b5563" }}
+              style={{ color: "#6b7280" }}
               spellCheck={false}
             />
           </div>
@@ -409,7 +409,7 @@ export default function Home() {
         {/* ── RIGHT: Lyrics / Tuner ───────────────────────────────────────── */}
         <section
           className="flex-1 flex flex-col min-w-0"
-          style={{ background: "#0e0d12" }}
+          style={{ background: "#131219" }}
         >
           <PanelHeader>
             <TabBtn active={rightView === "lyrics"} onClick={() => setRight("lyrics")}>LYRICS</TabBtn>
@@ -438,14 +438,14 @@ export default function Home() {
       {/* ── Mobile single-col ──────────────────────────────────────────────── */}
       <div className="relative z-10 flex-1 min-h-0 flex flex-col lg:hidden overflow-hidden">
         {mobileTab === "concept" && (
-          <div className="flex-1 overflow-y-auto p-3" style={{ background: "#0e0e11" }}>
+          <div className="flex-1 overflow-y-auto p-3" style={{ background: "#141419" }}>
             <ConceptInput input={input} onChange={setInput} preset={preset} onPresetChange={setPreset} onGenerate={handleGenerate} compact />
           </div>
         )}
         {mobileTab === "prompt" && (
-          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#0d0f13" }}>
+          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#13151b" }}>
             <PanelHeader>
-              <span className="flex items-center px-3 text-[9px] font-mono text-zinc-500 tracking-widest">STYLE PROMPT</span>
+              <span className="flex items-center px-3 text-[9px] font-mono text-zinc-400 tracking-widest">STYLE PROMPT</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
             </PanelHeader>
@@ -453,9 +453,9 @@ export default function Home() {
           </div>
         )}
         {mobileTab === "lyrics" && (
-          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#0e0d12" }}>
+          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#131219" }}>
             <PanelHeader>
-              <span className="flex items-center px-3 text-[9px] font-mono text-zinc-500 tracking-widest">LYRICS</span>
+              <span className="flex items-center px-3 text-[9px] font-mono text-zinc-400 tracking-widest">LYRICS</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={lyrics} label="COPY" /></div>
             </PanelHeader>
@@ -469,9 +469,9 @@ export default function Home() {
       {/* ── Final output footer ────────────────────────────────────────────── */}
       <footer
         className="relative z-20 shrink-0 h-9 border-t border-zinc-800/80 flex items-center px-4 gap-2"
-        style={{ background: "#0a0a0d" }}
+        style={{ background: "#0f0f14" }}
       >
-        <span className="text-[9px] font-mono text-zinc-700 tracking-[0.2em] shrink-0">OUTPUT</span>
+        <span className="text-[9px] font-mono text-zinc-500 tracking-[0.2em] shrink-0">OUTPUT</span>
         <div className="w-px h-3 bg-zinc-800 mx-1 shrink-0" />
         <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
           <CopyBtn text={stylePrompt} label="STYLE" />
