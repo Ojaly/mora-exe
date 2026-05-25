@@ -189,6 +189,7 @@ export default function Home() {
   const [songStats, setStats]       = useState<SongStats | null>(null);
   const [loadingMode, setLoadingMode] = useState<RewriteMode | null>(null);
   const [rewriteNotes, setRewriteNotes] = useState<string>("");
+  const [rewriteSource, setRewriteSource] = useState<"claude" | "rule" | null>(null);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -238,12 +239,15 @@ export default function Home() {
     if (result) {
       setLyricsRaw(result.rewrittenLyrics);
       analyse(result.rewrittenLyrics);
-      if (result.notes) setRewriteNotes(result.notes);
+      setRewriteNotes(result.notes ?? "");
+      setRewriteSource("claude");
     } else {
       // APIキー未設定 or エラー → ルールベースフォールバック
       const v = applyRewriteMode(lyrics, mode);
       setLyricsRaw(v);
       analyse(v);
+      setRewriteNotes("");
+      setRewriteSource("rule");
     }
 
     if (isSample) setIsSample(false);
@@ -306,11 +310,22 @@ export default function Home() {
           );
         })}
       </div>
-      {rewriteNotes && (
-        <p className="mt-1.5 text-[9px] font-mono text-cyan-700 leading-relaxed truncate">
-          ✦ {rewriteNotes}
-        </p>
-      )}
+      <div className="flex items-start gap-2 mt-1.5 min-h-[1rem]">
+        {rewriteSource && (
+          <span className={`shrink-0 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+            rewriteSource === "claude"
+              ? "border-cyan-700 text-cyan-400 bg-cyan-950/40"
+              : "border-zinc-700 text-zinc-500 bg-zinc-900/40"
+          }`}>
+            {rewriteSource === "claude" ? "Claude AI" : "ルールベース"}
+          </span>
+        )}
+        {rewriteNotes && (
+          <p className="text-[9px] font-mono text-zinc-500 leading-relaxed line-clamp-2">
+            {rewriteNotes}
+          </p>
+        )}
+      </div>
     </div>
   );
 
