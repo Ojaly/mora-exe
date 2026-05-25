@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ConceptInput from "@/components/ConceptInput";
+import WizardPanel from "@/components/WizardPanel";
 import PromptEditor from "@/components/PromptEditor";
 import LyricsEditor from "@/components/LyricsEditor";
 import MoraTunerPanel from "@/components/MoraTunerPanel";
@@ -169,11 +170,12 @@ function CopyAllBtn({ onCopy, hasContent }: { onCopy: () => void; hasContent: bo
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [input, setInput]       = useState<SongInput>(defaultInput);
-  const [preset, setPreset]     = useState<WorldPresetKey | "">("");
-  const [rightView, setRight]   = useState<RightView>("lyrics");
-  const [mobileTab, setMobile]  = useState<MobileTab>("concept");
-  const [isSample, setIsSample] = useState(true);
+  const [input, setInput]         = useState<SongInput>(defaultInput);
+  const [preset, setPreset]       = useState<WorldPresetKey | "">("");
+  const [rightView, setRight]     = useState<RightView>("lyrics");
+  const [mobileTab, setMobile]    = useState<MobileTab>("concept");
+  const [isSample, setIsSample]   = useState(true);
+  const [sidebarMode, setSidebar] = useState<"concept" | "wizard">("concept");
 
   const [stylePrompt, setStyle]   = useState(SAMPLE_PROMPT);
   const [negPrompt, setNeg]       = useState("generic AI vocal phrases, over-polished production, synthetic timbre");
@@ -349,18 +351,50 @@ export default function Home() {
           className="w-[252px] shrink-0 flex flex-col border-r border-zinc-800/80"
           style={{ background: "#141419" }}
         >
+          {/* Sidebar header — CONCEPT / WIZARD tabs */}
           <div
-            className="shrink-0 h-8 border-b border-zinc-800 flex items-center px-3"
+            className="shrink-0 h-8 border-b border-zinc-800 flex items-stretch"
             style={{ background: "#17171c" }}
           >
-            <span className="text-[9px] font-mono text-zinc-500 tracking-[0.2em]">CONCEPT</span>
+            <button
+              onClick={() => setSidebar("concept")}
+              className={`px-3 h-full text-[9px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
+                sidebarMode === "concept"
+                  ? "border-cyan-400 text-white"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              CONCEPT
+            </button>
+            <button
+              onClick={() => setSidebar("wizard")}
+              className={`px-3 h-full text-[9px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
+                sidebarMode === "wizard"
+                  ? "border-violet-400 text-violet-300"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              WIZARD
+            </button>
           </div>
+
           <div className="flex-1 min-h-0 overflow-y-auto p-3">
-            <ConceptInput
-              input={input} onChange={setInput}
-              preset={preset} onPresetChange={setPreset}
-              onGenerate={handleGenerate} compact
-            />
+            {sidebarMode === "concept" ? (
+              <ConceptInput
+                input={input} onChange={setInput}
+                preset={preset} onPresetChange={setPreset}
+                onGenerate={handleGenerate} compact
+              />
+            ) : (
+              <WizardPanel
+                onApply={(prompt, neg) => {
+                  setStyle(prompt);
+                  setNeg(neg);
+                  setIsSample(false);
+                  setSidebar("concept");
+                }}
+              />
+            )}
           </div>
         </aside>
 
