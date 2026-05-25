@@ -96,12 +96,12 @@ function CopyBtn({ text, label, dim }: { text: string; label: string; dim?: bool
     <button
       onClick={() => { if (!text) return; navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
       disabled={!text}
-      className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
+      className={`text-xs font-mono px-2.5 py-1 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
         copied
           ? "border-emerald-700 text-emerald-400 bg-emerald-950"
           : dim
-          ? "border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:text-zinc-400"
-          : "border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-200"
+          ? "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+          : "border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-zinc-100"
       }`}
     >
       {copied ? `✓ ${label}` : label}
@@ -113,10 +113,10 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className={`px-3 h-full text-[10px] font-mono tracking-wider border-b-2 transition-colors ${
+      className={`px-4 h-full text-xs font-mono tracking-wider border-b-2 transition-colors ${
         active
           ? "border-cyan-400 text-white bg-white/5"
-          : "border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]"
+          : "border-transparent text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.03]"
       }`}
     >
       {children}
@@ -127,7 +127,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 function PanelHeader({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="shrink-0 h-8 border-b border-zinc-800 flex items-stretch"
+      className="shrink-0 h-9 border-b border-zinc-800 flex items-stretch"
       style={{ background: "#17171c" }}
     >
       {children}
@@ -137,7 +137,7 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
 
 function SampleBadge() {
   return (
-    <span className="self-center ml-auto mr-2 text-[9px] font-mono text-zinc-700 border border-zinc-800 px-1.5 py-0.5 rounded tracking-wider">
+    <span className="self-center ml-auto mr-2 text-[11px] font-mono text-zinc-600 border border-zinc-700 px-2 py-0.5 rounded tracking-wider">
       SAMPLE
     </span>
   );
@@ -146,8 +146,8 @@ function SampleBadge() {
 function Pill({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <span className="flex items-center gap-1">
-      <span className="text-[9px] font-mono text-zinc-700">{label}</span>
-      <span className={`text-[10px] font-mono font-bold tabular-nums ${warn ? "text-amber-400" : "text-zinc-400"}`}>{value}</span>
+      <span className="text-[11px] font-mono text-zinc-500">{label}</span>
+      <span className={`text-xs font-mono font-bold tabular-nums ${warn ? "text-amber-400" : "text-zinc-300"}`}>{value}</span>
     </span>
   );
 }
@@ -158,8 +158,8 @@ function CopyAllBtn({ onCopy, hasContent }: { onCopy: () => void; hasContent: bo
     <button
       onClick={() => { if (!hasContent) return; onCopy(); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
       disabled={!hasContent}
-      className={`text-[10px] font-mono px-3 py-1 rounded border font-bold transition-all disabled:opacity-20 disabled:cursor-default ${
-        copied ? "border-emerald-700 text-emerald-400 bg-emerald-950" : "border-zinc-700 text-zinc-400 hover:border-cyan-700 hover:text-cyan-400"
+      className={`text-xs font-mono px-3 py-1 rounded border font-bold transition-all disabled:opacity-20 disabled:cursor-default ${
+        copied ? "border-emerald-700 text-emerald-400 bg-emerald-950" : "border-zinc-600 text-zinc-300 hover:border-cyan-600 hover:text-cyan-400"
       }`}
     >
       {copied ? "COPIED ✓" : "COPY ALL"}
@@ -290,8 +290,8 @@ export default function Home() {
   // ─── Rewrite bar (shared mobile/desktop) ────────────────────────────────
 
   const rewriteBar = (
-    <div className="shrink-0 border-t border-zinc-800/50 px-3 py-2" style={{ background: "#111318" }}>
-      <div className="flex flex-wrap gap-1">
+    <div className="shrink-0 border-t border-zinc-700/60 px-3 py-2.5" style={{ background: "#111318" }}>
+      <div className="flex flex-wrap gap-1.5">
         {REWRITE_MODES.map(([mode, label]) => {
           const isLoading = loadingMode === mode;
           const isDisabled = !!loadingMode;
@@ -300,12 +300,12 @@ export default function Home() {
               key={mode}
               onClick={() => handleRewrite(mode)}
               disabled={isDisabled}
-              className={`px-2 py-0.5 text-[10px] font-mono border rounded transition-colors disabled:cursor-not-allowed ${
+              className={`px-3 py-1 text-xs font-mono border rounded transition-colors disabled:cursor-not-allowed ${
                 isLoading
-                  ? "border-cyan-700 text-cyan-400 bg-cyan-950/40 animate-pulse"
+                  ? "border-cyan-600 text-cyan-400 bg-cyan-950/40 animate-pulse"
                   : isDisabled
-                  ? "border-zinc-800 text-zinc-700"
-                  : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-200"
+                  ? "border-zinc-800 text-zinc-600"
+                  : "border-zinc-600 text-zinc-300 hover:border-cyan-600 hover:text-cyan-300 hover:bg-cyan-950/20"
               }`}
             >
               {isLoading ? "…" : label}
@@ -313,18 +313,18 @@ export default function Home() {
           );
         })}
       </div>
-      <div className="flex items-start gap-2 mt-1.5 min-h-[1rem]">
+      <div className="flex items-start gap-2 mt-2 min-h-[1.25rem]">
         {rewriteSource && (
-          <span className={`shrink-0 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+          <span className={`shrink-0 text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${
             rewriteSource === "claude"
               ? "border-cyan-700 text-cyan-400 bg-cyan-950/40"
-              : "border-zinc-700 text-zinc-500 bg-zinc-900/40"
+              : "border-zinc-600 text-zinc-400 bg-zinc-900/40"
           }`}>
             {rewriteSource === "claude" ? "Claude AI" : "ルールベース"}
           </span>
         )}
         {rewriteNotes && (
-          <p className="text-[9px] font-mono text-zinc-500 leading-relaxed line-clamp-2">
+          <p className="text-[11px] font-mono text-zinc-400 leading-relaxed line-clamp-2">
             {rewriteNotes}
           </p>
         )}
@@ -357,7 +357,7 @@ export default function Home() {
         <span className="font-mono font-bold text-[13px] text-cyan-400 neon-cyan tracking-widest">
           MORA<span className="text-zinc-700">.</span>exe
         </span>
-        <span className="text-zinc-700 font-mono text-[9px] tracking-[0.2em] hidden sm:block">
+        <span className="text-zinc-500 font-mono text-[11px] tracking-[0.2em] hidden sm:block">
           SUNO PROMPT FORGE
         </span>
 
@@ -372,12 +372,12 @@ export default function Home() {
 
         <div className="ml-auto flex items-center gap-3">
           {isSample && (
-            <span className="text-[9px] font-mono text-zinc-700 tracking-wider hidden sm:block">
+            <span className="text-[11px] font-mono text-zinc-500 tracking-wider hidden sm:block">
               SAMPLE — ▶ GENERATE でカスタム生成
             </span>
           )}
           {score !== null && (
-            <span className={`text-[11px] font-mono font-bold tabular-nums ${sColor}`}>
+            <span className={`text-sm font-mono font-bold tabular-nums ${sColor}`}>
               SCORE {score}
             </span>
           )}
@@ -409,7 +409,7 @@ export default function Home() {
             className="shrink-0 h-8 border-b border-zinc-800 flex items-center px-3"
             style={{ background: "#17171c" }}
           >
-            <span className="text-[9px] font-mono text-zinc-500 tracking-[0.2em]">CONCEPT</span>
+            <span className="text-xs font-mono text-zinc-400 tracking-[0.2em]">CONCEPT</span>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto p-3">
             <ConceptInput
@@ -426,7 +426,7 @@ export default function Home() {
           style={{ background: "#13151b" }}
         >
           <PanelHeader>
-            <span className="flex items-center px-3 text-[9px] font-mono text-zinc-400 tracking-[0.2em]">
+            <span className="flex items-center px-3 text-xs font-mono text-zinc-300 tracking-[0.2em]">
               STYLE PROMPT
             </span>
             {isSample && <SampleBadge />}
@@ -448,7 +448,7 @@ export default function Home() {
             style={{ background: "#10111a" }}
           >
             <div className="flex items-center px-4 pt-2 pb-1 gap-2">
-              <span className="text-[9px] font-mono text-zinc-500 tracking-[0.15em]">NEGATIVE</span>
+              <span className="text-xs font-mono text-zinc-400 tracking-[0.15em]">NEGATIVE</span>
               <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
             </div>
             <textarea
@@ -502,7 +502,7 @@ export default function Home() {
         {mobileTab === "prompt" && (
           <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#13151b" }}>
             <PanelHeader>
-              <span className="flex items-center px-3 text-[9px] font-mono text-zinc-400 tracking-widest">STYLE PROMPT</span>
+              <span className="flex items-center px-3 text-xs font-mono text-zinc-300 tracking-widest">STYLE PROMPT</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
             </PanelHeader>
@@ -512,7 +512,7 @@ export default function Home() {
         {mobileTab === "lyrics" && (
           <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#131219" }}>
             <PanelHeader>
-              <span className="flex items-center px-3 text-[9px] font-mono text-zinc-400 tracking-widest">LYRICS</span>
+              <span className="flex items-center px-3 text-xs font-mono text-zinc-300 tracking-widest">LYRICS</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={lyrics} label="COPY" /></div>
             </PanelHeader>
@@ -528,7 +528,7 @@ export default function Home() {
         className="relative z-20 shrink-0 h-9 border-t border-zinc-800/80 flex items-center px-4 gap-2"
         style={{ background: "#0f0f14" }}
       >
-        <span className="text-[9px] font-mono text-zinc-500 tracking-[0.2em] shrink-0">OUTPUT</span>
+        <span className="text-xs font-mono text-zinc-400 tracking-[0.2em] shrink-0">OUTPUT</span>
         <div className="w-px h-3 bg-zinc-800 mx-1 shrink-0" />
         <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
           <CopyBtn text={stylePrompt} label="STYLE" />
