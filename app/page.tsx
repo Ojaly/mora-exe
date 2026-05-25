@@ -188,6 +188,7 @@ export default function Home() {
   const [collapseRisks, setRisks]   = useState<CollapseRisk[]>([]);
   const [songStats, setStats]       = useState<SongStats | null>(null);
   const [loadingMode, setLoadingMode] = useState<RewriteMode | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [rewriteNotes, setRewriteNotes] = useState<string>("");
   const [rewriteSource, setRewriteSource] = useState<"claude" | "rule" | null>(null);
   const [changedLines, setChangedLines] = useState<number[]>([]);
@@ -204,15 +205,40 @@ export default function Home() {
     setSugs(generateMoraSuggestions(txt));
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     const sp = buildStylePrompt(input, preset);
     const np = buildNegativePrompt(input);
     const rp = buildRegeneratePrompt(input);
-    const ly = draftToRaw(buildLyricsDraft(input));
     setStyle(sp); setNeg(np); setRegen(rp);
-    setLyricsRaw(ly); analyse(ly);
     setIsSample(false);
     setMobile("prompt"); setRight("lyrics");
+    setChangedLines([]);
+    setRewriteNotes("");
+    setRewriteSource(null);
+    setIsGenerating(true);
+
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songInput: input }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.lyrics) {
+          setLyricsRaw(data.lyrics);
+          analyse(data.lyrics);
+          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("claude"); }
+          setIsGenerating(false);
+          return;
+        }
+      }
+    } catch { /* fallthrough */ }
+
+    // フォールバック: ルールベース
+    const ly = draftToRaw(buildLyricsDraft(input));
+    setLyricsRaw(ly); analyse(ly);
+    setIsGenerating(false);
   };
 
   const handleLyrics = (v: string) => {
@@ -416,6 +442,7 @@ export default function Home() {
               input={input} onChange={setInput}
               preset={preset} onPresetChange={setPreset}
               onGenerate={handleGenerate} compact
+              isGenerating={isGenerating}
             />
           </div>
         </aside>
