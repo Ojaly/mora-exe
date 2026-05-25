@@ -17,22 +17,22 @@ body {
 /* Thin IDE-style scrollbars */
 ::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2d2d32; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #52525b; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
-/* Hide scrollbar utility (footer overflow strip) */
+/* Hide scrollbar utility */
 .hide-scrollbar { scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* Legacy .panel — used inside MoraTunerPanel sub-components */
+/* Legacy .panel — used inside sub-panels */
 .panel {
-  background: rgba(15, 15, 17, 0.9);
+  background: rgba(13, 13, 16, 0.95);
   border: 1px solid #27272a;
   border-radius: 4px;
   padding: 12px;
 }
 
-/* Neon glow */
+/* Glow effects */
 .neon-cyan { text-shadow: 0 0 8px rgba(6,182,212,0.55), 0 0 22px rgba(6,182,212,0.2); }
 .neon-pink { text-shadow: 0 0 6px rgba(236,72,153,0.5), 0 0 16px rgba(236,72,153,0.2); }
 
@@ -40,11 +40,32 @@ body {
 .scanlines {
   background: repeating-linear-gradient(
     0deg, transparent, transparent 2px,
-    rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 3px
+    rgba(0,0,0,0.022) 2px, rgba(0,0,0,0.022) 3px
   );
   pointer-events: none;
 }
 
-/* Textarea caret */
+/* ── Textarea caret ───────────────────────────────────────────────────────── */
 textarea { caret-color: #22d3ee; }
-textarea::selection { background: rgba(6,182,212,0.14); }
+
+/* ── PromptEditor token colors ────────────────────────────────────────────── */
+
+/* [Tag:] — cyan accent */
+.pe-tag  { color: #22d3ee; }
+/* tag value — near-white */
+.pe-val  { color: #e2e8f0; }
+/* bare section like [Structure:] sub-items */
+.pe-section { color: #7dd3fc; }
+/* comments / other lines */
+.pe-plain { color: #71717a; }
+
+/* ── LyricsEditor token colors ────────────────────────────────────────────── */
+
+/* [Chorus], [Verse 1] etc. — violet, bold, slightly dimmed */
+.le-tag  {
+  color: #a78bfa;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+/* Regular lyric lines — warm near-white */
+.le-line { color: #e4e4e7; }
