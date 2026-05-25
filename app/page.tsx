@@ -190,6 +190,7 @@ export default function Home() {
   const [loadingMode, setLoadingMode] = useState<RewriteMode | null>(null);
   const [rewriteNotes, setRewriteNotes] = useState<string>("");
   const [rewriteSource, setRewriteSource] = useState<"claude" | "rule" | null>(null);
+  const [changedLines, setChangedLines] = useState<number[]>([]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -241,6 +242,7 @@ export default function Home() {
       analyse(result.rewrittenLyrics);
       setRewriteNotes(result.notes ?? "");
       setRewriteSource("claude");
+      setChangedLines(result.changedLines ?? []);
     } else {
       // APIキー未設定 or エラー → ルールベースフォールバック
       const v = applyRewriteMode(lyrics, mode);
@@ -248,6 +250,7 @@ export default function Home() {
       analyse(v);
       setRewriteNotes("");
       setRewriteSource("rule");
+      setChangedLines([]);
     }
 
     if (isSample) setIsSample(false);
@@ -481,6 +484,7 @@ export default function Home() {
                 value={lyrics}
                 onChange={handleLyricsEdit}
                 isSample={isSample}
+                changedLines={changedLines}
               />
               {rewriteBar}
             </>

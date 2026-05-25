@@ -69,3 +69,8 @@ textarea { caret-color: #38bdf8; }
 }
 /* Regular lyric lines — slate-100, near-white for long-form reading */
 .le-line { color: #f1f5f9; }
+/* Claude-changed lines — cyan glow */
+.le-changed {
+  color: #67e8f9;
+  text-shadow: 0 0 8px rgba(103, 232, 249, 0.4);
+}

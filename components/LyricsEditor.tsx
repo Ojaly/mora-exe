@@ -6,6 +6,7 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   isSample?: boolean;
+  changedLines?: number[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -14,18 +15,23 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function highlight(text: string): string {
+function highlight(text: string, changedLines: number[]): string {
+  const changed = new Set(changedLines);
+  let lineNum = 0;
   return text
     .split("\n")
     .map((line) => {
       const trimmed = line.trim();
-      if (!trimmed) return " "; // preserve blank line height
+      if (!trimmed) return " ";
 
-      // Section tag: [Verse 1], [Chorus], [Bridge] etc.
       if (/^\[[^\]]+\]$/.test(trimmed)) {
         return `<span class="le-tag">${esc(line)}</span>`;
       }
 
+      lineNum++;
+      if (changed.has(lineNum)) {
+        return `<span class="le-changed">${esc(line)}</span>`;
+      }
       return `<span class="le-line">${esc(line)}</span>`;
     })
     .join("\n");
@@ -37,7 +43,7 @@ const MONO = "font-mono text-[15px] leading-[2]";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function LyricsEditor({ value, onChange, isSample }: Props) {
+export default function LyricsEditor({ value, onChange, isSample, changedLines = [] }: Props) {
   const lineNumRef = useRef<HTMLDivElement>(null);
   const preRef     = useRef<HTMLPreElement>(null);
   const taRef      = useRef<HTMLTextAreaElement>(null);
@@ -74,7 +80,7 @@ export default function LyricsEditor({ value, onChange, isSample }: Props) {
           aria-hidden="true"
           className={`absolute inset-0 px-4 py-4 ${MONO} whitespace-pre-wrap break-words pointer-events-none select-none`}
           style={{ overflow: "hidden" }}
-          dangerouslySetInnerHTML={{ __html: highlight(value) }}
+          dangerouslySetInnerHTML={{ __html: highlight(value, changedLines) }}
         />
 
         {/* Transparent edit layer */}
