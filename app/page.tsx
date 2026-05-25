@@ -4,13 +4,18 @@ import { useState } from "react";
 import InputForm from "@/components/InputForm";
 import StylePrompt from "@/components/StylePrompt";
 import MoraTable from "@/components/MoraTable";
+import MoraHeatmap from "@/components/MoraHeatmap";
 import PhraseWarnings from "@/components/PhraseWarnings";
 import ImprovementMemo from "@/components/ImprovementMemo";
 import AIPanel from "@/components/AIPanel";
-import { SongInput, AnalysisResult, AIImprovement } from "@/types";
-import { analyzeLyrics } from "@/lib/moraAnalyzer";
-import { detectAiPhrases } from "@/lib/phraseDetector";
+import CollapseReport from "@/components/CollapseReport";
+import SongStats from "@/components/SongStats";
+import WorldPresetSelector from "@/components/WorldPresetSelector";
+import { SongInput, AnalysisResult, AIImprovement, WorldPresetKey } from "@/types";
+import { analyzeLyrics, calcSongStats } from "@/lib/moraAnalyzer";
+import { detectAiPhrases, detectSyntaxPatterns } from "@/lib/phraseDetector";
 import { buildStylePrompt, buildImprovementMemo } from "@/lib/promptBuilder";
+import { predictCollapse } from "@/lib/collapsePredictor";
 
 const defaultInput: SongInput = {
   title: "",
@@ -22,10 +27,12 @@ const defaultInput: SongInput = {
   startWithChorus: false,
   englishRatio: "low",
   avoidAiCliche: false,
+  worldPreset: "",
 };
 
 export default function Home() {
   const [input, setInput] = useState<SongInput>(defaultInput);
+  const [preset, setPreset] = useState<WorldPresetKey | "">("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [aiResult, setAiResult] = useState<AIImprovement | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -33,22 +40,24 @@ export default function Home() {
   const handleAnalyze = () => {
     const moraLines = analyzeLyrics(input.lyrics);
     const phraseMatches = detectAiPhrases(input.lyrics);
-    const stylePrompt = buildStylePrompt(input);
+    const syntaxMatches = detectSyntaxPatterns(input.lyrics);
+    const collapseRisks = predictCollapse(input.lyrics, moraLines);
+    const stylePrompt = buildStylePrompt(input, preset);
+    const songStats = calcSongStats(moraLines, input.lyrics);
+
     const longLines = moraLines.filter((l) => l.danger === "long").length;
     const shortLines = moraLines.filter(
       (l) => l.danger === "short" && l.warning !== "空行" && l.warning !== "メタタグ行"
     ).length;
     const improvementMemo = buildImprovementMemo(input, longLines, shortLines);
-    setResult({ stylePrompt, moraLines, phraseMatches, improvementMemo });
+
+    setResult({ stylePrompt, moraLines, phraseMatches, syntaxMatches, collapseRisks, improvementMemo, songStats });
     setAiResult(null);
   };
 
   const handleAiGenerate = async () => {
-    if (!result) return;
     setAiLoading(true);
     try {
-      // AI provider 未実装のため、現時点では呼ばれない
-      // 将来: const provider = getProvider("claude"); result = await provider.analyze(...)
       await new Promise((r) => setTimeout(r, 100));
     } finally {
       setAiLoading(false);
@@ -56,64 +65,81 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-          <span className="font-bold text-gray-900 tracking-tight text-lg">MORA.exe</span>
-          <span className="text-gray-300">|</span>
-          <span className="text-gray-400 text-xs">Suno Prompt Engineer</span>
-          <div className="ml-auto">
-            <span className="text-xs text-gray-400 border border-gray-200 rounded px-2 py-1">
-              v0.1 — rule-based
-            </span>
+    <div className="min-h-screen bg-zinc-950 relative">
+      {/* Scanline overlay */}
+      <div className="fixed inset-0 scanlines pointer-events-none z-0 opacity-40" />
+
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <header className="relative z-10 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm sticky top-0">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-3 flex-wrap">
+          <span className="font-mono font-bold text-base text-cyan-400 neon-cyan tracking-widest">
+            MORA<span className="text-zinc-600">.</span>exe
+          </span>
+          <span className="text-zinc-700 font-mono text-xs hidden sm:block">
+            Suno Prompt Engineer v0.2
+          </span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+            {result && <SongStats stats={result.songStats} />}
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div
-          className={`grid gap-8 ${
-            result ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 max-w-xl mx-auto"
-          }`}
-        >
-          {/* Input Panel */}
-          <section>
-            <h1 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-              Input
-            </h1>
-            <div className="border border-gray-200 rounded-lg p-5">
+      {/* ── Main ─────────────────────────────────────────────────── */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 py-5">
+        <div className={`grid gap-4 ${result ? "grid-cols-1 lg:grid-cols-[360px_1fr]" : "grid-cols-1 max-w-sm mx-auto"}`}>
+
+          {/* ── Left: Input ── */}
+          <aside className="space-y-3">
+            <div className="panel">
+              <WorldPresetSelector selected={preset} onChange={setPreset} />
+            </div>
+            <div className="panel">
+              <p className="text-xs text-zinc-500 font-mono tracking-widest mb-3">// INPUT</p>
               <InputForm input={input} onChange={setInput} onAnalyze={handleAnalyze} />
             </div>
-          </section>
+          </aside>
 
-          {/* Results Panel */}
+          {/* ── Right: Results ── */}
           {result && (
-            <section className="space-y-5">
-              <h1 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Results{input.title && <span className="font-normal ml-2 text-gray-300">— {input.title}</span>}
-              </h1>
-
-              <div className="border border-gray-200 rounded-lg p-5">
+            <section className="space-y-3 min-w-0">
+              {/* Style Prompt */}
+              <div className="panel">
                 <StylePrompt prompt={result.stylePrompt} />
               </div>
 
-              <div className="border border-gray-200 rounded-lg p-5">
+              {/* Collapse + Heatmap in 2 col on wide screens */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="panel">
+                  <CollapseReport risks={result.collapseRisks} />
+                </div>
+                <div className="panel">
+                  <MoraHeatmap lines={result.moraLines} />
+                </div>
+              </div>
+
+              {/* Mora Table */}
+              <div className="panel">
                 <MoraTable lines={result.moraLines} />
               </div>
 
-              <div className="border border-gray-200 rounded-lg p-5">
-                <PhraseWarnings matches={result.phraseMatches} />
+              {/* Phrase Detection */}
+              <div className="panel">
+                <PhraseWarnings
+                  phraseMatches={result.phraseMatches}
+                  syntaxMatches={result.syntaxMatches}
+                />
               </div>
 
+              {/* Improvement Memo */}
               {result.improvementMemo.length > 0 && (
-                <div className="border border-gray-200 rounded-lg p-5">
+                <div className="panel">
                   <ImprovementMemo memos={result.improvementMemo} />
                 </div>
               )}
 
               {/* AI Panel */}
-              <div className="border border-gray-200 rounded-lg p-5">
+              <div className="panel">
                 <AIPanel
                   onGenerate={handleAiGenerate}
                   result={aiResult}
@@ -125,15 +151,15 @@ export default function Home() {
         </div>
 
         {!result && (
-          <p className="mt-6 text-center text-gray-400 text-xs">
-            入力して「Analyze &amp; Generate」を押してください
+          <p className="mt-5 text-center text-zinc-700 text-xs font-mono">
+            ↑ 入力して [ ANALYZE ] を押してください
           </p>
         )}
       </main>
 
-      <footer className="border-t border-gray-100 mt-16 py-5 text-center">
-        <p className="text-gray-300 text-xs">
-          MORA.exe v0.1 — rule-based mora analysis engine
+      <footer className="relative z-10 border-t border-zinc-900 mt-10 py-4 text-center">
+        <p className="text-zinc-800 text-[10px] font-mono">
+          MORA.exe v0.2 — rule-based mora analysis engine + collapse predictor
         </p>
       </footer>
     </div>

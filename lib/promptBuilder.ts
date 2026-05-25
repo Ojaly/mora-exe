@@ -1,20 +1,12 @@
-import { SongInput } from "@/types";
+import { SongInput, WorldPresetKey } from "@/types";
+import { WORLD_PRESETS } from "@/lib/worldPresets";
 
 const GENRE_MAP: Record<string, string> = {
-  jpop: "J-Pop",
-  jrock: "J-Rock",
-  city: "City Pop",
-  anime: "Anime OST",
-  vocaloid: "Vocaloid-style",
-  electronic: "Electronic / Synth-pop",
-  rnb: "R&B / Soul",
-  hiphop: "Hip-Hop / Trap",
-  folk: "Folk / Acoustic",
-  metal: "Metal / Hard Rock",
-  jazz: "Jazz / Neo-Soul",
-  ambient: "Ambient / Atmospheric",
+  jpop: "J-Pop", jrock: "J-Rock", city: "City Pop", anime: "Anime OST",
+  vocaloid: "Vocaloid-style", electronic: "Electronic / Synth-pop",
+  rnb: "R&B / Soul", hiphop: "Hip-Hop / Trap", folk: "Folk / Acoustic",
+  metal: "Metal / Hard Rock", jazz: "Jazz / Neo-Soul", ambient: "Ambient / Atmospheric",
 };
-
 const MOOD_MAP: Record<string, string> = {
   melancholic: "melancholic, introspective, bittersweet",
   energetic: "energetic, driving, kinetic",
@@ -27,7 +19,6 @@ const MOOD_MAP: Record<string, string> = {
   epic: "epic, cinematic, grandiose",
   chill: "chill, laid-back, smooth",
 };
-
 const VOCAL_MAP: Record<string, string> = {
   female: "female vocal, clear and expressive",
   male: "male vocal, gritty and emotive",
@@ -37,7 +28,6 @@ const VOCAL_MAP: Record<string, string> = {
   rap: "rap vocal, rhythmic and punchy",
   vocaloid: "synthetic vocal, Vocaloid-style timbre",
 };
-
 const INSTRUMENTS_MAP: Record<string, string> = {
   jpop: "piano, synth pads, light drums, bass",
   jrock: "electric guitar, bass, drums, power chords",
@@ -52,7 +42,6 @@ const INSTRUMENTS_MAP: Record<string, string> = {
   jazz: "upright bass, jazz piano, brushed snare, muted trumpet",
   ambient: "sustained pads, field recordings, slow evolving textures",
 };
-
 const TEXTURE_MAP: Record<string, string> = {
   melancholic: "sparse, intimate, wide reverb",
   energetic: "dense, layered, punchy transients",
@@ -65,7 +54,6 @@ const TEXTURE_MAP: Record<string, string> = {
   epic: "wide stereo field, orchestral depth, dynamic swells",
   chill: "smooth compression, gentle low-pass, soft transients",
 };
-
 const MIX_MAP: Record<string, string> = {
   jpop: "polished J-Pop mix, clear vocals up front",
   jrock: "guitar-forward rock mix, punchy low-end",
@@ -85,14 +73,25 @@ function grooveFromBpm(bpm: string): string {
   return "fast, intense, relentless pace";
 }
 
-export function buildStylePrompt(input: SongInput): string {
+export function buildStylePrompt(
+  input: SongInput,
+  preset?: WorldPresetKey | ""
+): string {
+  const activePreset = preset ? WORLD_PRESETS[preset as WorldPresetKey] : null;
+
   const genre = GENRE_MAP[input.genre] ?? input.genre;
   const mood = MOOD_MAP[input.mood] ?? input.mood;
   const vocal = VOCAL_MAP[input.vocalType] ?? input.vocalType;
   const groove = grooveFromBpm(input.bpm);
-  const instruments = INSTRUMENTS_MAP[input.genre] ?? "piano, synth pads, drums, bass";
-  const texture = TEXTURE_MAP[input.mood] ?? "balanced texture, moderate reverb";
-  const mix = (MIX_MAP[input.genre] ?? "clean modern mix, professional master") +
+
+  const instruments = activePreset?.styleOverrides.instruments
+    ?? INSTRUMENTS_MAP[input.genre]
+    ?? "piano, synth pads, drums, bass";
+  const texture = activePreset?.styleOverrides.texture
+    ?? TEXTURE_MAP[input.mood]
+    ?? "balanced texture, moderate reverb";
+  const mix =
+    (MIX_MAP[input.genre] ?? "clean modern mix, professional master") +
     (input.avoidAiCliche ? ", avoid synthetic vocal artifacts" : "");
 
   const language =
@@ -116,8 +115,13 @@ export function buildStylePrompt(input: SongInput): string {
     `[Language:] ${language}`,
   ];
 
+  if (activePreset?.styleOverrides.note) {
+    lines.push(`[World Aesthetic:] ${activePreset.styleOverrides.note}`);
+  }
   if (input.avoidAiCliche) {
-    lines.push("[Note:] Avoid generic AI clichés — use unexpected imagery, raw emotion over polish");
+    lines.push(
+      "[Note:] Avoid generic AI clichés — use unexpected imagery, raw emotion over polish"
+    );
   }
 
   return lines.join("\n");
@@ -130,14 +134,14 @@ export function buildImprovementMemo(
 ): string[] {
   const memo: string[] = [];
   if (longLines > 0)
-    memo.push(`歌詞に長すぎる行が ${longLines} 行あります。各行を2行に分割するか、単語数を削減してください。`);
+    memo.push(`歌詞に長すぎる行が ${longLines} 行あります。各行を2行に分割するか単語数を削減してください。`);
   if (shortLines > 0)
-    memo.push(`歌詞に短すぎる行が ${shortLines} 行あります。補足フレーズを追加するか、前後の行と統合を検討してください。`);
+    memo.push(`歌詞に短すぎる行が ${shortLines} 行あります。前後の行と統合か補足フレーズの追加を検討してください。`);
   if (input.avoidAiCliche)
     memo.push("AI臭さ回避モードON：具体的なイメージ語・固有名詞・感覚描写を増やすと効果的です。");
   if (input.englishRatio === "high")
     memo.push("英語比率が高い設定です。SunoはネイティブEN歌詞に最適化されているため、発音・リズムを意識してください。");
   if (input.startWithChorus)
-    memo.push("サビ頭構成：Sunoに [chorus] タグを冒頭に置くとサビから始まります。インパクト重視の歌詞を用意してください。");
+    memo.push("サビ頭構成：[chorus] タグを冒頭に置くとサビから始まります。インパクト重視の歌詞を用意してください。");
   return memo;
 }

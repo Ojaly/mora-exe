@@ -18,21 +18,19 @@ export default function StylePrompt({ prompt }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Suno Style Prompt
-        </h2>
+        <p className="text-xs text-zinc-500 font-mono tracking-widest">// STYLE PROMPT</p>
         <button
           onClick={handleCopy}
-          className={`px-3 py-1 text-xs rounded border transition-colors ${
+          className={`px-2 py-1 text-[10px] font-mono rounded border transition-colors ${
             copied
-              ? "border-green-600 text-green-600 bg-green-50"
-              : "border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900"
+              ? "border-emerald-600 text-emerald-400"
+              : "border-zinc-700 text-zinc-500 hover:border-cyan-600 hover:text-cyan-400"
           }`}
         >
-          {copied ? "Copied!" : "Copy"}
+          {copied ? "[COPIED]" : "[COPY]"}
         </button>
       </div>
-      <pre className="bg-gray-50 border border-gray-200 rounded p-4 text-sm text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
+      <pre className="bg-zinc-900 border border-zinc-800 rounded p-3 text-xs text-zinc-300 whitespace-pre-wrap font-mono leading-relaxed">
         {prompt}
       </pre>
     </div>

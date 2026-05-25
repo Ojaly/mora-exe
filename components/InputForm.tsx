@@ -8,67 +8,52 @@ interface Props {
   onAnalyze: () => void;
 }
 
-const labelClass = "block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider";
-const inputClass =
-  "w-full bg-white border border-gray-300 text-gray-900 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-900 transition-colors";
+const L = "block text-[10px] font-mono text-zinc-500 mb-1 tracking-widest uppercase";
+const I =
+  "w-full bg-zinc-900 border border-zinc-700 text-zinc-200 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-cyan-600 transition-colors placeholder:text-zinc-700";
 
 export default function InputForm({ input, onChange, onAnalyze }: Props) {
   const set =
-    (key: keyof SongInput) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      onChange({ ...input, [key]: e.target.value });
-    };
+    (k: keyof SongInput) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      onChange({ ...input, [k]: e.target.value });
   const setCheck =
-    (key: keyof SongInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...input, [key]: e.target.checked });
-    };
+    (k: keyof SongInput) => (e: React.ChangeEvent<HTMLInputElement>) =>
+      onChange({ ...input, [k]: e.target.checked });
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>曲タイトル</label>
-          <input
-            className={inputClass}
-            value={input.title}
-            onChange={set("title")}
-            placeholder="例: 夜明けの残骸"
-          />
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="col-span-2">
+          <label className={L}>Title</label>
+          <input className={I} value={input.title} onChange={set("title")} placeholder="曲タイトル" />
         </div>
         <div>
-          <label className={labelClass}>ジャンル</label>
-          <select className={inputClass} value={input.genre} onChange={set("genre")}>
-            <option value="">選択...</option>
+          <label className={L}>Genre</label>
+          <select className={I} value={input.genre} onChange={set("genre")}>
+            <option value="">—</option>
             <option value="jpop">J-Pop</option>
             <option value="jrock">J-Rock</option>
             <option value="city">City Pop</option>
             <option value="anime">Anime OST</option>
-            <option value="vocaloid">Vocaloid-style</option>
-            <option value="electronic">Electronic / Synth-pop</option>
-            <option value="rnb">R&amp;B / Soul</option>
-            <option value="hiphop">Hip-Hop / Trap</option>
-            <option value="folk">Folk / Acoustic</option>
-            <option value="metal">Metal / Hard Rock</option>
-            <option value="jazz">Jazz / Neo-Soul</option>
+            <option value="vocaloid">Vocaloid</option>
+            <option value="electronic">Electronic</option>
+            <option value="rnb">R&amp;B</option>
+            <option value="hiphop">Hip-Hop</option>
+            <option value="folk">Folk</option>
+            <option value="metal">Metal</option>
+            <option value="jazz">Jazz</option>
             <option value="ambient">Ambient</option>
           </select>
         </div>
         <div>
-          <label className={labelClass}>BPM</label>
-          <input
-            className={inputClass}
-            value={input.bpm}
-            onChange={set("bpm")}
-            placeholder="例: 128"
-            type="number"
-            min="40"
-            max="240"
-          />
+          <label className={L}>BPM</label>
+          <input className={I} type="number" min="40" max="240" value={input.bpm} onChange={set("bpm")} placeholder="120" />
         </div>
         <div>
-          <label className={labelClass}>雰囲気</label>
-          <select className={inputClass} value={input.mood} onChange={set("mood")}>
-            <option value="">選択...</option>
+          <label className={L}>Mood</label>
+          <select className={I} value={input.mood} onChange={set("mood")}>
+            <option value="">—</option>
             <option value="melancholic">メランコリック</option>
             <option value="energetic">エネルギッシュ</option>
             <option value="dreamy">ドリーミー</option>
@@ -82,65 +67,55 @@ export default function InputForm({ input, onChange, onAnalyze }: Props) {
           </select>
         </div>
         <div>
-          <label className={labelClass}>ボーカルタイプ</label>
-          <select className={inputClass} value={input.vocalType} onChange={set("vocalType")}>
-            <option value="">選択...</option>
-            <option value="female">女性ボーカル</option>
-            <option value="male">男性ボーカル</option>
+          <label className={L}>Vocal</label>
+          <select className={I} value={input.vocalType} onChange={set("vocalType")}>
+            <option value="">—</option>
+            <option value="female">女性</option>
+            <option value="male">男性</option>
             <option value="duet">デュエット</option>
             <option value="choir">コーラス</option>
             <option value="falsetto">ファルセット</option>
             <option value="rap">ラップ</option>
-            <option value="vocaloid">Vocaloid風</option>
+            <option value="vocaloid">Vocaloid</option>
           </select>
         </div>
         <div>
-          <label className={labelClass}>英語比率</label>
-          <select className={inputClass} value={input.englishRatio} onChange={set("englishRatio")}>
-            <option value="low">低（主に日本語）</option>
-            <option value="mixed">中（日英混在）</option>
-            <option value="high">高（主に英語）</option>
+          <label className={L}>EN Ratio</label>
+          <select className={I} value={input.englishRatio} onChange={set("englishRatio")}>
+            <option value="low">低（JP主体）</option>
+            <option value="mixed">中（JP+EN）</option>
+            <option value="high">高（EN主体）</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label className={labelClass}>歌詞本文</label>
+        <label className={L}>Lyrics</label>
         <textarea
-          className={`${inputClass} h-48 resize-y font-mono text-xs leading-relaxed`}
+          className={`${I} h-40 resize-y leading-relaxed`}
           value={input.lyrics}
           onChange={set("lyrics")}
           placeholder={"[Verse]\n君の声が聞こえる\n遠くなる前に\n\n[Chorus]\nlose control\nfeel alive..."}
         />
-        <p className="text-gray-400 text-xs mt-1">[Verse] [Chorus] [Bridge] などのタグも入力可</p>
+        <p className="text-[10px] text-zinc-700 font-mono mt-1">[Verse] [Chorus] [Bridge] タグ対応</p>
       </div>
 
-      <div className="flex gap-6">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="w-4 h-4"
-            checked={input.startWithChorus}
-            onChange={setCheck("startWithChorus")}
-          />
-          <span className="text-sm text-gray-700">サビ頭構成にする</span>
+      <div className="flex gap-4">
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" className="w-3 h-3 accent-cyan-500" checked={input.startWithChorus} onChange={setCheck("startWithChorus")} />
+          <span className="text-xs font-mono text-zinc-400">サビ頭</span>
         </label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="w-4 h-4"
-            checked={input.avoidAiCliche}
-            onChange={setCheck("avoidAiCliche")}
-          />
-          <span className="text-sm text-gray-700">AI臭さを避ける</span>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" className="w-3 h-3 accent-pink-500" checked={input.avoidAiCliche} onChange={setCheck("avoidAiCliche")} />
+          <span className="text-xs font-mono text-zinc-400">AI臭さ回避</span>
         </label>
       </div>
 
       <button
         onClick={onAnalyze}
-        className="w-full py-3 bg-gray-900 hover:bg-gray-700 text-white font-semibold text-sm rounded transition-colors"
+        className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-black font-mono font-bold text-xs tracking-widest rounded transition-colors"
       >
-        Analyze &amp; Generate
+        [ ANALYZE ]
       </button>
     </div>
   );
