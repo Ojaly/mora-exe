@@ -1,4 +1,4 @@
-import { RewriteMode, SongInput, MoraLine } from "@/types";
+import { RewriteMode, RewriteIntensity, SectionTarget, SongInput, MoraLine } from "@/types";
 
 export interface ClaudeRewriteResult {
   rewrittenLyrics: string;
@@ -12,7 +12,9 @@ export async function callClaudeRewrite(
   lyrics: string,
   stylePrompt: string,
   songInput: SongInput,
-  moraLines: MoraLine[]
+  moraLines: MoraLine[],
+  intensity: RewriteIntensity = "medium",
+  sectionTarget: SectionTarget = "all"
 ): Promise<ClaudeRewriteResult | null> {
   const moraWarnings = moraLines
     .filter((l) => l.danger === "long")
@@ -22,7 +24,16 @@ export async function callClaudeRewrite(
     const res = await fetch("/api/ai/rewrite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode, lyrics, stylePrompt, songInput, moraWarnings }),
+      body: JSON.stringify({
+        mode,
+        lyrics,
+        stylePrompt,
+        songInput,
+        moraWarnings,
+        intensity,
+        sectionTarget,
+        worldPreset: songInput.worldPreset || "",
+      }),
     });
     if (!res.ok) return null;
     return await res.json();

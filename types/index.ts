@@ -125,3 +125,25 @@ export type RewriteMode =
   | "darker"
   | "danceable"
   | "ojaly";
+
+export type RewriteIntensity = "subtle" | "medium" | "aggressive";
+
+export type SectionTarget = "all" | "chorus" | "verse" | "pre-chorus" | "bridge";
+
+export interface HistoryEntry {
+  lyrics: string;
+  label: string;
+  ts: number;
+}
+
+export interface PromptMemory {
+  id: string;
+  ts: number;
+  memo: string;
+  title: string;
+  songInput: SongInput;
+  stylePrompt: string;
+  lyrics: string;
+  worldPreset: WorldPresetKey | "";
+  score: number | null;
+}

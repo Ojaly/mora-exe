@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { SongInput } from "@/types";
+import { SongInput, WorldPresetKey } from "@/types";
+import { WORLD_PRESETS } from "@/lib/worldPresets";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,34 @@ function buildSections(input: SongInput): string {
 }
 
 function langInstruction(ratio: string): string {
-  if (ratio === "high") return "Write mostly in English (80%+). Japanese phrases are ok for flavor.";
+  if (ratio === "high") return "Write mostly in English (80%+). Japanese phrases ok for flavor.";
   if (ratio === "mixed") return "Mix Japanese and English roughly half/half. Alternate lines or sections.";
-  return "Write mostly in Japanese (80%+). English phrases are ok for flavor.";
+  return "Write mostly in Japanese (80%+). English phrases ok for flavor.";
 }
+
+const SYSTEM_PROMPT = `You are a Suno AI lyricist writing for professional music production.
+
+HARD RULES:
+- Section tags REQUIRED, written exactly: [Intro] [Verse 1] [Verse 2] [Pre-Chorus] [Chorus] [Bridge] [Outro]
+- Japanese lines: mora count 4–14 (ideal 6–12). Never write run-on lines.
+- Chorus: short, emotionally direct, singable, built for repetition. 2–4 lines max.
+- Blank line after each section's content, before the next tag.
+- Lines per section: Intro 2–3, Verse 4–6, Pre-Chorus 2–3, Chorus 3–5, Bridge 3–4, Outro 2–3
+
+BANNED: "lose control" "feel alive" "in my veins" "break free" "take me higher" "warrior" "rise above" "burning inside" "meant to be" "forever and always"
+
+QUALITY:
+- The theme/world is the subject. Every line must connect to it. No generic filler.
+- Emotional density over decoration. Concrete imagery over abstract sentiment.
+- Chorus lines must be memorable in isolation — singable, repeatable, unforgettable.
+- Verse lines build a scene. Pre-chorus raises tension. Bridge shifts perspective.
+- No cringe poetic clichés. No over-explanation. Trust the image.
+
+OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
+{
+  "lyrics": "<complete lyrics with all section tags and blank lines between sections>",
+  "notes": "<1–2 sentence Japanese note on how the theme was reflected>"
+}`;
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -35,22 +60,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const systemPrompt = `You are a professional Suno AI lyricist. Write song lyrics that directly reflect the given theme and world.
-
-RULES:
-- Section tags are REQUIRED and must be written exactly: [Intro], [Verse 1], [Verse 2], [Pre-Chorus], [Chorus], [Bridge], [Outro]
-- Japanese lines: keep mora count 4–14 (ideal 6–12). Never write long run-on lines.
-- Chorus lines: short, emotionally direct, singable, built for repetition (2–4 lines max per chorus)
-- NEVER use AI clichés: "lose control", "feel alive", "in my veins", "break free", "take me higher", "warrior", "rise above"
-- The theme/world given by the user MUST be the central subject — do not write generic love songs
-- Each section needs a blank line after it before the next section tag
-- Keep the number of lines per section reasonable: Intro 2–3, Verse 4–6, Pre-Chorus 2–3, Chorus 3–5, Bridge 3–4, Outro 2–3
-
-OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
-{
-  "lyrics": "<complete lyrics with all section tags and blank lines between sections>",
-  "notes": "<1–2 sentence Japanese note about how the theme was reflected>"
-}`;
+  const presetDeep = input.worldPreset
+    ? (WORLD_PRESETS[input.worldPreset as WorldPresetKey]?.deepPrompt ?? "")
+    : "";
 
   const userPrompt = `Generate lyrics for this song:
 
@@ -62,12 +74,13 @@ VOCAL: ${input.vocalType}
 BPM: ${input.bpm || "120"}
 KEY: ${input.key || "Am"}
 SONG LENGTH: ${input.songLength}
-LANGUAGE RATIO: ${langInstruction(input.englishRatio)}
+LANGUAGE: ${langInstruction(input.englishRatio)}
 REFERENCE VIBE: ${input.referenceVibe || "(none)"}
 AVOID: ${input.avoidExpressions || "(none)"}
 STRUCTURE: ${buildSections(input)}
+${presetDeep ? `\nWORLD PRESET LENS: ${presetDeep}` : ""}
 
-The lyrics must be DIRECTLY ABOUT the theme "${input.theme || input.title}". Do not write generic lyrics — make every line tied to the world described.
+The theme "${input.theme || input.title}" is the entire subject. Write FROM inside this world, not about it from outside. Every line must be traceable to the theme.
 
 Return JSON only.`;
 
@@ -77,14 +90,15 @@ Return JSON only.`;
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
-      system: systemPrompt,
+      system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
     });
 
     const content = message.content[0];
     if (content.type !== "text") throw new Error("Unexpected response type");
 
-    const raw = content.text.trim()
+    const raw = content.text
+      .trim()
       .replace(/^```(?:json)?\n?/, "")
       .replace(/\n?```$/, "");
 
