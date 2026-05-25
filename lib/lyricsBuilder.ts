@@ -480,15 +480,11 @@ const EN_LINES: Record<string, Partial<MoodPool>> = {
 };
 
 function pickLines(pool: string[], count: number, seed: number): string[] {
+  if (pool.length === 0) return [];
+  const start = seed % pool.length;
   const result: string[] = [];
-  const used = new Set<number>();
-  let idx = seed % pool.length;
-  while (result.length < Math.min(count, pool.length)) {
-    if (!used.has(idx)) {
-      result.push(pool[idx]);
-      used.add(idx);
-    }
-    idx = (idx + 3) % pool.length;
+  for (let i = 0; i < Math.min(count, pool.length); i++) {
+    result.push(pool[(start + i) % pool.length]);
   }
   return result;
 }
