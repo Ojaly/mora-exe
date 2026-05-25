@@ -67,6 +67,8 @@ Style Prompt・Lyrics・Negative Prompt を統合した最終出力を生成。S
 
 ## 使用方法
 
+### Web 版（ブラウザ）
+
 ```bash
 git clone https://github.com/Ojaly/mora-exe.git
 cd mora-exe
@@ -75,6 +77,20 @@ npm run dev
 ```
 
 ブラウザで `http://localhost:3000` を開く。
+
+### デスクトップ版（Windows .exe）
+
+**前提条件：** [Rust](https://rustup.rs) のインストールが必要。
+
+```bash
+# 開発モード（デスクトップウィンドウで起動）
+npm run tauri:dev
+
+# リリースビルド（.exe / インストーラー生成）
+npm run tauri:build
+```
+
+ビルド成果物は `src-tauri/target/release/bundle/` に出力される。
 
 ---
 
