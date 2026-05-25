@@ -1,0 +1,143 @@
+import { SongInput } from "@/types";
+
+const GENRE_MAP: Record<string, string> = {
+  jpop: "J-Pop",
+  jrock: "J-Rock",
+  city: "City Pop",
+  anime: "Anime OST",
+  vocaloid: "Vocaloid-style",
+  electronic: "Electronic / Synth-pop",
+  rnb: "R&B / Soul",
+  hiphop: "Hip-Hop / Trap",
+  folk: "Folk / Acoustic",
+  metal: "Metal / Hard Rock",
+  jazz: "Jazz / Neo-Soul",
+  ambient: "Ambient / Atmospheric",
+};
+
+const MOOD_MAP: Record<string, string> = {
+  melancholic: "melancholic, introspective, bittersweet",
+  energetic: "energetic, driving, kinetic",
+  dreamy: "dreamy, hazy, ethereal",
+  dark: "dark, brooding, tension-filled",
+  uplifting: "uplifting, hopeful, radiant",
+  nostalgic: "nostalgic, warm, hazy memories",
+  aggressive: "aggressive, raw, confrontational",
+  romantic: "romantic, intimate, tender",
+  epic: "epic, cinematic, grandiose",
+  chill: "chill, laid-back, smooth",
+};
+
+const VOCAL_MAP: Record<string, string> = {
+  female: "female vocal, clear and expressive",
+  male: "male vocal, gritty and emotive",
+  duet: "male-female duet, intertwined harmonies",
+  choir: "choir, layered vocal textures",
+  falsetto: "high falsetto, delicate and breathy",
+  rap: "rap vocal, rhythmic and punchy",
+  vocaloid: "synthetic vocal, Vocaloid-style timbre",
+};
+
+const INSTRUMENTS_MAP: Record<string, string> = {
+  jpop: "piano, synth pads, light drums, bass",
+  jrock: "electric guitar, bass, drums, power chords",
+  city: "fretless bass, Rhodes piano, muted guitar, soft drums",
+  anime: "orchestral strings, synth leads, piano, taiko drums",
+  vocaloid: "digital synths, 8-bit elements, glitchy percussion",
+  electronic: "analog synths, drum machines, arpeggiated bass",
+  rnb: "Rhodes, muted guitar, 808 bass, brushed snare",
+  hiphop: "trap hi-hats, 808 sub-bass, sampled piano, vinyl crackle",
+  folk: "acoustic guitar, fingerpicking, light percussion, strings",
+  metal: "distorted guitar, double kick drums, power bass, shredding leads",
+  jazz: "upright bass, jazz piano, brushed snare, muted trumpet",
+  ambient: "sustained pads, field recordings, slow evolving textures",
+};
+
+const TEXTURE_MAP: Record<string, string> = {
+  melancholic: "sparse, intimate, wide reverb",
+  energetic: "dense, layered, punchy transients",
+  dreamy: "washed-out reverb, soft attack, floating",
+  dark: "low-mid heavy, claustrophobic space",
+  uplifting: "bright highs, open reverb, airy",
+  nostalgic: "warm tape saturation, lo-fi texture",
+  aggressive: "hard-clipping edges, tight room, no decay",
+  romantic: "warm low-end, soft compression, close mic feel",
+  epic: "wide stereo field, orchestral depth, dynamic swells",
+  chill: "smooth compression, gentle low-pass, soft transients",
+};
+
+const MIX_MAP: Record<string, string> = {
+  jpop: "polished J-Pop mix, clear vocals up front",
+  jrock: "guitar-forward rock mix, punchy low-end",
+  city: "warm analog mix, smooth frequency balance",
+  electronic: "modern EDM master, loud and clean",
+  hiphop: "trap-style mix, 808 sidechain, crisp hi-hats",
+  ambient: "lo-fi master, soft limiter, organic feel",
+};
+
+function grooveFromBpm(bpm: string): string {
+  const n = parseInt(bpm, 10);
+  if (!n) return "mid-tempo groove";
+  if (n < 70) return "slow, heavy groove";
+  if (n < 100) return "mid-tempo, laid-back feel";
+  if (n < 130) return "steady, forward-pushing groove";
+  if (n < 160) return "upbeat, energetic pulse";
+  return "fast, intense, relentless pace";
+}
+
+export function buildStylePrompt(input: SongInput): string {
+  const genre = GENRE_MAP[input.genre] ?? input.genre;
+  const mood = MOOD_MAP[input.mood] ?? input.mood;
+  const vocal = VOCAL_MAP[input.vocalType] ?? input.vocalType;
+  const groove = grooveFromBpm(input.bpm);
+  const instruments = INSTRUMENTS_MAP[input.genre] ?? "piano, synth pads, drums, bass";
+  const texture = TEXTURE_MAP[input.mood] ?? "balanced texture, moderate reverb";
+  const mix = (MIX_MAP[input.genre] ?? "clean modern mix, professional master") +
+    (input.avoidAiCliche ? ", avoid synthetic vocal artifacts" : "");
+
+  const language =
+    input.englishRatio === "high" ? "Lyrics primarily in English" :
+    input.englishRatio === "mixed" ? "Mix of Japanese and English lyrics" :
+    "Lyrics primarily in Japanese";
+
+  const structure = input.startWithChorus
+    ? "[chorus] → [verse] → [chorus] → [bridge] → [chorus]"
+    : "[verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]";
+
+  const lines = [
+    `[Style:] ${genre}, ${mood}`,
+    `[Tempo:] ${input.bpm ? input.bpm + " BPM, " : ""}${groove}`,
+    `[Vocal:] ${vocal}`,
+    `[Groove:] ${groove}, rhythmically tight`,
+    `[Instruments:] ${instruments}`,
+    `[Texture:] ${texture}`,
+    `[Structure:] ${structure}`,
+    `[Mix Aesthetic:] ${mix}`,
+    `[Language:] ${language}`,
+  ];
+
+  if (input.avoidAiCliche) {
+    lines.push("[Note:] Avoid generic AI clichés — use unexpected imagery, raw emotion over polish");
+  }
+
+  return lines.join("\n");
+}
+
+export function buildImprovementMemo(
+  input: SongInput,
+  longLines: number,
+  shortLines: number
+): string[] {
+  const memo: string[] = [];
+  if (longLines > 0)
+    memo.push(`歌詞に長すぎる行が ${longLines} 行あります。各行を2行に分割するか、単語数を削減してください。`);
+  if (shortLines > 0)
+    memo.push(`歌詞に短すぎる行が ${shortLines} 行あります。補足フレーズを追加するか、前後の行と統合を検討してください。`);
+  if (input.avoidAiCliche)
+    memo.push("AI臭さ回避モードON：具体的なイメージ語・固有名詞・感覚描写を増やすと効果的です。");
+  if (input.englishRatio === "high")
+    memo.push("英語比率が高い設定です。SunoはネイティブEN歌詞に最適化されているため、発音・リズムを意識してください。");
+  if (input.startWithChorus)
+    memo.push("サビ頭構成：Sunoに [chorus] タグを冒頭に置くとサビから始まります。インパクト重視の歌詞を用意してください。");
+  return memo;
+}
