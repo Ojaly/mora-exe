@@ -10,35 +10,41 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", "Consolas", monospace;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #18181b; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+/* Thin IDE-style scrollbars */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2d2d32; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-/* Panel glow border on hover */
+/* Hide scrollbar utility (footer overflow strip) */
+.hide-scrollbar { scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Legacy .panel — used inside MoraTunerPanel sub-components */
 .panel {
-  background: rgba(24, 24, 27, 0.6);
+  background: rgba(15, 15, 17, 0.9);
   border: 1px solid #27272a;
-  border-radius: 6px;
-  padding: 14px;
-  transition: border-color 0.2s;
+  border-radius: 4px;
+  padding: 12px;
 }
-.panel:hover { border-color: #3f3f46; }
 
-/* Neon text */
-.neon-cyan { text-shadow: 0 0 6px rgba(6,182,212,0.6), 0 0 16px rgba(6,182,212,0.3); }
-.neon-pink { text-shadow: 0 0 6px rgba(236,72,153,0.6), 0 0 16px rgba(236,72,153,0.3); }
+/* Neon glow */
+.neon-cyan { text-shadow: 0 0 8px rgba(6,182,212,0.55), 0 0 22px rgba(6,182,212,0.2); }
+.neon-pink { text-shadow: 0 0 6px rgba(236,72,153,0.5), 0 0 16px rgba(236,72,153,0.2); }
 
-/* Scanline overlay */
+/* Scanlines — very subtle */
 .scanlines {
   background: repeating-linear-gradient(
-    0deg, transparent, transparent 3px,
-    rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 3px
   );
   pointer-events: none;
 }
+
+/* Textarea caret */
+textarea { caret-color: #22d3ee; }
+textarea::selection { background: rgba(6,182,212,0.14); }
