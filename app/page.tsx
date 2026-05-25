@@ -16,6 +16,7 @@ import { detectAiPhrases, detectSyntaxPatterns } from "@/lib/phraseDetector";
 import { predictCollapse } from "@/lib/collapsePredictor";
 import { generateMoraSuggestions, applyLineFix } from "@/lib/moraTuner";
 import { applyRewriteMode } from "@/lib/rewriteModes";
+import { callClaudeRewrite } from "@/lib/claudeRewrite";
 
 // ─── Sample content (shown before first Generate) ────────────────────────────
 
@@ -186,6 +187,8 @@ export default function Home() {
   const [syntaxMatches, setSyntax]  = useState<SyntaxMatch[]>([]);
   const [collapseRisks, setRisks]   = useState<CollapseRisk[]>([]);
   const [songStats, setStats]       = useState<SongStats | null>(null);
+  const [loadingMode, setLoadingMode] = useState<RewriteMode | null>(null);
+  const [rewriteNotes, setRewriteNotes] = useState<string>("");
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -225,10 +228,26 @@ export default function Home() {
     if (isSample) setIsSample(false);
   };
 
-  const handleRewrite = (mode: RewriteMode) => {
-    const v = applyRewriteMode(lyrics, mode);
-    setLyricsRaw(v); analyse(v);
+  const handleRewrite = async (mode: RewriteMode) => {
+    if (loadingMode) return;
+    setLoadingMode(mode);
+    setRewriteNotes("");
+
+    const result = await callClaudeRewrite(mode, lyrics, stylePrompt, input, moraLines);
+
+    if (result) {
+      setLyricsRaw(result.rewrittenLyrics);
+      analyse(result.rewrittenLyrics);
+      if (result.notes) setRewriteNotes(result.notes);
+    } else {
+      // APIキー未設定 or エラー → ルールベースフォールバック
+      const v = applyRewriteMode(lyrics, mode);
+      setLyricsRaw(v);
+      analyse(v);
+    }
+
     if (isSample) setIsSample(false);
+    setLoadingMode(null);
   };
 
   const handleFix = (ln: number, rep: string | string[]) => {
@@ -266,13 +285,32 @@ export default function Home() {
   const rewriteBar = (
     <div className="shrink-0 border-t border-zinc-800/50 px-3 py-2" style={{ background: "#111318" }}>
       <div className="flex flex-wrap gap-1">
-        {REWRITE_MODES.map(([mode, label]) => (
-          <button key={mode} onClick={() => handleRewrite(mode)}
-            className="px-2 py-0.5 text-[10px] font-mono border border-zinc-800 text-zinc-500 rounded hover:border-zinc-600 hover:text-zinc-200 transition-colors">
-            {label}
-          </button>
-        ))}
+        {REWRITE_MODES.map(([mode, label]) => {
+          const isLoading = loadingMode === mode;
+          const isDisabled = !!loadingMode;
+          return (
+            <button
+              key={mode}
+              onClick={() => handleRewrite(mode)}
+              disabled={isDisabled}
+              className={`px-2 py-0.5 text-[10px] font-mono border rounded transition-colors disabled:cursor-not-allowed ${
+                isLoading
+                  ? "border-cyan-700 text-cyan-400 bg-cyan-950/40 animate-pulse"
+                  : isDisabled
+                  ? "border-zinc-800 text-zinc-700"
+                  : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-200"
+              }`}
+            >
+              {isLoading ? "…" : label}
+            </button>
+          );
+        })}
       </div>
+      {rewriteNotes && (
+        <p className="mt-1.5 text-[9px] font-mono text-cyan-700 leading-relaxed truncate">
+          ✦ {rewriteNotes}
+        </p>
+      )}
     </div>
   );
 

@@ -94,6 +94,30 @@ npm run tauri:build
 
 ---
 
+## Claude API 設定（任意）
+
+APIキーを設定すると、Rewrite ボタンが Claude Sonnet による高品質な書き換えに切り替わる。未設定の場合はルールベース処理にフォールバックするため、なくても動作する。
+
+```bash
+# .env.example をコピー
+cp .env.example .env.local
+```
+
+`.env.local` を開いて APIキーを設定：
+
+```env
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxx
+```
+
+APIキーは [Anthropic Console](https://console.anthropic.com/) で発行。
+
+**注意：**
+- `.env.local` は Git 管理外（`.gitignore` に含まれている）
+- APIキーはサーバーサイドのみで使用され、フロントエンドに露出しない
+- Claude API は Web版・Tauri dev モードで動作。Tauri リリースビルド（`.exe`）では未対応（ルールベースフォールバック）
+
+---
+
 ## 世界観プリセット
 
 | プリセット | 説明 |
