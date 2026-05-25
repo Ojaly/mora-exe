@@ -94,25 +94,23 @@ export function buildStylePrompt(
     (MIX_MAP[input.genre] ?? "clean modern mix, professional master") +
     (input.avoidAiCliche ? ", avoid synthetic vocal artifacts" : "");
 
-  const language =
-    input.englishRatio === "high" ? "Lyrics primarily in English" :
-    input.englishRatio === "mixed" ? "Mix of Japanese and English lyrics" :
-    "Lyrics primarily in Japanese";
-
-  const structure = input.startWithChorus
-    ? "[chorus] → [verse] → [chorus] → [bridge] → [chorus]"
-    : "[verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]";
+  const structure =
+    input.songLength === "30s"
+      ? "[chorus]"
+      : input.startWithChorus
+      ? "[chorus] → [verse] → [chorus] → [bridge] → [chorus]"
+      : "[verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]";
 
   const lines = [
     `[Style:] ${genre}, ${mood}`,
     `[Tempo:] ${input.bpm ? input.bpm + " BPM, " : ""}${groove}`,
+    ...(input.key ? [`[Key:] ${input.key}`] : []),
     `[Vocal:] ${vocal}`,
     `[Groove:] ${groove}, rhythmically tight`,
     `[Instruments:] ${instruments}`,
     `[Texture:] ${texture}`,
     `[Structure:] ${structure}`,
     `[Mix Aesthetic:] ${mix}`,
-    `[Language:] ${language}`,
   ];
 
   if (activePreset?.styleOverrides.note) {
@@ -125,6 +123,50 @@ export function buildStylePrompt(
   }
 
   return lines.join("\n");
+}
+
+export function buildNegativePrompt(input: SongInput): string {
+  const parts: string[] = [];
+
+  if (input.avoidAiCliche) {
+    parts.push(
+      "generic AI vocal phrases, over-polished production, synthetic timbre, predictable chord progressions"
+    );
+  }
+
+  const GENRE_NEGATIVES: Record<string, string> = {
+    jpop: "excessive auto-tune, generic idol sound",
+    jrock: "over-compressed guitars, nu-metal clichés",
+    city: "lo-fi clichés, bedroom pop muddiness",
+    vocaloid: "robotic phrasing without intention",
+    metal: "triggered drum samples, djent clipping",
+    ambient: "new-age blandness, generic pad washes",
+    hiphop: "mumble rap aesthetics, trap hi-hat spam",
+  };
+
+  const genreNeg = GENRE_NEGATIVES[input.genre];
+  if (genreNeg) parts.push(genreNeg);
+
+  if (input.avoidExpressions?.trim()) {
+    parts.push(input.avoidExpressions.trim());
+  }
+
+  return parts.length > 0 ? parts.join(", ") : "none";
+}
+
+export function buildRegeneratePrompt(input: SongInput): string {
+  const genre = GENRE_MAP[input.genre] ?? input.genre;
+  const mood = MOOD_MAP[input.mood] ?? input.mood;
+  const theme = input.theme?.trim();
+  const title = input.title?.trim();
+  const parts = [
+    `Regenerate as ${genre}, ${mood}`,
+    ...(input.bpm ? [`at ${input.bpm} BPM`] : []),
+    ...(theme ? [`Theme: ${theme}`] : []),
+    ...(title ? [`Title: ${title}`] : []),
+    "Keep the same structure but vary the melodic feel.",
+  ];
+  return parts.join(". ");
 }
 
 export function buildImprovementMemo(

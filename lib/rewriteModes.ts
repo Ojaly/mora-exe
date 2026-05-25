@@ -1,0 +1,230 @@
+import { RewriteMode } from "@/types";
+import { AI_CLICHE_PHRASES } from "@/lib/phraseDetector";
+import { estimateMora } from "@/lib/moraAnalyzer";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function processLines(
+  lyrics: string,
+  fn: (line: string, isTag: boolean) => string
+): string {
+  return lyrics
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      const isTag = /^\[.*\]$/.test(trimmed);
+      return fn(trimmed, isTag);
+    })
+    .join("\n");
+}
+
+function processSection(
+  lyrics: string,
+  targetTag: string,
+  fn: (lines: string[]) => string[]
+): string {
+  const sections = lyrics.split(/(?=\[)/);
+  return sections
+    .map((section) => {
+      const tagMatch = section.match(/^\[([^\]]+)\]/);
+      if (!tagMatch) return section;
+      const tag = tagMatch[1].toLowerCase();
+      if (!tag.includes(targetTag.toLowerCase())) return section;
+      const lines = section.split("\n");
+      const header = lines[0];
+      const body = fn(lines.slice(1));
+      return [header, ...body].join("\n");
+    })
+    .join("");
+}
+
+// ─── Mode implementations ────────────────────────────────────────────────────
+
+function removeAiCliches(lyrics: string): string {
+  let result = lyrics;
+  for (const entry of AI_CLICHE_PHRASES) {
+    const regex = new RegExp(entry.phrase, "gi");
+    const alt = entry.suggestion.match(/"([^"]+)"/)?.[1] ?? entry.phrase;
+    result = result.replace(regex, alt);
+  }
+  return result;
+}
+
+function shortenMora(lyrics: string): string {
+  return processLines(lyrics, (line, isTag) => {
+    if (isTag || !line) return line;
+    const mora = estimateMora(line);
+    if (mora <= 12) return line;
+    // Split at 、or at particle mid-point
+    const commaIdx = line.search(/[、,]/);
+    if (commaIdx > 0 && commaIdx < line.length - 1) {
+      return line.slice(0, commaIdx).trim();
+    }
+    // Cut at ~60% length
+    return line.slice(0, Math.floor(line.length * 0.65)).trim();
+  });
+}
+
+function moreJapanese(lyrics: string): string {
+  const EN_TO_JP: [RegExp, string][] = [
+    [/\bnight\b/gi, "夜"],
+    [/\blight\b/gi, "光"],
+    [/\bdream\b/gi, "夢"],
+    [/\blove\b/gi, "愛"],
+    [/\bheart\b/gi, "心"],
+    [/\btime\b/gi, "時間"],
+    [/\bworld\b/gi, "世界"],
+    [/\bsky\b/gi, "空"],
+    [/\bstar\b/gi, "星"],
+    [/\bfire\b/gi, "炎"],
+    [/\brun\b/gi, "走る"],
+    [/\bfade\b/gi, "消えていく"],
+    [/\balone\b/gi, "一人で"],
+    [/\bsilence\b/gi, "静寂"],
+    [/\bpain\b/gi, "痛み"],
+  ];
+  let result = lyrics;
+  for (const [pattern, replacement] of EN_TO_JP) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+function moreEnglish(lyrics: string): string {
+  const JP_INSERTS: [RegExp, string][] = [
+    [/夜/g, "night"],
+    [/光/g, "light"],
+    [/夢/g, "dream"],
+    [/愛/g, "love"],
+    [/心/g, "heart"],
+    [/空/g, "sky"],
+    [/時間/g, "time"],
+    [/世界/g, "world"],
+    [/星/g, "star"],
+    [/炎/g, "fire"],
+  ];
+  let result = lyrics;
+  // Replace ~30% of matches
+  let replaceCount = 0;
+  for (const [pattern, replacement] of JP_INSERTS) {
+    result = result.replace(pattern, (match) => {
+      if (replaceCount++ % 2 === 0) return replacement;
+      return match;
+    });
+  }
+  return result;
+}
+
+const DARK_VOCAB: [RegExp, string][] = [
+  [/消えていく/g, "崩れ落ちていく"],
+  [/静かに/g, "冷たく"],
+  [/新しい/g, "終わりない"],
+  [/前へ/g, "奈落へ"],
+  [/大丈夫/g, "もう終わり"],
+  [/光/g, "闇"],
+  [/希望/g, "絶望"],
+  [/笑/g, "泣き"],
+  [/愛/g, "憎しみ"],
+  [/幸せ/g, "孤独"],
+];
+
+function makeDarker(lyrics: string): string {
+  let result = lyrics;
+  for (const [pattern, replacement] of DARK_VOCAB) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+function makeCatchy(lyrics: string): string {
+  return processLines(lyrics, (line, isTag) => {
+    if (isTag || !line) return line;
+    const mora = estimateMora(line);
+    if (mora > 10) {
+      // Shorten to first clause
+      const commaIdx = line.search(/[、,\s]/);
+      if (commaIdx > 2) return line.slice(0, commaIdx).trim();
+    }
+    return line;
+  });
+}
+
+function makeDanceable(lyrics: string): string {
+  return processLines(lyrics, (line, isTag) => {
+    if (isTag || !line) return line;
+    const mora = estimateMora(line);
+    if (mora > 8) {
+      const mid = Math.floor(line.length / 2);
+      const space = line.indexOf("　", mid - 3);
+      if (space > 0) return line.slice(0, space).trim();
+    }
+    return line;
+  });
+}
+
+function strengthenChorus(lyrics: string): string {
+  return processSection(lyrics, "chorus", (lines) => {
+    const emphasisWords = ["ずっと", "絶対に", "今だけは", "もう一度"];
+    return lines.map((line, i) => {
+      if (!line.trim() || /^\[.*\]$/.test(line.trim())) return line;
+      if (i === 0 && !line.startsWith("ずっと") && !line.startsWith("絶対")) {
+        return emphasisWords[i % emphasisWords.length] + "　" + line.trim();
+      }
+      return line;
+    });
+  });
+}
+
+const OJALY_TRANSFORMS: [RegExp, string][] = [
+  [/街の灯り/g, "ネオンが滲む"],
+  [/静寂/g, "サーバーの残響"],
+  [/走り出す/g, "接続を切って走る"],
+  [/夜/g, "0時02分"],
+  [/消えていく/g, "ログアウトしていく"],
+  [/忘れられない/g, "キャッシュに残ってる"],
+  [/時間/g, "タイムスタンプ"],
+  [/世界/g, "このネットワーク"],
+  [/心/g, "コア"],
+  [/泣いて/g, "エラーを吐いて"],
+];
+
+function ojalyStyle(lyrics: string): string {
+  let result = lyrics;
+  let transformCount = 0;
+  for (const [pattern, replacement] of OJALY_TRANSFORMS) {
+    result = result.replace(pattern, (match) => {
+      if (transformCount++ < 4) return replacement;
+      return match;
+    });
+  }
+  return result;
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export const REWRITE_MODE_LABELS: Record<RewriteMode, string> = {
+  catchy: "キャッチー化",
+  "remove-ai": "AI臭さ除去",
+  "shorten-mora": "モーラ短縮",
+  "strengthen-chorus": "サビ強化",
+  "more-japanese": "日本語多め",
+  "more-english": "英語多め",
+  darker: "ダーク化",
+  danceable: "ダンサブル化",
+  ojaly: "ojaly.風",
+};
+
+export function applyRewriteMode(lyrics: string, mode: RewriteMode): string {
+  switch (mode) {
+    case "catchy":           return makeCatchy(lyrics);
+    case "remove-ai":        return removeAiCliches(lyrics);
+    case "shorten-mora":     return shortenMora(lyrics);
+    case "strengthen-chorus":return strengthenChorus(lyrics);
+    case "more-japanese":    return moreJapanese(lyrics);
+    case "more-english":     return moreEnglish(lyrics);
+    case "darker":           return makeDarker(lyrics);
+    case "danceable":        return makeDanceable(lyrics);
+    case "ojaly":            return ojalyStyle(lyrics);
+    default:                 return lyrics;
+  }
+}

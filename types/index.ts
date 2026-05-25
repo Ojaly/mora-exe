@@ -1,14 +1,19 @@
 export interface SongInput {
   title: string;
+  theme: string;
   genre: string;
   bpm: string;
+  key: string;
   mood: string;
   vocalType: string;
-  lyrics: string;
-  startWithChorus: boolean;
-  englishRatio: string;
-  avoidAiCliche: boolean;
+  songLength: "30s" | "90s" | "full";
+  englishRatio: "low" | "mixed" | "high";
   worldPreset: WorldPresetKey | "";
+  referenceVibe: string;
+  avoidExpressions: string;
+  startWithChorus: boolean;
+  avoidAiCliche: boolean;
+  lyrics: string;
 }
 
 export type DangerLevel = "safe" | "short" | "long";
@@ -61,7 +66,7 @@ export interface SongStats {
   maxMora: number;
   dangerCount: number;
   enRatioAvg: number;
-  riskScore: number; // 0–100（100=問題なし）
+  riskScore: number;
 }
 
 export interface AnalysisResult {
@@ -86,3 +91,37 @@ export type WorldPresetKey =
   | "digital-motown"
   | "electro-waltz"
   | "gospel-irony";
+
+// ─── Lyrics Builder ──────────────────────────────────────────────────────────
+
+export interface LyricsSection {
+  tag: string;
+  lines: string[];
+}
+
+export interface LyricsDraft {
+  sections: LyricsSection[];
+}
+
+// ─── Mora Tuner ──────────────────────────────────────────────────────────────
+
+export interface MoraSuggestion {
+  lineNumber: number;
+  originalLine: string;
+  moraCount: number;
+  danger: "long" | "short";
+  alternatives: string[];
+}
+
+// ─── Rewrite Modes ───────────────────────────────────────────────────────────
+
+export type RewriteMode =
+  | "catchy"
+  | "remove-ai"
+  | "shorten-mora"
+  | "strengthen-chorus"
+  | "more-japanese"
+  | "more-english"
+  | "darker"
+  | "danceable"
+  | "ojaly";
