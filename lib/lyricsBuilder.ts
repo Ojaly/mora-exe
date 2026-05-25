@@ -434,47 +434,425 @@ const JP_POOLS: Record<string, MoodPool> = {
   },
 };
 
-const EN_LINES: Record<string, Partial<MoodPool>> = {
+const EN_LINES: Record<string, MoodPool> = {
   melancholic: {
+    intro: [
+      "the silence settles in",
+      "rain against the windowpane",
+      "another night alone begins",
+    ],
     verse: [
       "walking alone past midnight streets",
       "silence fills the room you left behind",
       "every memory fades like photographs",
       "can't find the words I meant to say",
+      "the city lights blur in the rain",
+      "I keep replaying what went wrong",
+      "your shadow follows everywhere I go",
+      "the hours pass but nothing changes",
+    ],
+    "pre-chorus": [
+      "I can't escape this feeling",
+      "nowhere left to run",
+      "drowning in the silence",
+      "barely holding on",
     ],
     chorus: [
       "I can't let go of what we had",
       "the pain won't fade, it stays with me",
       "your voice still echoes in my head",
       "how do I move on from this",
+      "every night I feel the weight",
+      "something's broken deep inside",
+    ],
+    bridge: [
+      "maybe time will heal this wound",
+      "learning how to breathe again",
+      "still I reach for what is gone",
+      "picking up the broken pieces",
+    ],
+    outro: [
+      "slowly fading into grey",
+      "nothing left to say",
+      "let the silence take me now",
     ],
   },
   energetic: {
+    intro: [
+      "the engine's running hot tonight",
+      "feel that adrenaline rise",
+      "countdown, let's go",
+    ],
     verse: [
       "can't slow down, I'm breaking free",
       "full speed ahead, no looking back",
       "feel the rush, the world is mine",
       "burning up, ignite the night",
+      "sweat and fire in my veins",
+      "push the limits past the edge",
+      "every muscle, every bone",
+      "this is what it means to live",
+    ],
+    "pre-chorus": [
+      "can't stop now",
+      "give it everything",
+      "let's go, right now",
+      "break the limit",
     ],
     chorus: [
       "run and never stop",
       "push it to the limit",
       "we're alive, we're on fire",
       "nothing's gonna hold us back",
+      "feel the power in your bones",
+      "scream it out and don't look down",
+    ],
+    bridge: [
+      "even when you're about to break",
+      "keep on fighting, stand your ground",
+      "scars are proof that you survived",
+      "burn it all and rise again",
+    ],
+    outro: [
+      "we burned until the morning came",
+      "never forget this heat",
+      "on to the next battle",
+    ],
+  },
+  dreamy: {
+    intro: [
+      "drifting through a silver haze",
+      "the edges blur and fade away",
+      "somewhere between awake and sleep",
+    ],
+    verse: [
+      "floating through the clouds above",
+      "colors bleeding into light",
+      "nothing feels quite real tonight",
+      "I dissolve into the air",
+      "half asleep and half alive",
+      "cotton skies and velvet nights",
+      "every breath is slow and soft",
+      "time is melting at the seams",
+    ],
+    "pre-chorus": [
+      "lost inside a dream",
+      "don't wake me yet",
+      "carry me away",
+      "eyes still closed",
+    ],
+    chorus: [
+      "take me somewhere far away",
+      "I don't want to wake from this",
+      "let me float a little longer",
+      "stay here in the in-between",
+      "weightless, drifting, soft as snow",
+      "consciousness just let me go",
+    ],
+    bridge: [
+      "even waking I'm still here",
+      "the dream still lingers in my eyes",
+      "just a little longer please",
+      "the real world feels too sharp today",
+    ],
+    outro: [
+      "slowly the dream dissolves",
+      "I'll find you when I sleep again",
+      "morning light bleeds through",
+    ],
+  },
+  dark: {
+    intro: [
+      "darkness swallows everything",
+      "the cold wind tears right through",
+      "something wicked this way comes",
+    ],
+    verse: [
+      "lost inside a maze with no way out",
+      "walls are closing in around me",
+      "every light has turned to ash",
+      "falling deeper, can't be found",
+      "hollow voices fill the dark",
+      "shadows eating at my soul",
+      "chains I forged with my own hands",
+      "silence screaming in my skull",
+    ],
+    "pre-chorus": [
+      "no turning back",
+      "everything's collapsing",
+      "no one hears me",
+      "swallowed by the dark",
+    ],
+    chorus: [
+      "darkness takes control tonight",
+      "light's too far to reach",
+      "still I breathe through all of this",
+      "torn apart but still alive",
+      "sinking in the void below",
+      "even after all is lost",
+    ],
+    bridge: [
+      "but I'm still breathing after all",
+      "clawing up with broken nails",
+      "this pain is proof that I exist",
+      "even ruins hold a kind of grace",
+    ],
+    outro: [
+      "the dark never fully lifts",
+      "yet morning keeps on coming",
+      "eyes close, breathe out, let go",
     ],
   },
   uplifting: {
+    intro: [
+      "a new day breaks on the horizon",
+      "the sky is turning bright",
+      "I feel the light coming through",
+    ],
     verse: [
       "every step I take brings me closer",
       "I can see the light ahead",
       "one more try, that's all I need",
       "tomorrow holds a better way",
+      "piece by piece I'm finding strength",
+      "yesterday was hard but here I am",
+      "someone's smile gave me the push",
+      "all these days will shine one day",
+    ],
+    "pre-chorus": [
+      "just a little more",
+      "keep on moving forward",
+      "believe and it will come",
+      "almost there now",
     ],
     chorus: [
       "rise up, we can make it through",
       "keep on going, don't give in",
       "the best is yet to come",
       "believe and you will find your way",
+      "it's okay, we'll carry on",
+      "a brighter future's waiting there",
+    ],
+    bridge: [
+      "after every rain a rainbow comes",
+      "every trial makes you stronger",
+      "you're not walking this alone",
+      "today's tears fuel tomorrow's fire",
+    ],
+    outro: [
+      "someday we will laugh about this",
+      "keep walking until then",
+      "every start begins today",
+    ],
+  },
+  nostalgic: {
+    intro: [
+      "I opened an old photograph",
+      "the scent of those days returns",
+      "sepia tones in my memory",
+    ],
+    verse: [
+      "the old streets look familiar now",
+      "faded photos in a box",
+      "time has stopped in that one place",
+      "I still hear your voice sometimes",
+      "those days shone brighter than I knew",
+      "a childhood face I can't forget",
+      "the corner where the bakery stood",
+      "only memories remain",
+    ],
+    "pre-chorus": [
+      "can't go back but",
+      "I still think of those days",
+      "I can't forget",
+      "across the years",
+    ],
+    chorus: [
+      "I remember that summer day",
+      "your voice I'll never hear again",
+      "time please turn back, I wish but know",
+      "memories last forever though",
+      "nostalgia aches inside my chest",
+      "I want to go back to that time",
+    ],
+    bridge: [
+      "time flows on but hearts stay young",
+      "if we could meet at that same place",
+      "maybe I'm the one who changed",
+      "those days still live inside of me",
+    ],
+    outro: [
+      "I never said goodbye that day",
+      "thank you for all these memories",
+      "until we meet again",
+    ],
+  },
+  romantic: {
+    intro: [
+      "I keep watching your silhouette",
+      "my heartbeat won't slow down",
+      "words I still can't say",
+    ],
+    verse: [
+      "more than words could ever say",
+      "this distance between us, just enough",
+      "I wish that time would stop right here",
+      "these ordinary days with you",
+      "every time you smile I fall again",
+      "just being near you is enough",
+      "the smallest things you do undo me",
+      "how do I tell you what I feel",
+    ],
+    "pre-chorus": [
+      "I can't hide it anymore",
+      "I think I love you",
+      "so close yet I can't say it",
+      "my heart is overflowing",
+    ],
+    chorus: [
+      "I want to say I love you but I'm scared",
+      "I know these feelings are the real thing",
+      "all I want is to stay close to you",
+      "let me say the words I've held so long",
+      "I want to be with you forever",
+      "you're the only one I see",
+    ],
+    bridge: [
+      "even if I stumble with the words",
+      "staying close is all the answer I need",
+      "clumsy love is love all the same",
+      "this feeling is the truest thing I have",
+    ],
+    outro: [
+      "thank you for coming into my life",
+      "let's keep walking this road together",
+      "I'll be here beside you",
+    ],
+  },
+  epic: {
+    intro: [
+      "the road stretches to the horizon",
+      "calm before the storm descends",
+      "the hour of reckoning draws near",
+    ],
+    verse: [
+      "standing firm against the raging storm",
+      "this vow remains though worlds may fall",
+      "facing fate with open eyes",
+      "swearing on the endless sky",
+      "ten thousand blades may bar my path",
+      "unbroken sword, unshaken will",
+      "carving legends with this single step",
+      "the myth begins here, right now",
+    ],
+    "pre-chorus": [
+      "rise up",
+      "do not fear",
+      "give everything",
+      "the time is now",
+    ],
+    chorus: [
+      "face it head on, do not fear",
+      "we'll break through every wall",
+      "this is our battle to be won",
+      "don't surrender, we are still here",
+      "change your destiny, right now",
+      "shine with an undying soul",
+    ],
+    bridge: [
+      "still standing even bearing wounds",
+      "the hero is the one who never quits",
+      "so that our story echoes through the ages",
+      "stake it all on this one moment",
+    ],
+    outro: [
+      "battle's end, a silence falls",
+      "legends will be told of this",
+      "a new war has already begun",
+    ],
+  },
+  chill: {
+    intro: [
+      "coffee's going cold again",
+      "afternoon light, soft and warm",
+      "doing nothing, that's just fine",
+    ],
+    verse: [
+      "time moves slow and that's okay",
+      "no rush today, just let it be",
+      "reading by the window light",
+      "adrift with nothing on my mind",
+      "a gentle breeze and I'm awake",
+      "curled up like a cat in sun",
+      "letting music carry me away",
+      "I fell asleep without a care",
+    ],
+    "pre-chorus": [
+      "this is enough",
+      "no need to rush",
+      "easy now",
+      "just go with the flow",
+    ],
+    chorus: [
+      "nothing to do, what a luxury",
+      "slow down, take it easy now",
+      "just chill today, nowhere to be",
+      "put everything off till tomorrow",
+      "stay here in this moment, feel it",
+      "relax, just breathe, just be",
+    ],
+    bridge: [
+      "rest days are necessary too",
+      "it's okay to take a break",
+      "treat yourself a little kinder",
+      "no hurry, life is long enough",
+    ],
+    outro: [
+      "again tomorrow, slowly now",
+      "good work today, you made it",
+      "the night grows quiet and still",
+    ],
+  },
+  aggressive: {
+    intro: [
+      "that's it, I've had enough",
+      "scream it out, let it go",
+      "I'll break it all apart",
+    ],
+    verse: [
+      "rage is flooding through my veins",
+      "against this world I raise my fist",
+      "the age of silence ends today",
+      "I rebel with every breath I take",
+      "done with all the fake smiles now",
+      "I'll live my truth, that's all",
+      "rip the mask off, speak the real",
+      "I won't bow to any of you",
+    ],
+    "pre-chorus": [
+      "no more silence",
+      "I'll say it all",
+      "can you hear me",
+      "this is my answer",
+    ],
+    chorus: [
+      "scream it out, with everything",
+      "let the rage break free",
+      "this is what I really mean",
+      "tear it down and build it new",
+      "nothing stops me, I push through",
+      "I'll fight everything",
+    ],
+    bridge: [
+      "still standing, battered as I am",
+      "the unbreakable heart is the weapon",
+      "not with hate but with this fire",
+      "I will change this world we're in",
+    ],
+    outro: [
+      "this fight will never end",
+      "still I'll keep on screaming",
+      "this is how I choose to live",
     ],
   },
 };
@@ -511,23 +889,27 @@ function getSectionLines(
 ): string[] {
   const moodKey = mood in JP_POOLS ? mood : "melancholic";
   const jpPool = JP_POOLS[moodKey][sectionKey] ?? JP_POOLS.melancholic[sectionKey];
+  const enMoodKey = moodKey in EN_LINES ? moodKey : "melancholic";
+  const enPool = EN_LINES[enMoodKey][sectionKey] ?? EN_LINES.melancholic[sectionKey];
 
   if (englishRatio === "high") {
-    const enPool = EN_LINES[moodKey]?.[sectionKey] ?? EN_LINES.melancholic?.[sectionKey];
-    if (enPool && enPool.length > 0) {
-      const en = pickLines(enPool, Math.ceil(count / 2), seed);
-      const jp = pickLines(jpPool, Math.floor(count / 2), seed + 1);
-      return [...en, ...jp].slice(0, count);
-    }
-  } else if (englishRatio === "mixed") {
-    const enPool = EN_LINES[moodKey]?.[sectionKey];
-    if (enPool && enPool.length > 0) {
-      const en = pickLines(enPool, 1, seed);
-      const jp = pickLines(jpPool, count - 1, seed + 1);
-      return [...jp.slice(0, 1), ...en, ...jp.slice(1, count - 1)].slice(0, count);
-    }
+    // EN: 全行英語
+    return pickLines(enPool, count, seed);
   }
 
+  if (englishRatio === "mixed") {
+    // MIX: 英語と日本語を交互に
+    const half = Math.ceil(count / 2);
+    const en = pickLines(enPool, half, seed);
+    const jp = pickLines(jpPool, count - half, seed + 1);
+    const result: string[] = [];
+    for (let i = 0; i < count; i++) {
+      result.push(i % 2 === 0 ? (jp[Math.floor(i / 2)] ?? en[i] ?? "") : (en[Math.floor(i / 2)] ?? jp[i] ?? ""));
+    }
+    return result.slice(0, count);
+  }
+
+  // low: 全行日本語
   return pickLines(jpPool, count, seed);
 }
 
