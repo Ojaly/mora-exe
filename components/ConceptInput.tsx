@@ -10,6 +10,7 @@ interface Props {
   onPresetChange: (p: WorldPresetKey | "") => void;
   onGenerate: () => void;
   compact?: boolean;
+  isGenerating?: boolean;
 }
 
 const GENRES = [
@@ -105,7 +106,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ConceptInput({
-  input, onChange, preset, onPresetChange, onGenerate, compact = false,
+  input, onChange, preset, onPresetChange, onGenerate, compact = false, isGenerating = false,
 }: Props) {
   const set = <K extends keyof SongInput>(key: K, value: SongInput[K]) =>
     onChange({ ...input, [key]: value });
@@ -234,9 +235,14 @@ export default function ConceptInput({
       <div className="pt-2 border-t border-zinc-800 mt-1">
         <button
           onClick={onGenerate}
-          className="w-full py-2 bg-cyan-700 hover:bg-cyan-600 active:bg-cyan-800 text-zinc-950 font-mono font-bold text-xs tracking-widest rounded transition-colors"
+          disabled={isGenerating}
+          className={`w-full py-2 font-mono font-bold text-xs tracking-widest rounded transition-colors disabled:cursor-wait ${
+            isGenerating
+              ? "bg-cyan-900 text-cyan-500 animate-pulse"
+              : "bg-cyan-700 hover:bg-cyan-600 active:bg-cyan-800 text-zinc-950"
+          }`}
         >
-          ▶ GENERATE
+          {isGenerating ? "… GENERATING" : "▶ GENERATE"}
         </button>
       </div>
     </div>
