@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   ...(isTauriBuild
     ? { output: "export", distDir: "out", images: { unoptimized: true } }
     : {}),
+  // Reduce Webpack dev server memory usage (Next.js docs: experimental.webpackMemoryOptimizations)
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
 };
 
 export default nextConfig;
