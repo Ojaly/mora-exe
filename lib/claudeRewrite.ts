@@ -35,9 +35,18 @@ export async function callClaudeRewrite(
         worldPreset: songInput.worldPreset || "",
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+      console.warn(
+        `[mora/rewrite] API returned ${res.status}:`,
+        body?.error ?? "(no error message)",
+        "→ falling back to rule-based rewrite"
+      );
+      return null;
+    }
     return await res.json();
-  } catch {
+  } catch (err) {
+    console.warn("[mora/rewrite] fetch failed:", err, "→ falling back to rule-based rewrite");
     return null;
   }
 }

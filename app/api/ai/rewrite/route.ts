@@ -91,6 +91,11 @@ function modeInstruction(mode: RewriteMode, moraWarnings: number[]): string {
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.warn(
+      "[mora/rewrite] ANTHROPIC_API_KEY is not set — returning 503. " +
+      "Create .env.local with ANTHROPIC_API_KEY=sk-ant-... to enable Claude. " +
+      "Client will fall back to rule-based rewrite."
+    );
     return NextResponse.json(
       { error: "ANTHROPIC_API_KEY not configured" },
       { status: 503 }
@@ -174,7 +179,17 @@ Return JSON only.`;
       changedLines: Array.isArray(parsed.changedLines) ? parsed.changedLines : [],
     });
   } catch (err) {
-    console.error("[Claude rewrite error]", err);
-    return NextResponse.json({ error: "Claude API request failed" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    // Surface Anthropic-specific error details
+    const detail = (err as Record<string, unknown>)?.status
+      ? `HTTP ${(err as Record<string, unknown>).status}: ${msg}`
+      : msg;
+    console.error("[mora/rewrite] Claude API request failed:", detail);
+    if ((err as Record<string, unknown>)?.status === 401) {
+      console.error("[mora/rewrite] → API key is invalid or expired. Check ANTHROPIC_API_KEY in .env.local");
+    } else if ((err as Record<string, unknown>)?.status === 429) {
+      console.error("[mora/rewrite] → Rate limited by Anthropic. Retry after a moment.");
+    }
+    return NextResponse.json({ error: "Claude API request failed", detail }, { status: 500 });
   }
 }

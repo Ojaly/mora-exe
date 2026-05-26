@@ -49,6 +49,11 @@ OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.warn(
+      "[mora/generate] ANTHROPIC_API_KEY is not set — returning 503. " +
+      "Create .env.local with ANTHROPIC_API_KEY=sk-ant-... to enable Claude. " +
+      "Client will fall back to rule-based lyric generation."
+    );
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 503 });
   }
 
@@ -109,7 +114,16 @@ Return JSON only.`;
       notes: parsed.notes ?? "",
     });
   } catch (err) {
-    console.error("[Claude generate error]", err);
-    return NextResponse.json({ error: "Claude API failed" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    const detail = (err as Record<string, unknown>)?.status
+      ? `HTTP ${(err as Record<string, unknown>).status}: ${msg}`
+      : msg;
+    console.error("[mora/generate] Claude API request failed:", detail);
+    if ((err as Record<string, unknown>)?.status === 401) {
+      console.error("[mora/generate] → API key is invalid or expired. Check ANTHROPIC_API_KEY in .env.local");
+    } else if ((err as Record<string, unknown>)?.status === 429) {
+      console.error("[mora/generate] → Rate limited by Anthropic. Retry after a moment.");
+    }
+    return NextResponse.json({ error: "Claude API failed", detail }, { status: 500 });
   }
 }
