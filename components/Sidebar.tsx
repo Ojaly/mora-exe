@@ -6,6 +6,7 @@ import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { QUICK_QUESTIONS, DEEP_QUESTIONS } from "@/lib/wizardData";
 import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
 import WorldForge from "@/components/WorldForge";
+import SourceAlchemy from "@/components/SourceAlchemy";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -243,6 +244,7 @@ export default function Sidebar({
   expansion,
   onExpansionChange,
 }: Props) {
+  const [alchemyOpen,  setAlchemyOpen]  = useState(false);
   const [fineTuneOpen, setFineTuneOpen] = useState(false);
   const [guidedOpen, setGuidedOpen]     = useState(false);
 
@@ -311,6 +313,30 @@ export default function Sidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5">
+
+        {/* ══ 0. SOURCE ALCHEMY (optional pre-step) ════════════════════════════ */}
+        <div className="pt-2.5">
+          <button
+            onClick={() => setAlchemyOpen((v) => !v)}
+            className="w-full flex items-center gap-2 pb-1.5 text-left group"
+          >
+            <span className="text-[10px] font-mono tracking-[0.18em] uppercase font-semibold shrink-0 text-violet-500 group-hover:text-violet-700 transition-colors">
+              {alchemyOpen ? "▾" : "▸"} ⚗ Source Alchemy
+            </span>
+            <div className="flex-1 border-t border-violet-200" />
+          </button>
+          {alchemyOpen && (
+            <div className="pb-3">
+              <p className="text-[10px] font-mono text-zinc-400 pb-2 leading-snug">
+                記事・ニュース・SNS投稿 → World Seed へ昇華
+              </p>
+              <SourceAlchemy onSetWorldSeed={(seed) => set("theme", seed)} />
+            </div>
+          )}
+        </div>
+
+        {/* Divider before World Forge */}
+        <div className="border-t border-[#d0d7de]" />
 
         {/* ══ 1. WORLD FORGE (primary) ══════════════════════════════════════════ */}
         <div className="pt-3">

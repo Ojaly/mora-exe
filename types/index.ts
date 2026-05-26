@@ -138,6 +138,29 @@ export interface HistoryEntry {
   ts: number;
 }
 
+// ─── Source Alchemy ──────────────────────────────────────────────────────────
+
+export interface AlchemyResult {
+  /** 1-sentence abstract of the source — NO proper nouns */
+  sourceSummary:    string;
+  /** Emotional words distilled from user's reaction */
+  reactionCore:     string[];
+  /** Universal human themes this event maps to */
+  universalThemes:  string[];
+  /** Cinematic world fragments (JP preferred) */
+  songWorld:        string[];
+  /** Sensory metaphors that carry emotional weight without naming the source */
+  metaphors:        string[];
+  /** Atmosphere-first Suno style suggestion */
+  stylePromptDraft: string;
+  /** JP: how to approach lyrics for this transformed world */
+  lyricsDirection:  string;
+  /** Chorus hook concepts as emotional images */
+  chorusHookIdeas:  string[];
+  /** Poetic World Seed ready for World Forge (JP preferred, no proper nouns) */
+  worldSeed:        string;
+}
+
 // ─── World Forge ─────────────────────────────────────────────────────────────
 
 export interface MusicDirection {
