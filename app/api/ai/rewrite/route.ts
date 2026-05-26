@@ -3,8 +3,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import { RewriteMode, RewriteIntensity, SectionTarget, WorldPresetKey } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 
-export const dynamic = "force-dynamic";
-
 /** Claude レスポンスから JSON オブジェクトを堅牢に抽出する */
 function extractJson(text: string): Record<string, unknown> {
   const s = text.trim().replace(/^```(?:json)?\r?\n?/, "").replace(/\r?\n?```$/, "");

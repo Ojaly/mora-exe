@@ -6,8 +6,6 @@ import {
   extractThemeMotifsForLyrics,
 } from "@/lib/themeExtractor";
 
-export const dynamic = "force-dynamic";
-
 // ─── Rule-based MusicDirection ────────────────────────────────────────────────
 
 function ruleBasedMusicDirection(

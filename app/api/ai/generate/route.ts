@@ -3,8 +3,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 
-export const dynamic = "force-dynamic";
-
 /** Claude レスポンスから JSON オブジェクトを堅牢に抽出する */
 function extractJson(text: string): Record<string, unknown> {
   // コードフェンス・前後テキストを除去

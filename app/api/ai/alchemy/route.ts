@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { AlchemyResult } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 // ─── System Prompt ────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are Source Alchemy — a transmutation engine for MORA.exe (World Translator IDE).
