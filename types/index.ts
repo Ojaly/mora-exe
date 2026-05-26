@@ -136,6 +136,19 @@ export interface HistoryEntry {
   ts: number;
 }
 
+// ─── World Forge ─────────────────────────────────────────────────────────────
+
+export interface WorldExpansion {
+  scene: string[];
+  emotion: string[];
+  texture: string[];
+  objects: string[];
+  contradiction: string[];
+  soundDirection: string[];
+  stylePromptDraft: string;
+  lyricsDirection: string;
+}
+
 export interface PromptMemory {
   id: string;
   ts: number;

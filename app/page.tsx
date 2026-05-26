@@ -642,6 +642,10 @@ export default function Home() {
               setNeg(neg);
               setIsSample(false);
             }}
+            onApplyExpansion={(stylePrompt) => {
+              setStyle(stylePrompt);
+              setIsSample(false);
+            }}
           />
         </aside>
 
@@ -729,6 +733,11 @@ export default function Home() {
               onWizardApply={(prompt, neg) => {
                 setStyle(prompt);
                 setNeg(neg);
+                setIsSample(false);
+                setMobile("prompt");
+              }}
+              onApplyExpansion={(stylePrompt) => {
+                setStyle(stylePrompt);
                 setIsSample(false);
                 setMobile("prompt");
               }}
