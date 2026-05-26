@@ -44,8 +44,8 @@ function ResultView({
   return (
     <div className="flex flex-col gap-2">
       {/* Header */}
-      <div className="flex items-center gap-1.5 pb-1 border-b border-zinc-800">
-        <span className="text-[9px] font-mono text-zinc-500 tracking-widest">GENERATED</span>
+      <div className="flex items-center gap-1.5 pb-1 border-b border-[#d0d7de]">
+        <span className="text-[9px] font-mono text-zinc-500 tracking-widest font-bold">GENERATED</span>
         <span className={`ml-auto text-[9px] font-mono tabular-nums ${charColor(cc)}`}>
           {cc} / 800
         </span>
@@ -68,7 +68,7 @@ function ResultView({
       <div className="flex gap-1.5 pt-0.5">
         <button
           onClick={onBack}
-          className="flex-none h-7 px-2.5 text-[10px] font-mono border border-zinc-700 text-zinc-500 rounded hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+          className="flex-none h-7 px-2.5 text-[10px] font-mono border border-[#c8cdd4] text-zinc-600 rounded hover:border-zinc-400 hover:text-zinc-900 transition-colors"
         >
           ← 修正
         </button>
@@ -82,7 +82,7 @@ function ResultView({
 
       <button
         onClick={onRestart}
-        className="text-[9px] font-mono text-zinc-700 hover:text-zinc-500 text-center py-0.5 transition-colors"
+        className="text-[9px] font-mono text-zinc-400 hover:text-zinc-700 text-center py-0.5 transition-colors"
       >
         最初から
       </button>
@@ -115,13 +115,13 @@ function QuestionView({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const accentBorder = mode === "quick" ? "border-cyan-600" : "border-violet-600";
-  const accentText   = mode === "quick" ? "text-cyan-300"   : "text-violet-300";
-  const accentBg     = mode === "quick" ? "bg-cyan-950/50"  : "bg-violet-950/50";
+  const accentBorder = mode === "quick" ? "border-blue-400"  : "border-violet-400";
+  const accentText   = mode === "quick" ? "text-blue-700"    : "text-violet-700";
+  const accentBg     = mode === "quick" ? "bg-blue-50"       : "bg-violet-50";
   const accentBtn    = mode === "quick"
-    ? "bg-cyan-700 hover:bg-cyan-600 text-zinc-950"
-    : "bg-violet-700 hover:bg-violet-600 text-zinc-100";
-  const progressBg   = mode === "quick" ? "bg-cyan-600" : "bg-violet-600";
+    ? "bg-blue-600 hover:bg-blue-700 text-white"
+    : "bg-violet-600 hover:bg-violet-700 text-white";
+  const progressBg   = mode === "quick" ? "bg-blue-500" : "bg-violet-500";
 
   const pct = ((stepIndex + 1) / totalSteps) * 100;
   const hasAnswer = !!(answer?.chip || answer?.free?.trim());
@@ -164,7 +164,7 @@ function QuestionView({
               className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition-all ${
                 sel
                   ? `${accentBorder} ${accentText} ${accentBg}`
-                  : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                  : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-800"
               }`}
             >
               {opt.label}
@@ -187,7 +187,7 @@ function QuestionView({
         {stepIndex > 0 && (
           <button
             onClick={onBack}
-            className="h-7 px-2.5 text-[10px] font-mono border border-zinc-700 text-zinc-500 rounded hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+            className="h-7 px-2.5 text-[10px] font-mono border border-[#c8cdd4] text-zinc-600 rounded hover:border-zinc-400 hover:text-zinc-900 transition-colors"
           >
             ←
           </button>
@@ -270,7 +270,7 @@ export default function WizardPanel({ onApply }: Props) {
   return (
     <div className="flex flex-col gap-2">
       {/* Mode tabs */}
-      <div className="flex gap-0.5 pb-2 border-b border-zinc-800">
+      <div className="flex gap-0.5 pb-2 border-b border-[#d0d7de]">
         {(["quick", "deep"] as WizardMode[]).map((m) => (
           <button
             key={m}
@@ -278,9 +278,9 @@ export default function WizardPanel({ onApply }: Props) {
             className={`flex-1 h-6 text-[10px] font-mono rounded border transition-all ${
               mode === m
                 ? m === "quick"
-                  ? "border-cyan-700 text-cyan-400 bg-cyan-950/40"
-                  : "border-violet-700 text-violet-400 bg-violet-950/40"
-                : "border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-600"
+                  ? "border-blue-400 text-blue-700 bg-blue-50"
+                  : "border-violet-400 text-violet-700 bg-violet-50"
+                : "border-[#d0d7de] text-zinc-500 hover:text-zinc-800 hover:border-zinc-400"
             }`}
           >
             {m === "quick" ? "QUICK  5問" : "DEEP  12問"}

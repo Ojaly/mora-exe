@@ -62,10 +62,10 @@ export default function LyricsEditor({ value, onChange, isSample, changedLines =
       {/* ── Line numbers ────────────────────────────────────────────────── */}
       <div
         ref={lineNumRef}
-        className={`shrink-0 w-11 select-none border-r border-[#2a2f3a]/50 ${MONO} text-right`}
-        style={{ background: "#131620", overflowY: "hidden", overflowX: "hidden" }}
+        className={`shrink-0 w-11 select-none border-r border-[#d0d7de] ${MONO} text-right`}
+        style={{ background: "#eaedf1", overflowY: "hidden", overflowX: "hidden" }}
       >
-        <div className="px-2 py-4 text-zinc-600">
+        <div className="px-2 py-4 text-zinc-400">
           {Array.from({ length: lineCount }, (_, i) => (
             <div key={i}>{i + 1}</div>
           ))}
