@@ -102,7 +102,7 @@ PARAMETERS:
 TITLE: ${input.title || "(未設定)"}
 LANGUAGE: ${langInstruction(input.englishRatio)}
 STRUCTURE: ${buildSections(input)}
-AVOID: ${input.avoidExpressions || "(none)"}
+AVOID: ${input.avoidExpressions || "(none)"}${(input.nudges ?? []).length > 0 ? `\nFINE TUNE (directional corrections): ${input.nudges.join(", ")}` : ""}
 
 INSTRUCTION:
 Every single line must be traceable to the World Seed.

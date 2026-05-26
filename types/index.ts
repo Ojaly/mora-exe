@@ -14,6 +14,8 @@ export interface SongInput {
   startWithChorus: boolean;
   avoidAiCliche: boolean;
   lyrics: string;
+  /** Directional nudges applied as Fine Tune corrections on top of MORA.exe's inference */
+  nudges: string[];
 }
 
 export type DangerLevel = "safe" | "short" | "long";

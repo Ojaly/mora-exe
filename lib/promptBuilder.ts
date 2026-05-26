@@ -136,6 +136,12 @@ export function buildStylePrompt(
     lines.push(`[World Aesthetic:] ${activePreset.styleOverrides.note}`);
   }
 
+  // Fine Tune nudges
+  const nudges = input.nudges ?? [];
+  if (nudges.length > 0) {
+    lines.push(`[Fine Tune:] ${nudges.join(", ")}`);
+  }
+
   if (theme) {
     const avoidNote = input.avoidAiCliche
       ? " — no generic filler, every line traceable to this world"
@@ -281,6 +287,12 @@ export function buildStylePromptFromExpansion(
   // Contradiction — the poetic core
   if (expansion.contradiction.length > 0) {
     lines.push(`[World:] ${expansion.contradiction.join(" / ")}`);
+  }
+
+  // Fine Tune nudges — directional corrections on top of AI inference
+  const nudges = input.nudges ?? [];
+  if (nudges.length > 0) {
+    lines.push(`[Fine Tune:] ${nudges.join(", ")}`);
   }
 
   // Manual overrides: reference vibe

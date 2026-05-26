@@ -84,7 +84,7 @@ const defaultInput: SongInput = {
   title: "", theme: "", genre: "jpop", bpm: "", key: "", mood: "melancholic",
   vocalType: "female", songLength: "full", englishRatio: "low",
   worldPreset: "", referenceVibe: "", avoidExpressions: "",
-  startWithChorus: false, avoidAiCliche: false, lyrics: "",
+  startWithChorus: false, avoidAiCliche: false, lyrics: "", nudges: [],
 };
 
 const REWRITE_MODES: Array<[RewriteMode, string]> = [

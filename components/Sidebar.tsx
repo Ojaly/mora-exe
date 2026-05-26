@@ -183,11 +183,13 @@ function CollapseSection({
   open,
   onToggle,
   children,
+  dim,
 }: {
   label: string;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  dim?: boolean;
 }) {
   return (
     <div className="border-t border-[#d0d7de]">
@@ -195,7 +197,7 @@ function CollapseSection({
         onClick={onToggle}
         className="w-full flex items-center gap-2 pt-2.5 pb-1.5 px-0 text-left hover:text-zinc-700 transition-colors"
       >
-        <span className="text-[10px] font-mono text-zinc-400 tracking-[0.18em] uppercase font-semibold shrink-0">
+        <span className={`text-[10px] font-mono tracking-[0.18em] uppercase font-semibold shrink-0 ${dim ? "text-zinc-400" : "text-zinc-500"}`}>
           {open ? "▾" : "▸"} {label}
         </span>
         <div className="flex-1 border-t border-[#d0d7de]" />
@@ -205,24 +207,22 @@ function CollapseSection({
   );
 }
 
+// ─── Nudge chips ──────────────────────────────────────────────────────────────
+
+const NUDGE_OPTIONS = [
+  // Vibe direction
+  "more aggressive", "more intimate", "more epic", "darker", "brighter",
+  // Tempo / energy
+  "slower", "faster",
+  // Texture
+  "more analog", "drier mix", "more reverb", "noisier", "lo-fi",
+  // Cinematic
+  "less cinematic", "minimal production",
+  // Vocal
+  "male vocal", "female vocal",
+] as const;
+
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const GENRES = [
-  ["jpop", "J-Pop"], ["jrock", "J-Rock"], ["city", "City Pop"], ["anime", "Anime"],
-  ["vocaloid", "Vocaloid"], ["electronic", "Electronic"], ["rnb", "R&B"],
-  ["hiphop", "Hip-Hop"], ["folk", "Folk"], ["metal", "Metal"], ["jazz", "Jazz"], ["ambient", "Ambient"],
-] as const;
-
-const MOODS = [
-  ["melancholic", "Melancholic"], ["energetic", "Energetic"], ["dreamy", "Dreamy"],
-  ["dark", "Dark"], ["uplifting", "Uplifting"], ["nostalgic", "Nostalgic"],
-  ["aggressive", "Aggressive"], ["romantic", "Romantic"], ["epic", "Epic"], ["chill", "Chill"],
-] as const;
-
-const VOCALS = [
-  ["female", "Female"], ["male", "Male"], ["duet", "Duet"],
-  ["choir", "Choir"], ["falsetto", "Falsetto"], ["rap", "Rap"], ["vocaloid", "Vocaloid"],
-] as const;
 
 const KEYS = [
   "C","C#","D","D#","E","F","F#","G","G#","A","A#","B",
@@ -243,8 +243,8 @@ export default function Sidebar({
   expansion,
   onExpansionChange,
 }: Props) {
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [wizardOpen, setWizardOpen]     = useState(false);
+  const [fineTuneOpen, setFineTuneOpen] = useState(false);
+  const [guidedOpen, setGuidedOpen]     = useState(false);
 
   // Wizard state
   const [wizardMode, setWizardMode]         = useState<WizardMode>("quick");
@@ -254,6 +254,16 @@ export default function Sidebar({
 
   const set = <K extends keyof SongInput>(key: K, val: SongInput[K]) =>
     onInputChange({ ...input, [key]: val });
+
+  // ─── Nudge toggle ────────────────────────────────────────────────────────────
+
+  const toggleNudge = (n: string) => {
+    const current = input.nudges ?? [];
+    const next = current.includes(n)
+      ? current.filter((x) => x !== n)
+      : [...current, n];
+    set("nudges", next);
+  };
 
   // ─── Wizard helpers ─────────────────────────────────────────────────────────
 
@@ -294,6 +304,8 @@ export default function Sidebar({
     ? "bg-blue-600 hover:bg-blue-700 text-white"
     : "bg-violet-600 hover:bg-violet-700 text-white";
 
+  const activeNudges = input.nudges ?? [];
+
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -311,67 +323,50 @@ export default function Sidebar({
           />
         </div>
 
-        {/* ══ 2. ADVANCED CONTROLS (collapsible) ═══════════════════════════════ */}
+        {/* ══ 2. FINE TUNE (collapsible) ════════════════════════════════════════ */}
         <CollapseSection
-          label="Advanced Controls"
-          open={advancedOpen}
-          onToggle={() => setAdvancedOpen((v) => !v)}
+          label="Fine Tune"
+          open={fineTuneOpen}
+          onToggle={() => setFineTuneOpen((v) => !v)}
         >
-          {/* World Preset chips */}
-          <div className="flex flex-wrap gap-1.5 py-1.5">
-            {(Object.keys(WORLD_PRESETS) as WorldPresetKey[]).map((key) => {
-              const p = WORLD_PRESETS[key];
-              const active = preset === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => onPresetChange(active ? "" : key)}
-                  title={p.description}
-                  className={`px-2 py-0.5 text-[11px] font-mono font-bold rounded border transition-all ${
-                    active ? "" : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
-                  }`}
-                  style={active ? {
-                    borderColor: p.accentColor,
-                    color: p.accentColor,
-                    background: p.accentColor + "18",
-                  } : {}}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
+          {/* Direction adjust chips */}
+          <div className="space-y-1.5 py-1">
+            <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase font-semibold">
+              Direction Adjust
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {NUDGE_OPTIONS.map((n) => {
+                const active = activeNudges.includes(n);
+                return (
+                  <button
+                    key={n}
+                    onClick={() => toggleNudge(n)}
+                    className={`px-2 py-[3px] text-[11px] font-mono rounded border transition-all ${
+                      active
+                        ? "border-blue-400 text-blue-700 bg-blue-50 font-semibold"
+                        : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                    }`}
+                  >
+                    {active ? "· " : ""}{n}
+                  </button>
+                );
+              })}
+            </div>
+            {activeNudges.length > 0 && (
+              <button
+                onClick={() => set("nudges", [])}
+                className="text-[10px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+              >
+                ✕ clear all
+              </button>
+            )}
           </div>
-          {preset && (
-            <p className="text-[11px] font-mono text-zinc-500 pb-1 leading-snug">
-              ▸ {WORLD_PRESETS[preset as WorldPresetKey].description}
-            </p>
-          )}
 
-          <div className="space-y-1.5">
+          {/* Utility fields */}
+          <div className="space-y-1.5 border-t border-[#d0d7de] pt-2 mt-1">
             <Row label="TITLE">
               <Inp value={input.title} onChange={(v) => set("title", v)} placeholder="曲タイトル" />
             </Row>
-            <Row label="GENRE">
-              <Sel value={input.genre} onChange={(v) => set("genre", v)} options={GENRES} />
-            </Row>
-            <Row label="MOOD">
-              <Sel value={input.mood} onChange={(v) => set("mood", v)} options={MOODS} />
-            </Row>
-            <Row label="VOCAL">
-              <Sel value={input.vocalType} onChange={(v) => set("vocalType", v)} options={VOCALS} />
-            </Row>
-            <div className="flex gap-2">
-              <Row label="BPM">
-                <Inp value={input.bpm} onChange={(v) => set("bpm", v)} placeholder="120" />
-              </Row>
-              <Row label="KEY">
-                <Sel
-                  value={input.key}
-                  onChange={(v) => set("key", v)}
-                  options={[["", "auto"], ...KEYS.map((k) => [k, k] as const)] as readonly (readonly [string, string])[]}
-                />
-              </Row>
-            </div>
             <Row label="LENGTH">
               <div className="flex gap-1">
                 {(["30s", "90s", "full"] as const).map((v) => (
@@ -389,7 +384,7 @@ export default function Sidebar({
                 ))}
               </div>
             </Row>
-            <Row label="EN RATIO">
+            <Row label="LANG">
               <div className="flex gap-1">
                 {(["low", "mixed", "high"] as const).map((v) => (
                   <button
@@ -406,44 +401,93 @@ export default function Sidebar({
                 ))}
               </div>
             </Row>
-
-            <div className="border-t border-[#d0d7de] pt-1.5 mt-1">
-              <Row label="REF">
-                <Inp
-                  value={input.referenceVibe}
-                  onChange={(v) => set("referenceVibe", v)}
-                  placeholder="宇多田ヒカル、Portishead"
+            <div className="flex gap-2">
+              <Row label="BPM">
+                <Inp value={input.bpm} onChange={(v) => set("bpm", v)} placeholder="auto" />
+              </Row>
+              <Row label="KEY">
+                <Sel
+                  value={input.key}
+                  onChange={(v) => set("key", v)}
+                  options={[["", "auto"], ...KEYS.map((k) => [k, k] as const)] as readonly (readonly [string, string])[]}
                 />
               </Row>
-              <Row label="AVOID">
-                <Inp
-                  value={input.avoidExpressions}
-                  onChange={(v) => set("avoidExpressions", v)}
-                  placeholder="過度なピッチ補正"
-                />
-              </Row>
-              <div className="pl-0.5 space-y-0.5 pt-1 pb-1">
-                <Toggle
-                  checked={input.startWithChorus}
-                  onChange={(v) => set("startWithChorus", v)}
-                  label="サビ始まり"
-                />
-                <Toggle
-                  checked={input.avoidAiCliche}
-                  onChange={(v) => set("avoidAiCliche", v)}
-                  label="AI臭さ回避"
-                />
-              </div>
             </div>
+            <Row label="REF">
+              <Inp
+                value={input.referenceVibe}
+                onChange={(v) => set("referenceVibe", v)}
+                placeholder="宇多田ヒカル、Portishead"
+              />
+            </Row>
+            <Row label="AVOID">
+              <Inp
+                value={input.avoidExpressions}
+                onChange={(v) => set("avoidExpressions", v)}
+                placeholder="過度なピッチ補正"
+              />
+            </Row>
+            <div className="pl-0.5 space-y-0.5 pt-1 pb-1">
+              <Toggle
+                checked={input.startWithChorus}
+                onChange={(v) => set("startWithChorus", v)}
+                label="サビ始まり"
+              />
+              <Toggle
+                checked={input.avoidAiCliche}
+                onChange={(v) => set("avoidAiCliche", v)}
+                label="AI臭さ回避"
+              />
+            </div>
+          </div>
+
+          {/* World Presets (secondary) */}
+          <div className="border-t border-[#d0d7de] pt-2 mt-1 space-y-1.5">
+            <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase font-semibold">
+              World Lens
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(WORLD_PRESETS) as WorldPresetKey[]).map((key) => {
+                const p = WORLD_PRESETS[key];
+                const active = preset === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => onPresetChange(active ? "" : key)}
+                    title={p.description}
+                    className={`px-2 py-0.5 text-[11px] font-mono font-bold rounded border transition-all ${
+                      active ? "" : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                    }`}
+                    style={active ? {
+                      borderColor: p.accentColor,
+                      color: p.accentColor,
+                      background: p.accentColor + "18",
+                    } : {}}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+            {preset && (
+              <p className="text-[11px] font-mono text-zinc-500 leading-snug">
+                ▸ {WORLD_PRESETS[preset as WorldPresetKey].description}
+              </p>
+            )}
           </div>
         </CollapseSection>
 
-        {/* ══ 3. GUIDED MODE / WIZARD (collapsible) ════════════════════════════ */}
+        {/* ══ 3. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
         <CollapseSection
           label="Guided Mode"
-          open={wizardOpen}
-          onToggle={() => setWizardOpen((v) => !v)}
+          open={guidedOpen}
+          onToggle={() => setGuidedOpen((v) => !v)}
+          dim
         >
+          <p className="text-[10px] font-mono text-zinc-400 pb-2 leading-snug">
+            World Seed で語りにくい場合に。質問に答えてWorld Seedを組み立てます。
+          </p>
+
           {/* Mode selector */}
           <div className="flex gap-1 pb-1">
             {(["quick", "deep"] as const).map((m) => (
@@ -462,11 +506,6 @@ export default function Sidebar({
               </button>
             ))}
           </div>
-          <p className="text-[11px] font-mono text-zinc-400 pb-1">
-            {wizardMode === "quick"
-              ? "5問で素早くスタイルを組む"
-              : "12問で世界観を細かく設計する"}
-          </p>
 
           {/* Inline wizard questions */}
           {currentQ && !appliedFlash && (
@@ -546,9 +585,7 @@ export default function Sidebar({
                   {isLast ? "APPLY ✓" : "NEXT →"}
                 </button>
               </div>
-              <p className="text-[10px] font-mono text-zinc-400 text-center">
-                スキップ可
-              </p>
+              <p className="text-[10px] font-mono text-zinc-400 text-center">スキップ可</p>
             </div>
           )}
 
@@ -563,6 +600,17 @@ export default function Sidebar({
 
       {/* ══ GENERATE (sticky footer) ══════════════════════════════════════════ */}
       <div className="shrink-0 px-3 pb-3 pt-2 border-t border-[#d0d7de]">
+        {/* Active nudges hint */}
+        {activeNudges.length > 0 && (
+          <p className="text-[10px] font-mono text-blue-500 mb-1.5 leading-snug truncate">
+            ↳ {activeNudges.join(" · ")}
+          </p>
+        )}
+        {expansion && (
+          <p className="text-[10px] font-mono text-emerald-600 mb-1.5 leading-snug">
+            ↳ World Forge active — expansion-first generate
+          </p>
+        )}
         <button
           onClick={onGenerate}
           disabled={isGenerating}
