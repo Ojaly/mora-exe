@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import ConceptInput from "@/components/ConceptInput";
-import WizardPanel from "@/components/WizardPanel";
+import Sidebar from "@/components/Sidebar";
 import PromptEditor from "@/components/PromptEditor";
 import LyricsEditor from "@/components/LyricsEditor";
 import MoraTunerPanel from "@/components/MoraTunerPanel";
@@ -270,7 +269,6 @@ export default function Home() {
   const [rightView, setRight]     = useState<RightView>("lyrics");
   const [mobileTab, setMobile]    = useState<MobileTab>("concept");
   const [isSample, setIsSample]   = useState(true);
-  const [sidebarMode, setSidebar] = useState<"concept" | "wizard">("concept");
 
   const [stylePrompt, setStyle]   = useState(SAMPLE_PROMPT);
   const [negPrompt, setNeg]       = useState("generic AI vocal phrases, over-polished production, synthetic timbre");
@@ -632,52 +630,19 @@ export default function Home() {
           className="w-[252px] shrink-0 flex flex-col border-r border-[#d0d7de]"
           style={{ background: "var(--bg-sidebar)" }}
         >
-          {/* Sidebar header — CONCEPT / WIZARD tabs */}
-          <div
-            className="shrink-0 h-9 border-b border-[#d0d7de] flex items-stretch"
-            style={{ background: "var(--bg-panel-hdr)" }}
-          >
-            <button
-              onClick={() => setSidebar("concept")}
-              className={`px-3 h-full text-[11px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
-                sidebarMode === "concept"
-                  ? "border-blue-500 text-zinc-900"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              CONCEPT
-            </button>
-            <button
-              onClick={() => setSidebar("wizard")}
-              className={`px-3 h-full text-[11px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
-                sidebarMode === "wizard"
-                  ? "border-violet-500 text-violet-700"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              WIZARD
-            </button>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto p-3">
-            {sidebarMode === "concept" ? (
-              <ConceptInput
-                input={input} onChange={setInput}
-                preset={preset} onPresetChange={setPreset}
-                onGenerate={handleGenerate} compact
-                isGenerating={isGenerating}
-              />
-            ) : (
-              <WizardPanel
-                onApply={(prompt, neg) => {
-                  setStyle(prompt);
-                  setNeg(neg);
-                  setIsSample(false);
-                  setSidebar("concept");
-                }}
-              />
-            )}
-          </div>
+          <Sidebar
+            input={input}
+            onInputChange={setInput}
+            preset={preset}
+            onPresetChange={setPreset}
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+            onWizardApply={(prompt, neg) => {
+              setStyle(prompt);
+              setNeg(neg);
+              setIsSample(false);
+            }}
+          />
         </aside>
 
         {/* CENTER: Style Prompt */}
@@ -753,8 +718,21 @@ export default function Home() {
       {/* ── Mobile single-col ───────────────────────────────────────────────── */}
       <div className="relative z-10 flex-1 min-h-0 flex flex-col lg:hidden overflow-hidden">
         {mobileTab === "concept" && (
-          <div className="flex-1 overflow-y-auto p-3" style={{ background: "var(--bg-sidebar)" }}>
-            <ConceptInput input={input} onChange={setInput} preset={preset} onPresetChange={setPreset} onGenerate={handleGenerate} compact isGenerating={isGenerating} />
+          <div className="flex-1 overflow-y-auto" style={{ background: "var(--bg-sidebar)" }}>
+            <Sidebar
+              input={input}
+              onInputChange={setInput}
+              preset={preset}
+              onPresetChange={setPreset}
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              onWizardApply={(prompt, neg) => {
+                setStyle(prompt);
+                setNeg(neg);
+                setIsSample(false);
+                setMobile("prompt");
+              }}
+            />
           </div>
         )}
         {mobileTab === "prompt" && (
