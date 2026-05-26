@@ -1,5 +1,6 @@
 import { SongInput, WorldPresetKey } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
+import { extractThemeDescriptors } from "@/lib/themeExtractor";
 
 const GENRE_MAP: Record<string, string> = {
   jpop: "J-Pop", jrock: "J-Rock", city: "City Pop", anime: "Anime OST",
@@ -101,22 +102,46 @@ export function buildStylePrompt(
       ? "[chorus] → [verse] → [chorus] → [bridge] → [chorus]"
       : "[verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]";
 
-  const lines = [
-    `[Style:] ${genre}, ${mood}`,
-    `[Tempo:] ${input.bpm ? input.bpm + " BPM, " : ""}${groove}`,
-    ...(input.key ? [`[Key:] ${input.key}`] : []),
-    `[Vocal:] ${vocal}`,
-    `[Groove:] ${groove}, rhythmically tight`,
-    `[Instruments:] ${instruments}`,
-    `[Texture:] ${texture}`,
-    `[Structure:] ${structure}`,
-    `[Mix Aesthetic:] ${mix}`,
-  ];
+  // ── Quick Idea extraction ──────────────────────────────────────────────────
+  const theme = input.theme?.trim() ?? "";
+  const themeDesc = theme ? extractThemeDescriptors(theme) : null;
+
+  // Merge theme style words into [Style:] line
+  const extraStyle = themeDesc?.styleWords.slice(0, 4) ?? [];
+  const styleLine = [`[Style:] ${genre}`, mood, ...extraStyle].join(", ");
+
+  const lines: string[] = [];
+
+  // Quick Idea is the FIRST line — highest priority signal for Suno
+  if (theme) {
+    lines.push(`[Quick Idea:] ${theme}`);
+  }
+
+  lines.push(styleLine);
+  lines.push(`[Tempo:] ${input.bpm ? input.bpm + " BPM, " : ""}${groove}`);
+  if (input.key) lines.push(`[Key:] ${input.key}`);
+  lines.push(`[Vocal:] ${vocal}`);
+  lines.push(`[Groove:] ${groove}, rhythmically tight`);
+  lines.push(`[Instruments:] ${instruments}`);
+  lines.push(`[Texture:] ${texture}`);
+  lines.push(`[Structure:] ${structure}`);
+  lines.push(`[Mix Aesthetic:] ${mix}`);
+
+  // Concrete motifs as [Concept:] line
+  if (themeDesc && themeDesc.enMotifs.length > 0) {
+    lines.push(`[Concept:] ${themeDesc.enMotifs.join(", ")}`);
+  }
 
   if (activePreset?.styleOverrides.note) {
     lines.push(`[World Aesthetic:] ${activePreset.styleOverrides.note}`);
   }
-  if (input.avoidAiCliche) {
+
+  if (theme) {
+    const avoidNote = input.avoidAiCliche
+      ? " — no generic filler, every line traceable to this world"
+      : " — concrete imagery, stay inside this world";
+    lines.push(`[Note:] Theme: "${theme}"${avoidNote}`);
+  } else if (input.avoidAiCliche) {
     lines.push(
       "[Note:] Avoid generic AI clichés — use unexpected imagery, raw emotion over polish"
     );

@@ -24,26 +24,40 @@ function langInstruction(ratio: string): string {
 
 const SYSTEM_PROMPT = `You are a Suno AI lyricist writing for professional music production.
 
+═══ QUICK IDEA IS LAW ═══
+If a Quick Idea is provided, it is the SOLE source of truth for content.
+Step 1 — Extract from the Quick Idea:
+  • The central subject / protagonist (e.g. うどん, a specific object, place, emotion)
+  • The dominant atmosphere / abnormality (e.g. 偏執的, 退廃的, 狂信的)
+  • Concrete sensory motifs (textures, smells, sounds, colors, physical details)
+  • The emotional arc (devotion? obsession? grief? ecstasy?)
+Step 2 — Every single line of lyrics must be traceable back to those extracted elements.
+Step 3 — NEVER fall back to generic J-Pop imagery ("街の灯り", "光の中で", "君の笑顔", "feel alive").
+     The Quick Idea replaces all defaults. If it's about udon, write about udon —麺, だし, 丼, 湯気, 偏執, 祈り.
+═══════════════════════════
+
 HARD RULES:
 - Section tags REQUIRED, written exactly: [Intro] [Verse 1] [Verse 2] [Pre-Chorus] [Chorus] [Bridge] [Outro]
 - Japanese lines: mora count 4–14 (ideal 6–12). Never write run-on lines.
-- Chorus: short, emotionally direct, singable, built for repetition. 2–4 lines max.
+- Chorus: short, emotionally direct, singable, built for repetition. 3–5 lines.
 - Blank line after each section's content, before the next tag.
 - Lines per section: Intro 2–3, Verse 4–6, Pre-Chorus 2–3, Chorus 3–5, Bridge 3–4, Outro 2–3
 
-BANNED: "lose control" "feel alive" "in my veins" "break free" "take me higher" "warrior" "rise above" "burning inside" "meant to be" "forever and always"
+BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me higher"
+  "warrior" "rise above" "burning inside" "meant to be" "forever and always"
+  "街の灯り" "光の海" "君の笑顔" "翼を広げて" "空に向かって" (generic AI filler)
 
 QUALITY:
-- The theme/world is the subject. Every line must connect to it. No generic filler.
-- Emotional density over decoration. Concrete imagery over abstract sentiment.
+- Concrete > abstract. Name the thing. "うどんの麺が震える" beats "何かが溢れる".
+- Obsessive, abnormal, or absurd themes need MATCHING imagery — lean into the weirdness.
 - Chorus lines must be memorable in isolation — singable, repeatable, unforgettable.
 - Verse lines build a scene. Pre-chorus raises tension. Bridge shifts perspective.
-- No cringe poetic clichés. No over-explanation. Trust the image.
+- No over-explanation. Trust the image.
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
 {
   "lyrics": "<complete lyrics with all section tags and blank lines between sections>",
-  "notes": "<1–2 sentence Japanese note on how the theme was reflected>"
+  "notes": "<1–2 sentence Japanese note on which specific Quick Idea elements were woven in>"
 }`;
 
 export async function POST(req: NextRequest) {
@@ -69,10 +83,21 @@ export async function POST(req: NextRequest) {
     ? (WORLD_PRESETS[input.worldPreset as WorldPresetKey]?.deepPrompt ?? "")
     : "";
 
-  const userPrompt = `Generate lyrics for this song:
+  const quickIdea = input.theme?.trim() || input.title?.trim() || "";
+
+  const userPrompt = `${quickIdea ? `╔═══ QUICK IDEA (TOP PRIORITY) ═══╗
+${quickIdea}
+╚══════════════════════════════════╝
+
+Extract from this Quick Idea and build ALL lyrics from it:
+- Central subject/motif: what physical thing or world is at the center?
+- Atmosphere: what is the emotional abnormality or intensity?
+- Sensory details: smells, textures, sounds, colors specific to this world
+- Every line of every section must reflect this world.
+
+` : ""}Generate lyrics with these parameters:
 
 TITLE: ${input.title || "(未設定)"}
-THEME / WORLD: ${input.theme || "(未設定)"}
 GENRE: ${input.genre}
 MOOD: ${input.mood}
 VOCAL: ${input.vocalType}
@@ -85,7 +110,10 @@ AVOID: ${input.avoidExpressions || "(none)"}
 STRUCTURE: ${buildSections(input)}
 ${presetDeep ? `\nWORLD PRESET LENS: ${presetDeep}` : ""}
 
-The theme "${input.theme || input.title}" is the entire subject. Write FROM inside this world, not about it from outside. Every line must be traceable to the theme.
+${quickIdea
+  ? `REMINDER: Every line in every section must be traceable to the Quick Idea: "${quickIdea}".
+Do not use generic imagery. Name the actual objects, sensations, and obsessions from this world.`
+  : `The title/theme "${input.title}" is the subject. Write FROM inside this world.`}
 
 Return JSON only.`;
 

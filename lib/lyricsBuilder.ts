@@ -1,4 +1,9 @@
 import { SongInput, LyricsDraft, LyricsSection } from "@/types";
+import {
+  extractThemeMotifsForLyrics,
+  buildThemeLines,
+  SectionType,
+} from "@/lib/themeExtractor";
 
 type SectionKey = "Intro" | "Verse 1" | "Verse 2" | "Pre-Chorus" | "Chorus" | "Bridge" | "Outro";
 
@@ -945,22 +950,58 @@ const SECTION_KEY_MAP: Record<SectionKey, keyof MoodPool> = {
   Outro: "outro",
 };
 
+// How many theme lines to inject per section type (out of total count)
+const THEME_INJECTION: Partial<Record<SectionType, number>> = {
+  intro:         2, // 100% of 2
+  verse:         2, // 50% of 4
+  "pre-chorus":  2, // 100% of 2
+  chorus:        4, // 100% of 4
+  bridge:        2, // ~67% of 3
+  outro:         2, // 100% of 2
+};
+
 export function buildLyricsDraft(input: SongInput): LyricsDraft {
   const sections = getSections(input);
-  const keyword = extractKeyword(input.theme);
   const titleWord = input.title.trim();
   let seed = (input.mood.charCodeAt(0) ?? 0) + (input.genre.charCodeAt(0) ?? 0);
 
+  // Extract theme motifs once — used across all sections
+  const themeMotifs =
+    input.theme?.trim() && input.englishRatio !== "high"
+      ? extractThemeMotifsForLyrics(input.theme)
+      : [];
+
   const result: LyricsSection[] = sections.map((tag) => {
-    const poolKey = SECTION_KEY_MAP[tag];
+    const poolKey = SECTION_KEY_MAP[tag] as SectionType;
     const count = SECTION_LINE_COUNTS[tag] ?? 4;
-    let lines = getSectionLines(poolKey, input.mood, input.englishRatio, count, seed);
+
+    let lines: string[];
+
+    if (themeMotifs.length > 0) {
+      // How many theme lines for this section
+      const themeCount = THEME_INJECTION[poolKey] ?? Math.ceil(count / 2);
+      const poolCount = count - Math.min(themeCount, count);
+
+      const themeLines = buildThemeLines(themeMotifs, poolKey, themeCount, seed) ?? [];
+      const poolLines =
+        poolCount > 0
+          ? getSectionLines(poolKey, input.mood, input.englishRatio, poolCount, seed + 1)
+          : [];
+
+      // Theme lines first, pool lines fill the rest
+      lines = [...themeLines, ...poolLines].slice(0, count);
+    } else {
+      // No theme — legacy path with single-word injection
+      lines = getSectionLines(poolKey, input.mood, input.englishRatio, count, seed);
+      const keyword = extractKeyword(input.theme ?? "");
+      if (keyword) lines = injectKeyword(lines, keyword);
+    }
+
     seed = (seed + 7) % 100;
 
+    // Title as final chorus line
     if (tag === "Chorus" && titleWord) {
       lines = lines.map((l, i) => (i === lines.length - 1 ? titleWord : l));
-    } else if (keyword) {
-      lines = injectKeyword(lines, keyword);
     }
 
     return { tag, lines };
