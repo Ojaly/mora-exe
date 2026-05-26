@@ -2,6 +2,21 @@ import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { extractThemeDescriptors } from "@/lib/themeExtractor";
 
+// ─── Prose helpers ────────────────────────────────────────────────────────────
+
+/** Capitalise first character. */
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+/** Join array as natural English list with Oxford comma. */
+function naturalList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
 const GENRE_MAP: Record<string, string> = {
   jpop: "J-Pop", jrock: "J-Rock", city: "City Pop", anime: "Anime OST",
   vocaloid: "Vocaloid-style", electronic: "Electronic / Synth-pop",
@@ -55,14 +70,6 @@ const TEXTURE_MAP: Record<string, string> = {
   epic: "wide stereo field, orchestral depth, dynamic swells",
   chill: "smooth compression, gentle low-pass, soft transients",
 };
-const MIX_MAP: Record<string, string> = {
-  jpop: "polished J-Pop mix, clear vocals up front",
-  jrock: "guitar-forward rock mix, punchy low-end",
-  city: "warm analog mix, smooth frequency balance",
-  electronic: "modern EDM master, loud and clean",
-  hiphop: "trap-style mix, 808 sidechain, crisp hi-hats",
-  ambient: "lo-fi master, soft limiter, organic feel",
-};
 
 function grooveFromBpm(bpm: string): string {
   const n = parseInt(bpm, 10);
@@ -91,67 +98,56 @@ export function buildStylePrompt(
   const texture = activePreset?.styleOverrides.texture
     ?? TEXTURE_MAP[input.mood]
     ?? "balanced texture, moderate reverb";
-  const mix =
-    (MIX_MAP[input.genre] ?? "clean modern mix, professional master") +
-    (input.avoidAiCliche ? ", avoid synthetic vocal artifacts" : "");
 
-  const structure =
-    input.songLength === "30s"
-      ? "[chorus]"
-      : input.startWithChorus
-      ? "[chorus] → [verse] → [chorus] → [bridge] → [chorus]"
-      : "[verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]";
-
-  // ── Quick Idea extraction ──────────────────────────────────────────────────
+  // ── Quick Idea motifs ──────────────────────────────────────────────────────
   const theme = input.theme?.trim() ?? "";
   const themeDesc = theme ? extractThemeDescriptors(theme) : null;
 
-  // Merge theme style words into [Style:] line
-  const extraStyle = themeDesc?.styleWords.slice(0, 4) ?? [];
-  const styleLine = [`[Style:] ${genre}`, mood, ...extraStyle].join(", ");
+  const sentences: string[] = [];
 
-  const lines: string[] = [];
+  // S1: genre + mood + BPM / tempo
+  const bpmPart = input.bpm ? `${input.bpm} BPM` : groove;
+  const keyPart = input.key ? `, key of ${input.key}` : "";
+  const extraStyle = themeDesc?.styleWords.slice(0, 2) ?? [];
+  const moodFull = [mood, ...extraStyle].join(", ");
+  sentences.push(`${genre}, ${moodFull}, ${bpmPart}${keyPart}.`);
 
-  // Quick Idea is the FIRST line — highest priority signal for Suno
-  if (theme) {
-    lines.push(`[Quick Idea:] ${theme}`);
-  }
+  // S2: vocal
+  sentences.push(`${cap(vocal)}.`);
 
-  lines.push(styleLine);
-  lines.push(`[Tempo:] ${input.bpm ? input.bpm + " BPM, " : ""}${groove}`);
-  if (input.key) lines.push(`[Key:] ${input.key}`);
-  lines.push(`[Vocal:] ${vocal}`);
-  // [Groove:] 削除 — Tempo と重複するため
-  lines.push(`[Instruments:] ${instruments}`);
-  lines.push(`[Texture:] ${texture}`);
-  lines.push(`[Structure:] ${structure}`);
-  lines.push(`[Mix Aesthetic:] ${mix}`);
+  // S3: instruments
+  const instrParts = instruments.split(/,\s*/);
+  sentences.push(`${cap(naturalList(instrParts))}.`);
 
-  // Concrete motifs — 最大4件
+  // S4: texture
+  sentences.push(`${cap(texture)}.`);
+
+  // S5: theme motifs
   if (themeDesc && themeDesc.enMotifs.length > 0) {
-    lines.push(`[Concept:] ${themeDesc.enMotifs.slice(0, 4).join(", ")}`);
+    sentences.push(`${cap(themeDesc.enMotifs.slice(0, 4).join(", "))}.`);
   }
 
+  // World preset note
   if (activePreset?.styleOverrides.note) {
-    // "Aesthetic: " prefix を除去して短縮
     const note = activePreset.styleOverrides.note.replace(/^Aesthetic:\s*/i, "").trim();
-    lines.push(`[World:] ${note}`);
+    sentences.push(`${cap(note)}.`);
   }
 
-  // Fine Tune nudges
+  // Nudges
   const nudges = input.nudges ?? [];
   if (nudges.length > 0) {
-    lines.push(`[Fine Tune:] ${nudges.join(", ")}`);
+    sentences.push(`${cap(nudges.join(", "))}.`);
   }
 
-  if (theme) {
-    lines.push(`[Note:] "${theme}" — concrete imagery only`);
-  } else if (input.avoidAiCliche) {
-    lines.push("[Note:] unexpected imagery, raw emotion over polish");
+  // Avoid
+  const avoidParts: string[] = [];
+  if (input.avoidAiCliche) avoidParts.push("generic AI vocal artifacts, over-polished production, synthetic timbre");
+  if (input.avoidExpressions?.trim()) avoidParts.push(input.avoidExpressions.trim());
+  if (avoidParts.length > 0) {
+    sentences.push(`Avoid ${avoidParts.join(", ")}.`);
   }
 
-  const result = lines.join("\n");
-  // 800文字以内に収める（通常はトリガーされない）
+  const result = sentences.join(" ");
   return result.length <= 800 ? result : result.slice(0, 797) + "...";
 }
 
@@ -218,17 +214,10 @@ export function buildImprovementMemo(
   return memo;
 }
 
-// ─── World-first prompt builders ─────────────────────────────────────────────
-
-function buildStructureLine(songLength: string, startWithChorus: boolean): string {
-  if (songLength === "30s") return "[chorus]";
-  if (startWithChorus) return "[chorus] → [verse] → [chorus] → [bridge] → [chorus]";
-  return "[verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]";
-}
-
 /**
- * Builds a Suno style prompt from WorldExpansion + manual overrides.
- * World-first: atmosphere and world description come before genre labels.
+ * Builds a Suno-ready style prompt from WorldExpansion + manual overrides.
+ * Output: single prose paragraph, 350–650 chars ideal, max 800 chars.
+ * No bracket tags — paste directly into Suno's Style field.
  */
 export function buildStylePromptFromExpansion(
   expansion: WorldExpansion,
@@ -236,77 +225,65 @@ export function buildStylePromptFromExpansion(
   worldSeed?: string
 ): string {
   const md = expansion.musicDirection;
-  const lines: string[] = [];
+  const sentences: string[] = [];
 
-  // Quick Idea — always first
-  const seed = (worldSeed ?? input.theme)?.trim();
-  if (seed) lines.push(`[Quick Idea:] ${seed}`);
+  // ── S1: Genre / atmosphere / BPM ───────────────────────────────────────────
+  const bpmNum = input.bpm ? parseInt(input.bpm, 10) : md.bpmEstimate;
+  const bpmStr = bpmNum && !isNaN(bpmNum) ? `, ${bpmNum} BPM` : "";
+  const tempoStr = !bpmStr && md.tempoFeel ? `, ${md.tempoFeel}` : "";
+  const keyStr = input.key ? `, key of ${input.key}` : "";
 
-  // [Style:] = atmosphere-first, NOT genre-first
-  // genreHint goes in parentheses at the end (secondary label)
-  const styleAtm = [md.atmosphere, ...md.moodWords.slice(0, 3)]
-    .filter(Boolean).join(", ");
-  const genreLabel = md.genreHint ? `  (${md.genreHint})` : "";
-  lines.push(`[Style:] ${styleAtm}${genreLabel}`);
+  let s1 = "";
+  if (md.genreHint && md.atmosphere) {
+    s1 = `${md.genreHint} with ${md.atmosphere}`;
+  } else {
+    s1 = md.genreHint || md.atmosphere || "";
+  }
+  s1 += `${bpmStr || tempoStr}${keyStr}`;
+  if (s1) sentences.push(cap(s1) + ".");
 
-  // Tempo (manual BPM overrides estimated)
-  const bpmNum =
-    input.bpm ? parseInt(input.bpm, 10) : md.bpmEstimate;
-  const bpmStr =
-    bpmNum && !isNaN(bpmNum) ? `${bpmNum} BPM, ` : "";
-  lines.push(`[Tempo:] ${bpmStr}${md.tempoFeel}`);
+  // ── S2: Vocal ──────────────────────────────────────────────────────────────
+  if (md.vocalStyle) {
+    sentences.push(cap(md.vocalStyle) + ".");
+  }
 
-  // Key — manual override only
-  if (input.key) lines.push(`[Key:] ${input.key}`);
-
-  // Vocal — from musicDirection (world-inferred, not dropdown)
-  if (md.vocalStyle) lines.push(`[Vocal:] ${md.vocalStyle}`);
-
-  // Instruments — from musicDirection
+  // ── S3: Instruments ────────────────────────────────────────────────────────
   if (md.instruments.length > 0) {
-    lines.push(`[Instruments:] ${md.instruments.join(", ")}`);
+    sentences.push(cap(naturalList(md.instruments)) + ".");
   }
 
-  // Texture — 最大3件
-  if (expansion.texture.length > 0) {
-    lines.push(`[Texture:] ${expansion.texture.slice(0, 3).join(", ")}`);
+  // ── S4: Texture + sound direction (vivid imagery) ──────────────────────────
+  const vivid = [
+    ...expansion.texture.slice(0, 3),
+    ...expansion.soundDirection.slice(0, 2),
+  ].filter(Boolean);
+  if (vivid.length > 0) {
+    sentences.push(cap(naturalList(vivid)) + ".");
   }
 
-  // Concrete motifs — 最大4件
-  if (expansion.objects.length > 0) {
-    lines.push(`[Concept:] ${expansion.objects.slice(0, 4).join(", ")}`);
+  // ── S5: Mood words ─────────────────────────────────────────────────────────
+  if (md.moodWords.length > 0) {
+    sentences.push(cap(md.moodWords.slice(0, 4).join(", ")) + ".");
   }
 
-  // Structure
-  lines.push(`[Structure:] ${buildStructureLine(input.songLength, input.startWithChorus)}`);
-
-  // Mix — atmosphere-forward
-  lines.push(`[Mix:] atmosphere-forward, world over polish`);
-
-  // Contradiction — 最初の1件のみ
-  if (expansion.contradiction.length > 0) {
-    lines.push(`[World:] ${expansion.contradiction[0]}`);
-  }
-
-  // Fine Tune nudges — directional corrections on top of AI inference
+  // ── S6: Fine-tune nudges / reference vibe ─────────────────────────────────
   const nudges = input.nudges ?? [];
   if (nudges.length > 0) {
-    lines.push(`[Fine Tune:] ${nudges.join(", ")}`);
+    sentences.push(cap(nudges.join(", ")) + ".");
   }
-
-  // Manual overrides: reference vibe
   if (input.referenceVibe?.trim()) {
-    lines.push(`[Reference:] ${input.referenceVibe.trim()}`);
+    sentences.push(`Feels like ${input.referenceVibe.trim()}.`);
   }
 
-  // Manual overrides: avoid
+  // ── Last: Avoid ────────────────────────────────────────────────────────────
   const avoidParts: string[] = [];
-  if (input.avoidAiCliche) avoidParts.push("generic AI clichés, over-polished sheen");
+  if (input.avoidAiCliche) avoidParts.push("generic AI clichés, over-polished sheen, synthetic vocals");
   if (input.avoidExpressions?.trim()) avoidParts.push(input.avoidExpressions.trim());
-  if (avoidParts.length > 0) lines.push(`[Avoid:] ${avoidParts.join(", ")}`);
+  if (avoidParts.length > 0) {
+    sentences.push(`Avoid ${avoidParts.join(", ")}.`);
+  }
 
-  const result = lines.join("\n");
-  // 800文字以内に収める
+  const result = sentences.filter(Boolean).join(" ");
   return result.length <= 800 ? result : result.slice(0, 797) + "...";
 }
 

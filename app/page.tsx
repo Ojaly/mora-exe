@@ -25,16 +25,7 @@ import { loadMemories, saveMemory, deleteMemory, PromptMemory } from "@/lib/prom
 
 // ─── Sample content ───────────────────────────────────────────────────────────
 
-const SAMPLE_PROMPT = `[Style:] J-Pop, melancholic, introspective, bittersweet
-[Tempo:] 92 BPM, mid-tempo, laid-back feel
-[Key:] Am
-[Vocal:] female vocal, clear and expressive
-[Groove:] mid-tempo, laid-back feel, rhythmically tight
-[Instruments:] piano, synth pads, light drums, fretless bass
-[Texture:] sparse, intimate, wide reverb
-[Structure:] [verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]
-[Mix Aesthetic:] polished J-Pop mix, clear vocals up front
-[Note:] Avoid generic AI clichés — unexpected imagery, raw emotion over polish`;
+const SAMPLE_PROMPT = `J-Pop, melancholic and introspective, bittersweet, 92 BPM, key of Am. Female vocal, clear and expressive. Piano, synth pads, light drums, and fretless bass. Sparse, intimate, wide reverb. Avoid generic AI clichés, over-polished production, synthetic timbre.`;
 
 const SAMPLE_LYRICS = `[Intro]
 静寂が　部屋を満たしていく

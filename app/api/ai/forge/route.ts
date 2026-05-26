@@ -125,16 +125,18 @@ function ruleBasedForge(worldSeed: string): WorldExpansion {
   ])].slice(0, 5);
   if (soundDirection.length === 0) soundDirection.push("minimal", "atmospheric");
 
+  // stylePromptDraft — prose paragraph preview (displayed in WorldForge panel)
+  const bpmPart = md.bpmEstimate ? `, ${md.bpmEstimate} BPM` : "";
+  const atmGenre = md.genreHint && md.atmosphere
+    ? `${md.genreHint} with ${md.atmosphere}`
+    : md.genreHint || md.atmosphere || "";
   const stylePromptDraft = [
-    `[Quick Idea:] ${worldSeed}`,
-    `[Style:] ${md.atmosphere}, ${md.moodWords.join(", ")}  (${md.genreHint})`,
-    `[Tempo:] ${md.bpmEstimate ? md.bpmEstimate + " BPM, " : ""}${md.tempoFeel}`,
-    `[Vocal:] ${md.vocalStyle}`,
-    `[Instruments:] ${md.instruments.join(", ")}`,
-    objects.length > 0 ? `[Concept:] ${objects.slice(0, 5).join(", ")}` : "",
-    contradiction.length > 0 ? `[World:] ${contradiction[0]}` : "",
-    `[Note:] Write from inside this world — concrete imagery, no generic filler`,
-  ].filter(Boolean).join("\n");
+    atmGenre + bpmPart + ".",
+    md.vocalStyle ? `${md.vocalStyle.charAt(0).toUpperCase() + md.vocalStyle.slice(1)}.` : "",
+    md.instruments.length > 0 ? `${md.instruments.join(", ")}.` : "",
+    soundDirection.length > 0 ? `${soundDirection.slice(0, 3).join(", ")}.` : "",
+    md.moodWords.length > 0 ? `${md.moodWords.slice(0, 4).join(", ")}.` : "",
+  ].filter(Boolean).join(" ");
 
   const lyricsDirection =
     `「${worldSeed}」を中心に` +
@@ -173,8 +175,8 @@ RULES:
   - vocalStyle: specific texture + mic treatment (e.g. "breathy female, close-mic, intimate")
   - instruments: 2-4 instruments that exist in this world's texture
   - moodWords: 3-5 emotional/atmospheric adjectives
-- stylePromptDraft: start with [Quick Idea:], then [Style:] = atmosphere first (NOT "J-Pop, melancholic")
-  Example: [Style:] humid fluorescent loneliness, ritualistic noodle preparation, obsessive comfort-seeking  (decadent downtempo)
+- stylePromptDraft: ONE prose paragraph, no bracket tags. Format: "{genreHint} with {atmosphere}, {BPM} BPM. {vocalStyle}. {instruments}. {texture/soundDirection descriptors}. {moodWords}."
+  Example: "Decadent downtempo neo-soul with humid fluorescent loneliness, 72 BPM. Hushed male vocal, close-mic. Sparse piano, low bass drone, brushed percussion. Intimate, ritualistic, obsessive comfort-seeking."
 - lyricsDirection: JP sentence on how lyrics should approach this world emotionally
 - AVOID generic imagery: "光の海" "starlight" "feel alive" "dance in the rain" "burning soul"
 
@@ -195,7 +197,7 @@ OUTPUT: Valid JSON only — no markdown fences:
     "instruments": ["2-4 instruments"],
     "moodWords": ["3-5 mood words (EN)"]
   },
-  "stylePromptDraft": "complete Suno prompt with [Tag:] lines, atmosphere-first",
+  "stylePromptDraft": "one prose paragraph, no bracket tags — Suno-ready style prompt",
   "lyricsDirection": "JP: one sentence on how lyrics should approach this world"
 }`;
 
