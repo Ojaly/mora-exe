@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SongInput, WorldPresetKey } from "@/types";
+import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { QUICK_QUESTIONS, DEEP_QUESTIONS } from "@/lib/wizardData";
 import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
@@ -20,6 +20,8 @@ interface Props {
   isGenerating?: boolean;
   onWizardApply: (prompt: string, negative: string) => void;
   onApplyExpansion: (stylePrompt: string) => void;
+  expansion: WorldExpansion | null;
+  onExpansionChange: (e: WorldExpansion | null) => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -238,6 +240,8 @@ export default function Sidebar({
   isGenerating = false,
   onWizardApply,
   onApplyExpansion,
+  expansion,
+  onExpansionChange,
 }: Props) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [wizardOpen, setWizardOpen]     = useState(false);
@@ -302,6 +306,8 @@ export default function Sidebar({
             worldSeed={input.theme}
             onWorldSeedChange={(v) => set("theme", v)}
             onApplyToPrompt={onApplyExpansion}
+            expansion={expansion}
+            onExpansionChange={onExpansionChange}
           />
         </div>
 

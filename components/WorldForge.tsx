@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { WorldExpansion } from "@/types";
+import MusicDirectionPanel from "@/components/MusicDirectionPanel";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,8 @@ interface Props {
   worldSeed: string;
   onWorldSeedChange: (v: string) => void;
   onApplyToPrompt: (stylePrompt: string) => void;
+  expansion: WorldExpansion | null;
+  onExpansionChange: (e: WorldExpansion | null) => void;
 }
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
@@ -58,19 +61,25 @@ function ExpRow({
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function WorldForge({ worldSeed, onWorldSeedChange, onApplyToPrompt }: Props) {
+export default function WorldForge({
+  worldSeed,
+  onWorldSeedChange,
+  onApplyToPrompt,
+  expansion,
+  onExpansionChange,
+}: Props) {
   const [isForging, setIsForging] = useState(false);
-  const [expansion, setExpansion] = useState<WorldExpansion | null>(null);
   const [applyFlash, setApplyFlash] = useState(false);
-  const [source, setSource] = useState<"claude" | "rule" | null>(null);
+
+  // Derive source from expansion instead of keeping separate state
+  const source = expansion?.musicDirection.source ?? null;
 
   // ─── Forge handler ────────────────────────────────────────────────────────
 
   const handleForge = async () => {
     if (!worldSeed.trim() || isForging) return;
     setIsForging(true);
-    setExpansion(null);
-    setSource(null);
+    onExpansionChange(null);
 
     try {
       const res = await fetch("/api/ai/forge", {
@@ -81,11 +90,7 @@ export default function WorldForge({ worldSeed, onWorldSeedChange, onApplyToProm
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: WorldExpansion = await res.json();
-      setExpansion(data);
-
-      // Detect if Claude was used (rule-based results don't have elaborate scene text)
-      // The forge API always falls back, so we check if it looks AI-generated
-      setSource(res.headers.get("x-source") === "rule" ? "rule" : "claude");
+      onExpansionChange(data);
     } catch (err) {
       console.error("[WorldForge] forge failed:", err);
     } finally {
@@ -166,7 +171,7 @@ export default function WorldForge({ worldSeed, onWorldSeedChange, onApplyToProm
                 </span>
               )}
               <button
-                onClick={() => setExpansion(null)}
+                onClick={() => onExpansionChange(null)}
                 className="text-[11px] font-mono text-zinc-400 hover:text-zinc-700 transition-colors"
                 title="Clear expansion"
               >
@@ -176,6 +181,9 @@ export default function WorldForge({ worldSeed, onWorldSeedChange, onApplyToProm
           </div>
 
           <div className="px-3 py-2.5 space-y-3">
+
+            {/* Music Direction — MORA.exe's inference */}
+            <MusicDirectionPanel direction={expansion.musicDirection} />
 
             {/* Scene */}
             {expansion.scene.length > 0 && (

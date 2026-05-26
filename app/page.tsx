@@ -6,11 +6,14 @@ import PromptEditor from "@/components/PromptEditor";
 import LyricsEditor from "@/components/LyricsEditor";
 import MoraTunerPanel from "@/components/MoraTunerPanel";
 import {
-  SongInput, WorldPresetKey,
+  SongInput, WorldPresetKey, WorldExpansion,
   MoraLine, MoraSuggestion, PhraseMatch, SyntaxMatch, CollapseRisk, SongStats,
   RewriteMode, RewriteIntensity, SectionTarget, HistoryEntry,
 } from "@/types";
-import { buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt } from "@/lib/promptBuilder";
+import {
+  buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt,
+  buildStylePromptFromExpansion, buildNegativePromptFromExpansion,
+} from "@/lib/promptBuilder";
 import { buildLyricsDraft, draftToRaw } from "@/lib/lyricsBuilder";
 import { analyzeLyrics, calcSongStats } from "@/lib/moraAnalyzer";
 import { detectAiPhrases, detectSyntaxPatterns } from "@/lib/phraseDetector";
@@ -266,6 +269,7 @@ function MemoryPanel({
 export default function Home() {
   const [input, setInput]         = useState<SongInput>(defaultInput);
   const [preset, setPreset]       = useState<WorldPresetKey | "">("");
+  const [expansion, setExpansion] = useState<WorldExpansion | null>(null);
   const [rightView, setRight]     = useState<RightView>("lyrics");
   const [mobileTab, setMobile]    = useState<MobileTab>("concept");
   const [isSample, setIsSample]   = useState(true);
@@ -313,8 +317,13 @@ export default function Home() {
   }, []);
 
   const handleGenerate = async () => {
-    const sp = buildStylePrompt(input, preset);
-    const np = buildNegativePrompt(input);
+    // Expansion-first: use World Forge inference if available, fall back to legacy
+    const sp = expansion
+      ? buildStylePromptFromExpansion(expansion, input, input.theme)
+      : buildStylePrompt(input, preset);
+    const np = expansion
+      ? buildNegativePromptFromExpansion(expansion, input)
+      : buildNegativePrompt(input);
     const rp = buildRegeneratePrompt(input);
     setStyle(sp); setNeg(np); setRegen(rp);
     setIsSample(false);
@@ -329,7 +338,7 @@ export default function Home() {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songInput: input }),
+        body: JSON.stringify({ songInput: input, expansion }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -444,6 +453,7 @@ export default function Home() {
     setRewriteNotes("");
     setRewriteSource(null);
     setHistory([]);
+    setExpansion(null);
   };
 
   const copyAll = () => {
@@ -646,6 +656,8 @@ export default function Home() {
               setStyle(stylePrompt);
               setIsSample(false);
             }}
+            expansion={expansion}
+            onExpansionChange={setExpansion}
           />
         </aside>
 
@@ -741,6 +753,8 @@ export default function Home() {
                 setIsSample(false);
                 setMobile("prompt");
               }}
+              expansion={expansion}
+              onExpansionChange={setExpansion}
             />
           </div>
         )}

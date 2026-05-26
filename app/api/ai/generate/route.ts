@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { SongInput, WorldPresetKey } from "@/types";
+import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 
 export const dynamic = "force-dynamic";
@@ -60,42 +60,66 @@ OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
   "notes": "<1–2 sentence Japanese note on which specific Quick Idea elements were woven in>"
 }`;
 
-export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.warn(
-      "[mora/generate] ANTHROPIC_API_KEY is not set — returning 503. " +
-      "Create .env.local with ANTHROPIC_API_KEY=sk-ant-... to enable Claude. " +
-      "Client will fall back to rule-based lyric generation."
-    );
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 503 });
-  }
+// ─── User prompt builders ─────────────────────────────────────────────────────
 
-  let input: SongInput;
-  try {
-    const body = await req.json();
-    input = body.songInput;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+function buildExpansionUserPrompt(
+  expansion: WorldExpansion,
+  input: SongInput
+): string {
+  const md   = expansion.musicDirection;
+  const seed = input.theme?.trim() || "";
 
-  const presetDeep = input.worldPreset
-    ? (WORLD_PRESETS[input.worldPreset as WorldPresetKey]?.deepPrompt ?? "")
-    : "";
-
-  const quickIdea = input.theme?.trim() || input.title?.trim() || "";
-
-  const userPrompt = `${quickIdea ? `╔═══ QUICK IDEA (TOP PRIORITY) ═══╗
-${quickIdea}
+  return `╔═══ WORLD SEED (TOP PRIORITY) ═══╗
+${seed || "(no seed provided)"}
 ╚══════════════════════════════════╝
 
-Extract from this Quick Idea and build ALL lyrics from it:
-- Central subject/motif: what physical thing or world is at the center?
-- Atmosphere: what is the emotional abnormality or intensity?
-- Sensory details: smells, textures, sounds, colors specific to this world
-- Every line of every section must reflect this world.
+WORLD EXPANSION:
 
-` : ""}Generate lyrics with these parameters:
+SCENE:
+${expansion.scene.map((s) => `• ${s}`).join("\n")}
+
+OBJECTS & MOTIFS: ${expansion.objects.join(" / ")}
+
+EMOTIONAL ATMOSPHERE: ${expansion.emotion.join(" · ")}
+
+TEXTURE: ${expansion.texture.join(", ")}
+${
+  expansion.contradiction.length > 0
+    ? `\nCONTRADICTION:\n${expansion.contradiction.map((c) => `↔ ${c}`).join("\n")}`
+    : ""
+}
+
+DETECTED MUSIC DIRECTION (MORA.exe interpretation):
+- Feel: ${md.genreHint}
+- Atmosphere: ${md.atmosphere}
+- Vocal: ${md.vocalStyle}
+- Tempo: ${md.tempoFeel}${md.bpmEstimate ? ` (~${md.bpmEstimate} BPM)` : ""}
+${md.instruments.length > 0 ? `- Instruments: ${md.instruments.join(", ")}` : ""}
+
+LYRICS DIRECTION: ${expansion.lyricsDirection}
+
+PARAMETERS:
+TITLE: ${input.title || "(未設定)"}
+LANGUAGE: ${langInstruction(input.englishRatio)}
+STRUCTURE: ${buildSections(input)}
+AVOID: ${input.avoidExpressions || "(none)"}
+
+INSTRUCTION:
+Every single line must be traceable to the World Seed.
+Use these concrete objects as recurring imagery: ${expansion.objects.slice(0, 4).join(", ")}
+${expansion.contradiction[0] ? `The contradiction "${expansion.contradiction[0]}" is the emotional core.` : ""}
+Embody the detected music direction — atmosphere over generic melody.
+
+Return JSON only.`;
+}
+
+function buildLegacyUserPrompt(input: SongInput, presetDeep: string): string {
+  const quickIdea = input.theme?.trim() || input.title?.trim() || "";
+  return `${
+    quickIdea
+      ? `╔═══ QUICK IDEA (TOP PRIORITY) ═══╗\n${quickIdea}\n╚══════════════════════════════════╝\n\n`
+      : ""
+  }Generate lyrics with these parameters:
 
 TITLE: ${input.title || "(未設定)"}
 GENRE: ${input.genre}
@@ -110,12 +134,45 @@ AVOID: ${input.avoidExpressions || "(none)"}
 STRUCTURE: ${buildSections(input)}
 ${presetDeep ? `\nWORLD PRESET LENS: ${presetDeep}` : ""}
 
-${quickIdea
-  ? `REMINDER: Every line in every section must be traceable to the Quick Idea: "${quickIdea}".
-Do not use generic imagery. Name the actual objects, sensations, and obsessions from this world.`
-  : `The title/theme "${input.title}" is the subject. Write FROM inside this world.`}
+${
+  quickIdea
+    ? `Every line must be traceable to the Quick Idea: "${quickIdea}". No generic imagery.`
+    : `Theme "${input.title}" is the subject. Write from inside this world.`
+}
 
 Return JSON only.`;
+}
+
+// ─── POST handler ─────────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.warn(
+      "[mora/generate] ANTHROPIC_API_KEY is not set — returning 503. " +
+      "Create .env.local with ANTHROPIC_API_KEY=sk-ant-... to enable Claude. " +
+      "Client will fall back to rule-based lyric generation."
+    );
+    return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 503 });
+  }
+
+  let input: SongInput;
+  let expansion: WorldExpansion | null = null;
+  try {
+    const body = await req.json();
+    input = body.songInput;
+    expansion = body.expansion ?? null;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const presetDeep = input.worldPreset
+    ? (WORLD_PRESETS[input.worldPreset as WorldPresetKey]?.deepPrompt ?? "")
+    : "";
+
+  const userPrompt = expansion
+    ? buildExpansionUserPrompt(expansion, input)
+    : buildLegacyUserPrompt(input, presetDeep);
 
   try {
     const client = new Anthropic({ apiKey });

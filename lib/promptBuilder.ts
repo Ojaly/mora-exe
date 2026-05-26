@@ -1,4 +1,4 @@
-import { SongInput, WorldPresetKey } from "@/types";
+import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { extractThemeDescriptors } from "@/lib/themeExtractor";
 
@@ -211,4 +211,122 @@ export function buildImprovementMemo(
   if (input.startWithChorus)
     memo.push("サビ頭構成：[chorus] タグを冒頭に置くとサビから始まります。インパクト重視の歌詞を用意してください。");
   return memo;
+}
+
+// ─── World-first prompt builders ─────────────────────────────────────────────
+
+function buildStructureLine(songLength: string, startWithChorus: boolean): string {
+  if (songLength === "30s") return "[chorus]";
+  if (startWithChorus) return "[chorus] → [verse] → [chorus] → [bridge] → [chorus]";
+  return "[verse] → [pre-chorus] → [chorus] → [verse] → [chorus] → [bridge] → [outro]";
+}
+
+/**
+ * Builds a Suno style prompt from WorldExpansion + manual overrides.
+ * World-first: atmosphere and world description come before genre labels.
+ */
+export function buildStylePromptFromExpansion(
+  expansion: WorldExpansion,
+  input: SongInput,
+  worldSeed?: string
+): string {
+  const md = expansion.musicDirection;
+  const lines: string[] = [];
+
+  // Quick Idea — always first
+  const seed = (worldSeed ?? input.theme)?.trim();
+  if (seed) lines.push(`[Quick Idea:] ${seed}`);
+
+  // [Style:] = atmosphere-first, NOT genre-first
+  // genreHint goes in parentheses at the end (secondary label)
+  const styleAtm = [md.atmosphere, ...md.moodWords.slice(0, 3)]
+    .filter(Boolean).join(", ");
+  const genreLabel = md.genreHint ? `  (${md.genreHint})` : "";
+  lines.push(`[Style:] ${styleAtm}${genreLabel}`);
+
+  // Tempo (manual BPM overrides estimated)
+  const bpmNum =
+    input.bpm ? parseInt(input.bpm, 10) : md.bpmEstimate;
+  const bpmStr =
+    bpmNum && !isNaN(bpmNum) ? `${bpmNum} BPM, ` : "";
+  lines.push(`[Tempo:] ${bpmStr}${md.tempoFeel}`);
+
+  // Key — manual override only
+  if (input.key) lines.push(`[Key:] ${input.key}`);
+
+  // Vocal — from musicDirection (world-inferred, not dropdown)
+  if (md.vocalStyle) lines.push(`[Vocal:] ${md.vocalStyle}`);
+
+  // Instruments — from musicDirection
+  if (md.instruments.length > 0) {
+    lines.push(`[Instruments:] ${md.instruments.join(", ")}`);
+  }
+
+  // Texture — from expansion
+  if (expansion.texture.length > 0) {
+    lines.push(`[Texture:] ${expansion.texture.join(", ")}`);
+  }
+
+  // Concrete motifs as [Concept:]
+  if (expansion.objects.length > 0) {
+    lines.push(`[Concept:] ${expansion.objects.slice(0, 6).join(", ")}`);
+  }
+
+  // Structure
+  lines.push(`[Structure:] ${buildStructureLine(input.songLength, input.startWithChorus)}`);
+
+  // Mix — atmosphere-forward
+  lines.push(`[Mix:] cinematic balance, atmosphere-forward, world over polish`);
+
+  // Contradiction — the poetic core
+  if (expansion.contradiction.length > 0) {
+    lines.push(`[World:] ${expansion.contradiction.join(" / ")}`);
+  }
+
+  // Manual overrides: reference vibe
+  if (input.referenceVibe?.trim()) {
+    lines.push(`[Reference:] ${input.referenceVibe.trim()}`);
+  }
+
+  // Manual overrides: avoid
+  const avoidParts: string[] = [];
+  if (input.avoidAiCliche) avoidParts.push("generic AI clichés, over-polished sheen");
+  if (input.avoidExpressions?.trim()) avoidParts.push(input.avoidExpressions.trim());
+  if (avoidParts.length > 0) lines.push(`[Avoid:] ${avoidParts.join(", ")}`);
+
+  return lines.join("\n");
+}
+
+/**
+ * Builds a negative prompt from WorldExpansion.
+ * Uses world/mood inference instead of genre-specific lists.
+ */
+export function buildNegativePromptFromExpansion(
+  expansion: WorldExpansion,
+  input: SongInput
+): string {
+  const parts: string[] = [];
+
+  if (input.avoidAiCliche) {
+    parts.push(
+      "generic AI vocal phrases, over-polished production, synthetic timbre"
+    );
+  }
+
+  const mw = expansion.musicDirection.moodWords.join(" ").toLowerCase();
+  if (/obsess|ritual|decad|haunt|cult|fanatic/.test(mw)) {
+    parts.push(
+      "cheerful pop energy, generic uplifting melody, stadium anthem feel"
+    );
+  }
+  const vox = expansion.musicDirection.vocalStyle.toLowerCase();
+  if (/close|intimate|whisper|breath/.test(vox)) {
+    parts.push("excessive reverb, over-produced sheen, big hall sound");
+  }
+
+  if (input.avoidExpressions?.trim()) {
+    parts.push(input.avoidExpressions.trim());
+  }
+
+  return parts.length > 0 ? parts.join(", ") : "none";
 }

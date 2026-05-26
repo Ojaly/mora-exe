@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { WorldExpansion } from "@/types";
+import { WorldExpansion, MusicDirection } from "@/types";
 import {
   extractThemeDescriptors,
   extractThemeMotifsForLyrics,
@@ -8,15 +8,80 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// ─── Rule-based fallback ──────────────────────────────────────────────────────
+// ─── Rule-based MusicDirection ────────────────────────────────────────────────
+
+function ruleBasedMusicDirection(
+  worldSeed: string,
+  styleWords: string[],
+  motifs: string[]
+): MusicDirection {
+  // BPM estimate from intensity / mood cues
+  let bpmEstimate: number | null = null;
+  if (/退廃|obsess|ゆっくり|ritual|melanchol|slow/.test(worldSeed))    bpmEstimate = 72;
+  else if (/aggressive|fast|intense|ダンス|高速/.test(worldSeed))       bpmEstimate = 132;
+  else if (/ファンク|funk|groove/.test(worldSeed))                      bpmEstimate = 96;
+  else if (/ポップ|pop|キャッチ|upbeat/.test(worldSeed))                bpmEstimate = 110;
+
+  // Genre hint — world-specific, not standard genre names
+  let genreHint = "atmospheric experimental";
+  if (/退廃|decaden/.test(worldSeed))             genreHint = "decadent slow-burn";
+  if (/偏執|obsess/.test(worldSeed))              genreHint = "obsessive minimal";
+  if (/ファンク|funk/.test(worldSeed))            genreHint = "uncanny psychedelic funk";
+  if (/jazz|ジャズ/.test(worldSeed))              genreHint = "dark jazz";
+  if (/neo.soul|ネオソウル/.test(worldSeed))      genreHint = "neo-soul";
+  if (/企業|corporate|CM|ビジネス/.test(worldSeed)) genreHint = "uncanny corporate pop";
+  if (/民謡|folk/.test(worldSeed))               genreHint = "dark folk";
+  if (/electro|シンセ|synth/.test(worldSeed))    genreHint = "cold electronic";
+  if (/hip.hop|ヒップホップ/.test(worldSeed))    genreHint = "abstract hip-hop";
+
+  // Atmosphere: styleWords + sensory hint from primary motif
+  const atParts: string[] = [...styleWords.slice(0, 2)];
+  if (motifs[0]) atParts.push(`${motifs[0]}-scented`);
+  atParts.push("intimate");
+  const atmosphere = [...new Set(atParts)].slice(0, 4).join(", ");
+
+  // Tempo feel
+  let tempoFeel = "mid-tempo, deliberate";
+  if (bpmEstimate && bpmEstimate <= 80)          tempoFeel = "slow, deliberate";
+  else if (bpmEstimate && bpmEstimate >= 120)    tempoFeel = "driven, relentless";
+  else if (/ゆっくり|slow|heavy/.test(worldSeed)) tempoFeel = "slow, meditative";
+
+  // Vocal style
+  let vocalStyle = "close-mic, intimate";
+  if (/女|female|girl/.test(worldSeed))          vocalStyle = "breathy female, close-mic";
+  else if (/男|male|man/.test(worldSeed))        vocalStyle = "dry male, hushed";
+  if (/choir|コーラス|合唱/.test(worldSeed))     vocalStyle = "layered choir, ritualistic";
+
+  // Instruments — context-aware
+  const isFood   = /うどん|ラーメン|そば|餃子|コーヒー/.test(worldSeed);
+  const isFunk   = /ファンク|funk/.test(worldSeed);
+  const isAmbient = /ambient|アンビエント|宇宙|space/.test(worldSeed);
+  const instruments = isFood    ? ["minimal piano", "sparse brushed percussion", "low bass drone"]
+                    : isFunk    ? ["clean electric guitar", "funk bass", "tight snare", "organ"]
+                    : isAmbient ? ["sustained synth pads", "subtle field textures", "sparse piano"]
+                    :             ["sparse piano", "minimal percussion"];
+
+  return {
+    genreHint,
+    atmosphere,
+    tempoFeel,
+    bpmEstimate,
+    vocalStyle,
+    instruments,
+    moodWords: styleWords.slice(0, 5),
+    source: "rule",
+  };
+}
+
+// ─── Rule-based full forge ─────────────────────────────────────────────────────
 
 function ruleBasedForge(worldSeed: string): WorldExpansion {
-  const desc = extractThemeDescriptors(worldSeed);
+  const desc   = extractThemeDescriptors(worldSeed);
   const motifs = extractThemeMotifsForLyrics(worldSeed);
+  const md     = ruleBasedMusicDirection(worldSeed, desc.styleWords, motifs);
 
   const primaryMotif = motifs[0] ?? "";
 
-  // Scene: compose 2-3 brief cinematic fragments
   const scene: string[] = [];
   if (primaryMotif) {
     scene.push(`${primaryMotif}が中心に置かれた薄暗い空間`);
@@ -25,9 +90,7 @@ function ruleBasedForge(worldSeed: string): WorldExpansion {
     scene.push("薄暗く静寂に満ちた空間");
     scene.push("誰かが何かに執着しながら佇んでいる");
   }
-  if (desc.styleWords[0]) {
-    scene.push(`${desc.styleWords[0]}な光と影が交差する`);
-  }
+  if (desc.styleWords[0]) scene.push(`${desc.styleWords[0]}な光と影が交差する`);
 
   const emotion = desc.styleWords.length > 0
     ? desc.styleWords.slice(0, 5)
@@ -39,9 +102,9 @@ function ruleBasedForge(worldSeed: string): WorldExpansion {
 
   const objects = motifs.slice(0, 7);
 
-  // Contradiction: detect paradoxes
+  // Contradiction detection
   const contradiction: string[] = [];
-  const isFood = /うどん|ラーメン|そば|餃子|コーヒー|酒|カレー/.test(worldSeed);
+  const isFood   = /うどん|ラーメン|そば|餃子|コーヒー/.test(worldSeed);
   const isIntense = /偏執|狂信|退廃|崇拝|執着|狂気/.test(worldSeed);
   const isCorporate = /企業|CM|完璧|ビジネス/.test(worldSeed);
   const isGrotesque = /不気味|怖い|ホラー/.test(worldSeed);
@@ -52,45 +115,26 @@ function ruleBasedForge(worldSeed: string): WorldExpansion {
   } else if (isCorporate && isGrotesque) {
     contradiction.push("完璧な表面 ↔ 不気味な内部");
     contradiction.push("corporate polish ↔ uncanny distortion");
-  } else if (desc.styleWords.includes("decadent") && desc.styleWords.includes("ritualistic")) {
+  } else if (md.moodWords.includes("decadent") || md.moodWords.includes("ritualistic")) {
     contradiction.push("崩壊への意志 ↔ 儀式的な秩序");
   }
 
-  const soundDirection: string[] = [
+  const soundDirection = [...new Set([
     ...desc.enMotifs.slice(0, 2),
     ...desc.styleWords.slice(0, 3),
-  ].slice(0, 5);
+  ])].slice(0, 5);
+  if (soundDirection.length === 0) soundDirection.push("minimal", "atmospheric");
 
-  if (soundDirection.length === 0) {
-    soundDirection.push("minimal", "focused", "atmospheric");
-  }
-
-  // Style prompt draft
-  const styleParts: string[] = [
+  const stylePromptDraft = [
     `[Quick Idea:] ${worldSeed}`,
-  ];
-
-  const styleAtmosphere = [
-    ...desc.styleWords.slice(0, 4),
-  ].join(", ");
-  if (styleAtmosphere) {
-    styleParts.push(`[Style:] ${styleAtmosphere}, atmospheric`);
-  } else {
-    styleParts.push(`[Style:] experimental, atmospheric`);
-  }
-
-  if (desc.enMotifs.length > 0) {
-    styleParts.push(`[Concept:] ${desc.enMotifs.join(", ")}`);
-  }
-  if (objects.length > 0) {
-    styleParts.push(`[Objects:] ${objects.slice(0, 5).join(", ")}`);
-  }
-  if (soundDirection.length > 0) {
-    styleParts.push(`[Sound:] ${soundDirection.join(", ")}`);
-  }
-  styleParts.push(
-    `[Note:] Write from inside this world — every line traceable to the seed`
-  );
+    `[Style:] ${md.atmosphere}, ${md.moodWords.join(", ")}  (${md.genreHint})`,
+    `[Tempo:] ${md.bpmEstimate ? md.bpmEstimate + " BPM, " : ""}${md.tempoFeel}`,
+    `[Vocal:] ${md.vocalStyle}`,
+    `[Instruments:] ${md.instruments.join(", ")}`,
+    objects.length > 0 ? `[Concept:] ${objects.slice(0, 5).join(", ")}` : "",
+    contradiction.length > 0 ? `[World:] ${contradiction[0]}` : "",
+    `[Note:] Write from inside this world — concrete imagery, no generic filler`,
+  ].filter(Boolean).join("\n");
 
   const lyricsDirection =
     `「${worldSeed}」を中心に` +
@@ -105,7 +149,8 @@ function ruleBasedForge(worldSeed: string): WorldExpansion {
     objects,
     contradiction,
     soundDirection,
-    stylePromptDraft: styleParts.join("\n"),
+    musicDirection: md,
+    stylePromptDraft,
     lyricsDirection,
   };
 }
@@ -113,28 +158,45 @@ function ruleBasedForge(worldSeed: string): WorldExpansion {
 // ─── Claude system prompt ─────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are a World Expansion Engine for music production.
-Transform a brief World Seed into a rich, sensory world suitable for Suno AI.
+Transform a brief World Seed into a rich, sensory world for Suno AI.
 
 RULES:
 - Convert abstract words into film-like scenes: light, smell, texture, temperature, action, place
 - Find the CONTRADICTION or paradox — the most interesting songs have internal tension
-- Extract physical objects that anchor this world (prefer Japanese words)
-- soundDirection: Suno-ready English descriptors (sonic qualities, NOT genres)
-- stylePromptDraft: complete Suno-style prompt string, start with [Quick Idea:]
-- lyricsDirection: brief Japanese instruction for what the lyrics should "do" emotionally
+- Extract physical objects and motifs (prefer Japanese for food/place words)
+- soundDirection: Suno-ready English sonic descriptors (NOT genre names, but qualities)
+- musicDirection: MORA.exe's interpretation of what this world SOUNDS like
+  - genreHint: world-specific label, NOT standard genre (e.g. "ritualistic downtempo neo-soul" not "J-Pop")
+  - atmosphere: 2-4 sensory/atmospheric descriptors
+  - tempoFeel: specific character (e.g. "slow, deliberate" not just "slow")
+  - bpmEstimate: integer or null
+  - vocalStyle: specific texture + mic treatment (e.g. "breathy female, close-mic, intimate")
+  - instruments: 2-4 instruments that exist in this world's texture
+  - moodWords: 3-5 emotional/atmospheric adjectives
+- stylePromptDraft: start with [Quick Idea:], then [Style:] = atmosphere first (NOT "J-Pop, melancholic")
+  Example: [Style:] humid fluorescent loneliness, ritualistic noodle preparation, obsessive comfort-seeking  (decadent downtempo)
+- lyricsDirection: JP sentence on how lyrics should approach this world emotionally
 - AVOID generic imagery: "光の海" "starlight" "feel alive" "dance in the rain" "burning soul"
-- Every field must be traceable to the World Seed
 
-OUTPUT: Valid JSON only — no markdown fences, no explanation:
+OUTPUT: Valid JSON only — no markdown fences:
 {
-  "scene": ["3-4 short cinematic fragments (JP preferred, each under 25 chars)"],
-  "emotion": ["3-5 specific atmosphere/emotion words (English)"],
-  "texture": ["3-4 sonic texture descriptors (English)"],
-  "objects": ["4-8 physical objects or motifs (Japanese preferred)"],
-  "contradiction": ["1-3 core paradoxes or tensions (Japanese or English)"],
-  "soundDirection": ["4-6 Suno-ready style words (English)"],
-  "stylePromptDraft": "complete Suno prompt with [Tag:] lines",
-  "lyricsDirection": "Japanese: one sentence on how lyrics should approach this world"
+  "scene": ["3-4 cinematic fragments (JP preferred, under 25 chars each)"],
+  "emotion": ["3-5 atmosphere/emotion words (EN)"],
+  "texture": ["3-4 sonic texture descriptors (EN)"],
+  "objects": ["4-8 physical motifs (JP preferred)"],
+  "contradiction": ["1-3 paradoxes/tensions (JP or EN)"],
+  "soundDirection": ["4-6 Suno-ready style words (EN)"],
+  "musicDirection": {
+    "genreHint": "world-specific genre feel (EN, 3-6 words)",
+    "atmosphere": "2-4 sensory descriptors (EN)",
+    "tempoFeel": "tempo character (EN)",
+    "bpmEstimate": <number or null>,
+    "vocalStyle": "specific vocal texture + mic treatment (EN)",
+    "instruments": ["2-4 instruments"],
+    "moodWords": ["3-5 mood words (EN)"]
+  },
+  "stylePromptDraft": "complete Suno prompt with [Tag:] lines, atmosphere-first",
+  "lyricsDirection": "JP: one sentence on how lyrics should approach this world"
 }`;
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
@@ -154,7 +216,7 @@ export async function POST(req: NextRequest) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.warn("[mora/forge] No ANTHROPIC_API_KEY — using rule-based expansion");
+    console.warn("[mora/forge] No ANTHROPIC_API_KEY — rule-based expansion");
     return NextResponse.json(ruleBasedForge(worldSeed));
   }
 
@@ -163,12 +225,12 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1200,
+      max_tokens: 1400,
       system: SYSTEM_PROMPT,
       messages: [
         {
           role: "user",
-          content: `World Seed: "${worldSeed}"\n\nExpand this world into the JSON structure. Return JSON only.`,
+          content: `World Seed: "${worldSeed}"\n\nExpand this world. Return JSON only.`,
         },
       ],
     });
@@ -181,8 +243,19 @@ export async function POST(req: NextRequest) {
       .replace(/^```(?:json)?\n?/, "")
       .replace(/\n?```$/, "");
 
-    const parsed = JSON.parse(raw) as WorldExpansion;
-    return NextResponse.json(parsed);
+    const parsed = JSON.parse(raw) as Partial<WorldExpansion>;
+
+    // Ensure musicDirection.source is set
+    if (parsed.musicDirection) {
+      parsed.musicDirection.source = "claude";
+    } else {
+      // Fallback if Claude omitted the field
+      const desc = extractThemeDescriptors(worldSeed);
+      const motifs = extractThemeMotifsForLyrics(worldSeed);
+      parsed.musicDirection = ruleBasedMusicDirection(worldSeed, desc.styleWords, motifs);
+    }
+
+    return NextResponse.json(parsed as WorldExpansion);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[mora/forge] Claude API failed:", msg, "— rule-based fallback");

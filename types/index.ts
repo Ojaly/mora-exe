@@ -138,15 +138,33 @@ export interface HistoryEntry {
 
 // ─── World Forge ─────────────────────────────────────────────────────────────
 
+export interface MusicDirection {
+  /** concise world-specific genre feel, e.g. "ritualistic downtempo neo-soul" */
+  genreHint:   string;
+  /** 2-4 atmospheric/sensory descriptors */
+  atmosphere:  string;
+  /** tempo character, e.g. "slow, deliberate" */
+  tempoFeel:   string;
+  bpmEstimate: number | null;
+  /** specific vocal character + mic treatment */
+  vocalStyle:  string;
+  /** 2-4 instruments that fit this world */
+  instruments: string[];
+  /** 3-5 mood/atmosphere words (EN) */
+  moodWords:   string[];
+  source:      "claude" | "rule";
+}
+
 export interface WorldExpansion {
-  scene: string[];
-  emotion: string[];
-  texture: string[];
-  objects: string[];
-  contradiction: string[];
-  soundDirection: string[];
+  scene:            string[];
+  emotion:          string[];
+  texture:          string[];
+  objects:          string[];
+  contradiction:    string[];
+  soundDirection:   string[];
+  musicDirection:   MusicDirection;
   stylePromptDraft: string;
-  lyricsDirection: string;
+  lyricsDirection:  string;
 }
 
 export interface PromptMemory {
