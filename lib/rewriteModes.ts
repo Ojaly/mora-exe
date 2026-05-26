@@ -175,6 +175,47 @@ function strengthenChorus(lyrics: string): string {
   });
 }
 
+// ─── Poetic ──────────────────────────────────────────────────────────────────
+
+function makePoetic(lyrics: string): string {
+  return processLines(lyrics, (line, isTag) => {
+    if (isTag || !line) return line;
+    // Remove over-explanatory connectives
+    return line
+      .replace(/だから\s*/g, "")
+      .replace(/なぜなら\s*/g, "")
+      .replace(/つまり\s*/g, "")
+      .replace(/そして\s*/g, "")
+      .replace(/という\s*/g, "の")
+      .replace(/ことが大切/g, "")
+      .trim();
+  });
+}
+
+// ─── Ironic ───────────────────────────────────────────────────────────────────
+
+function makeIronic(lyrics: string): string {
+  const IRONIC_SUBSTITUTIONS: [RegExp, string][] = [
+    [/完璧な/g,   "完璧のふりをした"],
+    [/幸せだ/g,   "幸せに見える"],
+    [/幸せを/g,   "幸せらしきものを"],
+    [/笑っている/g, "笑ってみせている"],
+    [/笑う/g,     "笑ってみせる"],
+    [/大丈夫/g,   "大丈夫と呟く"],
+    [/信じてる/g, "信じるふりをしてる"],
+    [/愛してる/g, "愛しているような気がする"],
+    [/本当の/g,   "本当らしい"],
+    [/永遠に/g,   "永遠というやつに"],
+  ];
+  let result = lyrics;
+  for (const [pattern, replacement] of IRONIC_SUBSTITUTIONS) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+// ─── ojaly ───────────────────────────────────────────────────────────────────
+
 const OJALY_TRANSFORMS: [RegExp, string][] = [
   [/街の灯り/g, "ネオンが滲む"],
   [/静寂/g, "サーバーの残響"],
@@ -203,28 +244,32 @@ function ojalyStyle(lyrics: string): string {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const REWRITE_MODE_LABELS: Record<RewriteMode, string> = {
-  catchy: "キャッチー化",
-  "remove-ai": "AI臭さ除去",
-  "shorten-mora": "モーラ短縮",
-  "strengthen-chorus": "サビ強化",
-  "more-japanese": "日本語多め",
-  "more-english": "英語多め",
-  darker: "ダーク化",
-  danceable: "ダンサブル化",
-  ojaly: "ojaly.風",
+  catchy:             "キャッチー化",
+  "remove-ai":        "AI臭さ除去",
+  "shorten-mora":     "モーラ短縮",
+  "strengthen-chorus":"サビ強化",
+  "more-japanese":    "日本語多め",
+  "more-english":     "英語多め",
+  darker:             "ダーク化",
+  danceable:          "ダンサブル化",
+  poetic:             "詩的",
+  ironic:             "皮肉",
+  ojaly:              "ojaly.化",
 };
 
 export function applyRewriteMode(lyrics: string, mode: RewriteMode): string {
   switch (mode) {
-    case "catchy":           return makeCatchy(lyrics);
-    case "remove-ai":        return removeAiCliches(lyrics);
-    case "shorten-mora":     return shortenMora(lyrics);
-    case "strengthen-chorus":return strengthenChorus(lyrics);
-    case "more-japanese":    return moreJapanese(lyrics);
-    case "more-english":     return moreEnglish(lyrics);
-    case "darker":           return makeDarker(lyrics);
-    case "danceable":        return makeDanceable(lyrics);
-    case "ojaly":            return ojalyStyle(lyrics);
-    default:                 return lyrics;
+    case "catchy":            return makeCatchy(lyrics);
+    case "remove-ai":         return removeAiCliches(lyrics);
+    case "shorten-mora":      return shortenMora(lyrics);
+    case "strengthen-chorus": return strengthenChorus(lyrics);
+    case "more-japanese":     return moreJapanese(lyrics);
+    case "more-english":      return moreEnglish(lyrics);
+    case "darker":            return makeDarker(lyrics);
+    case "danceable":         return makeDanceable(lyrics);
+    case "poetic":            return makePoetic(lyrics);
+    case "ironic":            return makeIronic(lyrics);
+    case "ojaly":             return ojalyStyle(lyrics);
+    default:                  return lyrics;
   }
 }

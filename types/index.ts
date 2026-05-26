@@ -126,6 +126,8 @@ export type RewriteMode =
   | "more-english"
   | "darker"
   | "danceable"
+  | "poetic"
+  | "ironic"
   | "ojaly";
 
 export type RewriteIntensity = "subtle" | "medium" | "aggressive";

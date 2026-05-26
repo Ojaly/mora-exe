@@ -87,10 +87,37 @@ const defaultInput: SongInput = {
   startWithChorus: false, avoidAiCliche: false, lyrics: "", nudges: [],
 };
 
-const REWRITE_MODES: Array<[RewriteMode, string]> = [
-  ["catchy", "キャッチー"], ["remove-ai", "AI臭除去"], ["shorten-mora", "短縮"],
-  ["strengthen-chorus", "サビ強化"], ["more-japanese", "JP多め"], ["more-english", "EN多め"],
-  ["darker", "ダーク"], ["danceable", "ダンサブル"], ["ojaly", "ojaly."],
+// Rewrite button categories — REWRITE / TONE / LANGUAGE
+const REWRITE_CATS: Array<{
+  label: string;
+  modes: Array<[RewriteMode, string, string?]>; // [mode, display, tooltip?]
+}> = [
+  {
+    label: "REWRITE",
+    modes: [
+      ["catchy",            "キャッチー"],
+      ["shorten-mora",      "短縮"],
+      ["strengthen-chorus", "サビ強化"],
+      ["remove-ai",         "AI臭除去"],
+      ["ojaly",             "ojaly.化", "説明を削り、夜・光・余韻・皮肉・ミニマルな比喩に寄せる"],
+    ],
+  },
+  {
+    label: "TONE",
+    modes: [
+      ["darker",    "ダーク"],
+      ["danceable", "ダンサブル"],
+      ["poetic",    "詩的"],
+      ["ironic",    "皮肉"],
+    ],
+  },
+  {
+    label: "LANG",
+    modes: [
+      ["more-japanese", "JP多め"],
+      ["more-english",  "EN多め"],
+    ],
+  },
 ];
 
 const INTENSITY_OPTS: Array<[RewriteIntensity, string]> = [
@@ -477,32 +504,16 @@ export default function Home() {
 
   const rewriteBar = (
     <div className="shrink-0 border-t border-[#2a2f3a]/80" style={{ background: "var(--bg-rewrite)" }}>
-      {/* Row 1: Intensity + Section target */}
-      <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 px-4 pt-2.5 pb-2 border-b border-[#d0d7de]">
-        <span className="text-[12px] font-mono text-zinc-500 shrink-0 tracking-wider">INTENSITY</span>
+
+      {/* Row 1: SECTION + INTENSITY (compact combined row) */}
+      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 px-4 pt-2 pb-1.5 border-b border-[#d0d7de]">
+        <span className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase shrink-0">SECTION</span>
         <div className="flex gap-1">
-          {INTENSITY_OPTS.map(([lv, lbl]) => (
-            <button
-              key={lv}
-              onClick={() => setIntensity(lv)}
-              className={`px-2.5 py-1 text-[12px] font-mono rounded border transition-colors ${
-                intensity === lv
-                  ? "border-blue-400 text-blue-700 bg-blue-50"
-                  : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
-              }`}
-            >
-              {lbl}
-            </button>
-          ))}
-        </div>
-        <div className="w-px h-4 bg-[#d0d7de] shrink-0" />
-        <span className="text-[12px] font-mono text-zinc-500 shrink-0 tracking-wider">SECTION</span>
-        <div className="flex gap-1 flex-wrap">
           {SECTION_OPTS.map(([val, lbl]) => (
             <button
               key={val}
               onClick={() => setSectionTarget(val)}
-              className={`px-2.5 py-1 text-[12px] font-mono rounded border transition-colors ${
+              className={`px-2 py-0.5 text-[11px] font-mono rounded border transition-colors ${
                 sectionTarget === val
                   ? "border-violet-400 text-violet-700 bg-violet-50"
                   : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
@@ -512,30 +523,57 @@ export default function Home() {
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Row 2: Rewrite mode buttons */}
-      <div className="flex flex-wrap gap-2 px-4 py-2.5">
-        {REWRITE_MODES.map(([mode, label]) => {
-          const isLoading = loadingMode === mode;
-          const isDisabled = !!loadingMode;
-          return (
+        <div className="w-px h-3 bg-[#d0d7de] shrink-0 mx-0.5" />
+        <span className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase shrink-0">INTENSITY</span>
+        <div className="flex gap-1">
+          {INTENSITY_OPTS.map(([lv, lbl]) => (
             <button
-              key={mode}
-              onClick={() => handleRewrite(mode)}
-              disabled={isDisabled}
-              className={`px-3 py-1.5 text-[13px] font-mono border rounded transition-all disabled:cursor-not-allowed ${
-                isLoading
-                  ? "border-blue-400 text-blue-600 bg-blue-50 animate-pulse"
-                  : isDisabled
-                  ? "border-[#d0d7de] text-zinc-400"
-                  : "border-[#c8cdd4] text-zinc-700 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 active:scale-95"
+              key={lv}
+              onClick={() => setIntensity(lv)}
+              className={`px-2 py-0.5 text-[11px] font-mono rounded border transition-colors ${
+                intensity === lv
+                  ? "border-blue-400 text-blue-700 bg-blue-50"
+                  : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
               }`}
             >
-              {isLoading ? "…" : label}
+              {lbl}
             </button>
-          );
-        })}
+          ))}
+        </div>
+      </div>
+
+      {/* Row 2: Categorized rewrite buttons */}
+      <div className="px-4 pt-2 pb-1 space-y-1.5">
+        {REWRITE_CATS.map(({ label, modes }) => (
+          <div key={label} className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase w-11 shrink-0">
+              {label}
+            </span>
+            {modes.map(([mode, display, tooltip]) => {
+              const isLoading  = loadingMode === mode;
+              const isDisabled = !!loadingMode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => handleRewrite(mode)}
+                  disabled={isDisabled}
+                  title={tooltip}
+                  className={`px-2.5 py-1 text-[12px] font-mono border rounded transition-all disabled:cursor-not-allowed ${
+                    isLoading
+                      ? "border-blue-400 text-blue-600 bg-blue-50 animate-pulse"
+                      : isDisabled
+                      ? "border-[#d0d7de] text-zinc-400"
+                      : mode === "ojaly"
+                      ? "border-violet-300 text-violet-700 hover:border-violet-500 hover:bg-violet-50 active:scale-95"
+                      : "border-[#c8cdd4] text-zinc-700 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 active:scale-95"
+                  }`}
+                >
+                  {isLoading ? "…" : display}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {/* Row 3: Undo + status badge + notes */}

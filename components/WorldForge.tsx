@@ -183,7 +183,10 @@ export default function WorldForge({
           <div className="px-3 py-2.5 space-y-3">
 
             {/* Music Direction — MORA.exe's inference */}
-            <MusicDirectionPanel direction={expansion.musicDirection} />
+            <MusicDirectionPanel
+              direction={expansion.musicDirection}
+              lyricsDirection={expansion.lyricsDirection}
+            />
 
             {/* Scene */}
             {expansion.scene.length > 0 && (

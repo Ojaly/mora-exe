@@ -81,8 +81,49 @@ function modeInstruction(mode: RewriteMode, moraWarnings: number[]): string {
       "Deepen the shadow. Replace hope or neutrality with dread, desperation, or melancholic beauty. Don't just swap words — shift the emotional temperature of the whole piece.",
     danceable:
       "Make it move. Shorter lines, punchy syllables, rhythmic stress on strong beats, physical energy in the word choices. The body should feel this, not just the mind.",
+    poetic:
+      `Make the lyrics more poetic — less explanation, more image.
+- Remove explanatory connectives (だから, なぜなら, つまり, そして)
+- Replace direct emotional statements with concrete sensory images
+- Trust the reader: cut anything that over-explains
+- Let silence do work: shorter lines, implication over statement
+- Each line should carry more weight than its literal meaning
+- Abstract feelings must become specific objects, textures, temperatures`,
+
+    ironic:
+      `Add irony, quiet detachment, and subtle uncanniness to the lyrics.
+- Replace sincere statements with slight distance or understatement
+- The narrator knows more than they're letting on
+- Surface emotions should quietly contradict what's underneath
+- Aim for wry, understated, not cynical
+- The chorus split: the surface meaning and the real meaning should diverge slightly
+- Especially effective when the most painful things are said the most calmly`,
+
     ojaly:
-      "Rewrite in 'ojaly.' signature style: digital/network metaphors (timestamps, dropped packets, cache, server errors), cyberpunk urban imagery, technical-poetic juxtaposition. Keep emotional core, make it feel like a hacker's inner monologue at 2am.",
+      `Rewrite in the ojaly. lyrical aesthetic.
+
+Make it:
+- more minimal — fewer words, more negative space
+- more nocturnal — the world is dark, late, uncertain
+- more poetic — metaphor and resonance over direct statement
+- more emotionally restrained — feelings hinted, never shouted
+- more cinematic — a scene, not a sentiment
+- slightly ironic or uncanny — something slightly off, not fully resolved
+- less explanatory — trust the image, delete the interpretation
+- less generic J-pop — no 光/明日/君の笑顔 clichés
+- more memorable chorus — short, strange, stays in the head long after
+
+Preserve the original theme and section structure exactly.
+Do not add proper nouns unless already present.
+Avoid cliché English phrases (feel alive / in my veins / break free / warrior).
+
+日本語歌詞の場合のニュアンス優先：
+- 説明を削り、余韻を増やす
+- 夜・光・孤独・違和感・近未来感をにじませる
+- 感情を叫ばず、静かに刺す
+- 少し皮肉、または不穏さを漂わせる
+- 安いJ-POP的直球表現（大丈夫・輝く・信じて）を排除
+- サビは短く、覚えやすく、異質な印象が残る形にする`,
   };
 
   return map[mode] ?? "Improve overall quality.";

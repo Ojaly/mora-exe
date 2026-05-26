@@ -246,7 +246,8 @@ export default function Sidebar({
 }: Props) {
   const [alchemyOpen,  setAlchemyOpen]  = useState(false);
   const [fineTuneOpen, setFineTuneOpen] = useState(false);
-  const [guidedOpen, setGuidedOpen]     = useState(false);
+  const [avoidOpen,    setAvoidOpen]    = useState(false);
+  const [guidedOpen,   setGuidedOpen]   = useState(false);
 
   // Wizard state
   const [wizardMode, setWizardMode]         = useState<WizardMode>("quick");
@@ -314,22 +315,24 @@ export default function Sidebar({
     <div className="flex flex-col h-full">
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5">
 
-        {/* ══ 0. SOURCE ALCHEMY (optional pre-step) ════════════════════════════ */}
+        {/* ══ 0. SOURCE ALCHEMY ════════════════════════════════════════════════ */}
         <div className="pt-2.5">
           <button
             onClick={() => setAlchemyOpen((v) => !v)}
-            className="w-full flex items-center gap-2 pb-1.5 text-left group"
+            className="w-full flex items-center gap-2 pb-1 text-left group"
           >
             <span className="text-[10px] font-mono tracking-[0.18em] uppercase font-semibold shrink-0 text-violet-500 group-hover:text-violet-700 transition-colors">
               {alchemyOpen ? "▾" : "▸"} ⚗ Source Alchemy
             </span>
             <div className="flex-1 border-t border-violet-200" />
           </button>
+          {!alchemyOpen && (
+            <p className="text-[10px] font-mono text-zinc-400 pb-1.5 leading-none">
+              現実素材を世界観に変換
+            </p>
+          )}
           {alchemyOpen && (
-            <div className="pb-3">
-              <p className="text-[10px] font-mono text-zinc-400 pb-2 leading-snug">
-                記事・ニュース・SNS投稿 → World Seed へ昇華
-              </p>
+            <div className="pb-3 pt-1">
               <SourceAlchemy onSetWorldSeed={(seed) => set("theme", seed)} />
             </div>
           )}
@@ -388,7 +391,7 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* Utility fields */}
+          {/* Output settings */}
           <div className="space-y-1.5 border-t border-[#d0d7de] pt-2 mt-1">
             <Row label="TITLE">
               <Inp value={input.title} onChange={(v) => set("title", v)} placeholder="曲タイトル" />
@@ -446,23 +449,11 @@ export default function Sidebar({
                 placeholder="宇多田ヒカル、Portishead"
               />
             </Row>
-            <Row label="AVOID">
-              <Inp
-                value={input.avoidExpressions}
-                onChange={(v) => set("avoidExpressions", v)}
-                placeholder="過度なピッチ補正"
-              />
-            </Row>
-            <div className="pl-0.5 space-y-0.5 pt-1 pb-1">
+            <div className="pl-0.5 pt-1 pb-1">
               <Toggle
                 checked={input.startWithChorus}
                 onChange={(v) => set("startWithChorus", v)}
                 label="サビ始まり"
-              />
-              <Toggle
-                checked={input.avoidAiCliche}
-                onChange={(v) => set("avoidAiCliche", v)}
-                label="AI臭さ回避"
               />
             </div>
           </div>
@@ -503,7 +494,34 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 3. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
+        {/* ══ 3. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
+        <CollapseSection
+          label="Avoid / Negative"
+          open={avoidOpen}
+          onToggle={() => setAvoidOpen((v) => !v)}
+        >
+          <p className="text-[10px] font-mono text-zinc-400 pb-1.5 leading-snug">
+            避けたい表現・音像
+          </p>
+          <div className="space-y-1.5">
+            <Row label="AVOID">
+              <Inp
+                value={input.avoidExpressions}
+                onChange={(v) => set("avoidExpressions", v)}
+                placeholder="過度なピッチ補正、安いリバーブ"
+              />
+            </Row>
+            <div className="pl-0.5 pb-1">
+              <Toggle
+                checked={input.avoidAiCliche}
+                onChange={(v) => set("avoidAiCliche", v)}
+                label="AI臭さ回避"
+              />
+            </div>
+          </div>
+        </CollapseSection>
+
+        {/* ══ 4. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
         <CollapseSection
           label="Guided Mode"
           open={guidedOpen}
