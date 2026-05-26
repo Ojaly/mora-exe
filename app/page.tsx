@@ -683,13 +683,9 @@ export default function Home() {
               setIsSample(false);
             }}
             onApplyExpansion={() => {
-              // GENERATE と同じ関数で Style Prompt を生成し一本化する
+              // Create Draft: Forge済みWorldExpansionからStyle / Lyrics / Negativeをまとめて生成
               if (!expansion) return;
-              const sp = buildStylePromptFromExpansion(expansion, input, input.theme);
-              const np = buildNegativePromptFromExpansion(expansion, input);
-              setStyle(sp);
-              setNeg(np);
-              setIsSample(false);
+              handleGenerate();
             }}
             expansion={expansion}
             onExpansionChange={setExpansion}
@@ -784,14 +780,9 @@ export default function Home() {
                 setMobile("prompt");
               }}
               onApplyExpansion={() => {
-                // GENERATE と同じ関数で Style Prompt を生成し一本化する
+                // Create Draft: Forge済みWorldExpansionからStyle / Lyrics / Negativeをまとめて生成
                 if (!expansion) return;
-                const sp = buildStylePromptFromExpansion(expansion, input, input.theme);
-                const np = buildNegativePromptFromExpansion(expansion, input);
-                setStyle(sp);
-                setNeg(np);
-                setIsSample(false);
-                setMobile("prompt");
+                handleGenerate();
               }}
               expansion={expansion}
               onExpansionChange={setExpansion}

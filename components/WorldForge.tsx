@@ -289,7 +289,7 @@ export default function WorldForge({
                   : "border-[#0969da] text-[#0969da] hover:bg-[#0969da] hover:text-white active:scale-[0.98]"
               }`}
             >
-              {applyFlash ? "✓ Applied to Style Prompt" : "→ Apply to Style Prompt"}
+              {applyFlash ? "✓ Draft Created" : "→ Create Draft"}
             </button>
 
           </div>
