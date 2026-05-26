@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::time::Duration;
 
 // ─── Forge system prompt (mirrors app/api/ai/forge/route.ts) ─────────────────
 
@@ -58,7 +59,10 @@ async fn forge_world(world_seed: String) -> Result<Option<Value>, String> {
         _ => return Ok(None), // no key → signal frontend to use rule-based
     };
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client build error: {}", e))?;
 
     let body = serde_json::json!({
         "model": "claude-sonnet-4-6",

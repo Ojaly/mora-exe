@@ -5,9 +5,12 @@ import { WorldExpansion } from "@/types";
 import MusicDirectionPanel from "@/components/MusicDirectionPanel";
 import { ruleBasedForge } from "@/lib/ruleBasedForge";
 
-// Tauri environment detection (injected by Tauri runtime, absent in browser/dev)
-const isTauriEnv =
+// SAFE SWITCH: Tauri invoke path disabled until forge_world timeout/env is verified.
+// Set to true only after reqwest timeout and ANTHROPIC_API_KEY env wiring are confirmed.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _isTauriEnvReal =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+const isTauriEnv = false; // always use fetch("/api/ai/forge") for now
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
