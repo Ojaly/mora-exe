@@ -137,7 +137,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 
 function PanelHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="shrink-0 h-9 border-b border-zinc-800 flex items-stretch" style={{ background: "#17171c" }}>
+    <div className="shrink-0 h-9 border-b border-[#2a2f3a] flex items-stretch" style={{ background: "var(--bg-panel-hdr)" }}>
       {children}
     </div>
   );
@@ -194,9 +194,9 @@ function MemoryPanel({
   return (
     <div
       className="absolute inset-0 z-50 flex flex-col"
-      style={{ background: "rgba(9,9,11,0.97)" }}
+      style={{ background: "rgba(17,19,24,0.97)" }}
     >
-      <div className="shrink-0 h-9 border-b border-zinc-800 flex items-center px-4 gap-3" style={{ background: "#17171c" }}>
+      <div className="shrink-0 h-9 border-b border-[#2a2f3a] flex items-center px-4 gap-3" style={{ background: "var(--bg-panel-hdr)" }}>
         <span className="text-xs font-mono text-zinc-300 tracking-widest">MEMORY</span>
         <span className="text-[11px] font-mono text-zinc-600">{memories.length} / 20 saved</span>
         <button
@@ -217,7 +217,7 @@ function MemoryPanel({
             <div
               key={m.id}
               className="border border-zinc-800 rounded p-3 hover:border-zinc-600 transition-colors group"
-              style={{ background: "#111318" }}
+              style={{ background: "var(--bg-rewrite)" }}
             >
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
@@ -468,7 +468,7 @@ export default function Home() {
   // ─── Rewrite bar ──────────────────────────────────────────────────────────
 
   const rewriteBar = (
-    <div className="shrink-0 border-t border-zinc-700/60" style={{ background: "#111318" }}>
+    <div className="shrink-0 border-t border-[#2a2f3a]/80" style={{ background: "var(--bg-rewrite)" }}>
       {/* Row 1: Intensity + Section target */}
       <div className="flex items-center flex-wrap gap-x-3 gap-y-1 px-3 pt-2 pb-1.5 border-b border-zinc-800/60">
         <span className="text-[10px] font-mono text-zinc-600 shrink-0 tracking-wider">INTENSITY</span>
@@ -573,13 +573,13 @@ export default function Home() {
   );
 
   return (
-    <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "var(--bg-app)" }}>
       <div className="fixed inset-0 scanlines pointer-events-none z-0 opacity-[0.12]" />
 
       {/* ── Titlebar ────────────────────────────────────────────────────────── */}
       <header
-        className="relative z-20 shrink-0 h-9 border-b border-zinc-800/80 flex items-center px-4 gap-4 select-none"
-        style={{ background: "#0f0f14" }}
+        className="relative z-20 shrink-0 h-9 border-b border-[#2a2f3a]/80 flex items-center px-4 gap-4 select-none"
+        style={{ background: "var(--bg-titlebar)" }}
       >
         <span className="font-mono font-bold text-[13px] text-cyan-400 neon-cyan tracking-widest">
           MORA<span className="text-zinc-700">.</span>exe
@@ -614,8 +614,8 @@ export default function Home() {
 
       {/* ── Mobile tab strip ────────────────────────────────────────────────── */}
       <div
-        className="relative z-10 shrink-0 flex h-8 border-b border-zinc-800 lg:hidden"
-        style={{ background: "#111116" }}
+        className="relative z-10 shrink-0 flex h-8 border-b border-[#2a2f3a] lg:hidden"
+        style={{ background: "#14161e" }}
       >
         {(["concept", "prompt", "lyrics", "tuner"] as MobileTab[]).map((t) => (
           <TabBtn key={t} active={mobileTab === t} onClick={() => setMobile(t)}>
@@ -629,13 +629,13 @@ export default function Home() {
 
         {/* LEFT: Sidebar */}
         <aside
-          className="w-[252px] shrink-0 flex flex-col border-r border-zinc-800/80"
-          style={{ background: "#141419" }}
+          className="w-[252px] shrink-0 flex flex-col border-r border-[#2a2f3a]/80"
+          style={{ background: "var(--bg-sidebar)" }}
         >
           {/* Sidebar header — CONCEPT / WIZARD tabs */}
           <div
-            className="shrink-0 h-8 border-b border-zinc-800 flex items-stretch"
-            style={{ background: "#17171c" }}
+            className="shrink-0 h-8 border-b border-[#2a2f3a] flex items-stretch"
+            style={{ background: "var(--bg-panel-hdr)" }}
           >
             <button
               onClick={() => setSidebar("concept")}
@@ -682,8 +682,8 @@ export default function Home() {
 
         {/* CENTER: Style Prompt */}
         <section
-          className="flex-1 flex flex-col border-r border-zinc-800/60 min-w-0"
-          style={{ background: "#13151b" }}
+          className="flex-1 flex flex-col border-r border-[#2a2f3a]/60 min-w-0"
+          style={{ background: "var(--bg-center)" }}
         >
           <PanelHeader>
             <span className="flex items-center px-3 text-xs font-mono text-zinc-300 tracking-[0.2em]">
@@ -697,7 +697,7 @@ export default function Home() {
 
           <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
 
-          <div className="shrink-0 border-t border-zinc-800/50" style={{ background: "#10111a" }}>
+          <div className="shrink-0 border-t border-[#2a2f3a]/50" style={{ background: "var(--bg-neg)" }}>
             <div className="flex items-center px-4 pt-2 pb-1 gap-2">
               <span className="text-xs font-mono text-zinc-400 tracking-[0.15em]">NEGATIVE</span>
               <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
@@ -716,7 +716,7 @@ export default function Home() {
         {/* RIGHT: Lyrics / Tuner — with Memory panel overlay */}
         <section
           className="flex-1 flex flex-col min-w-0 relative"
-          style={{ background: "#131219" }}
+          style={{ background: "var(--bg-right)" }}
         >
           {showMemory && (
             <MemoryPanel
@@ -753,12 +753,12 @@ export default function Home() {
       {/* ── Mobile single-col ───────────────────────────────────────────────── */}
       <div className="relative z-10 flex-1 min-h-0 flex flex-col lg:hidden overflow-hidden">
         {mobileTab === "concept" && (
-          <div className="flex-1 overflow-y-auto p-3" style={{ background: "#141419" }}>
+          <div className="flex-1 overflow-y-auto p-3" style={{ background: "var(--bg-sidebar)" }}>
             <ConceptInput input={input} onChange={setInput} preset={preset} onPresetChange={setPreset} onGenerate={handleGenerate} compact isGenerating={isGenerating} />
           </div>
         )}
         {mobileTab === "prompt" && (
-          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#13151b" }}>
+          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--bg-center)" }}>
             <PanelHeader>
               <span className="flex items-center px-3 text-xs font-mono text-zinc-300 tracking-widest">STYLE PROMPT</span>
               {isSample && <SampleBadge />}
@@ -768,7 +768,7 @@ export default function Home() {
           </div>
         )}
         {mobileTab === "lyrics" && (
-          <div className="flex-1 flex flex-col overflow-hidden relative" style={{ background: "#131219" }}>
+          <div className="flex-1 flex flex-col overflow-hidden relative" style={{ background: "var(--bg-right)" }}>
             {showMemory && (
               <MemoryPanel onClose={() => setShowMemory(false)} onRestore={handleRestoreMemory} />
             )}
@@ -786,8 +786,8 @@ export default function Home() {
 
       {/* ── Final output footer ─────────────────────────────────────────────── */}
       <footer
-        className="relative z-20 shrink-0 border-t border-zinc-800/80"
-        style={{ background: "#0f0f14" }}
+        className="relative z-20 shrink-0 border-t border-[#2a2f3a]/80"
+        style={{ background: "var(--bg-titlebar)" }}
       >
         {/* Save memo row */}
         <div className="flex items-center gap-2 px-4 pt-1.5 pb-1">

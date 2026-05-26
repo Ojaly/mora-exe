@@ -52,7 +52,7 @@ function ResultView({
       </div>
 
       {/* Prompt preview */}
-      <pre className="text-[11px] font-mono leading-[1.75] text-zinc-300 whitespace-pre-wrap break-words overflow-y-auto max-h-[260px] rounded bg-black/30 p-2 border border-zinc-800/60">
+      <pre className="text-[11px] font-mono leading-[1.75] text-zinc-200 whitespace-pre-wrap break-words overflow-y-auto max-h-[260px] rounded p-2 border border-[#2a2f3a]/70" style={{ background: "#13161f" }}>
         {result.prompt}
       </pre>
 
@@ -179,7 +179,7 @@ function QuestionView({
         value={answer?.free ?? ""}
         onChange={(e) => onFree(e.target.value)}
         placeholder={question.placeholder ?? "自由入力..."}
-        className="w-full h-7 bg-zinc-900 border border-zinc-800 rounded px-2 text-[11px] font-mono text-zinc-300 placeholder-zinc-700 focus:outline-none focus:border-zinc-600 transition-colors"
+        className="w-full h-7 border border-[#2a2f3a] rounded px-2 text-[11px] font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors" style={{ background: "#1a1d26" }}
       />
 
       {/* Navigation */}
