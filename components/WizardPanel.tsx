@@ -68,13 +68,13 @@ function ResultView({
       <div className="flex gap-1.5 pt-0.5">
         <button
           onClick={onBack}
-          className="flex-none h-7 px-2.5 text-[10px] font-mono border border-[#c8cdd4] text-zinc-600 rounded hover:border-zinc-400 hover:text-zinc-900 transition-colors"
+          className="flex-none h-8 px-3 text-[12px] font-mono border border-[#c8cdd4] text-zinc-600 rounded hover:border-zinc-400 hover:text-zinc-900 transition-colors"
         >
           ← 修正
         </button>
         <button
           onClick={onApply}
-          className="flex-1 h-7 text-[10px] font-mono font-bold bg-cyan-700 hover:bg-cyan-600 text-zinc-950 rounded transition-colors"
+          className="flex-1 h-8 text-[12px] font-mono font-bold bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
         >
           Apply ✓
         </button>
@@ -136,18 +136,18 @@ function QuestionView({
             style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-[9px] font-mono text-zinc-600 shrink-0 tabular-nums">
+        <span className="text-[11px] font-mono text-zinc-500 shrink-0 tabular-nums">
           {stepIndex + 1}/{totalSteps}
         </span>
       </div>
 
       {/* Question text */}
       <div>
-        <p className="text-[12px] font-mono text-zinc-200 leading-snug mb-0.5 font-medium">
+        <p className="text-[14px] font-mono text-zinc-800 leading-snug mb-0.5 font-medium">
           {question.question}
         </p>
         {question.hint && (
-          <p className="text-[10px] font-mono text-zinc-600 leading-snug">
+          <p className="text-[12px] font-mono text-zinc-500 leading-snug">
             {question.hint}
           </p>
         )}
@@ -161,7 +161,7 @@ function QuestionView({
             <button
               key={opt.value}
               onClick={() => onChip(opt.value)}
-              className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition-all ${
+              className={`px-2 py-1 text-[12px] font-mono rounded border transition-all ${
                 sel
                   ? `${accentBorder} ${accentText} ${accentBg}`
                   : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-800"
@@ -179,7 +179,7 @@ function QuestionView({
         value={answer?.free ?? ""}
         onChange={(e) => onFree(e.target.value)}
         placeholder={question.placeholder ?? "自由入力..."}
-        className="w-full h-7 border border-[#2a2f3a] rounded px-2 text-[11px] font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors" style={{ background: "#1a1d26" }}
+        className="w-full h-8 border border-[#d0d7de] rounded px-2.5 text-[13px] font-mono text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-blue-400 transition-colors" style={{ background: "#fafbfc" }}
       />
 
       {/* Navigation */}
@@ -194,14 +194,14 @@ function QuestionView({
         )}
         <button
           onClick={onNext}
-          className={`flex-1 h-7 text-[10px] font-mono font-bold rounded transition-colors ${accentBtn}`}
+          className={`flex-1 h-8 text-[12px] font-mono font-bold rounded transition-colors ${accentBtn}`}
         >
           {isLast ? "GENERATE" : "NEXT →"}
         </button>
       </div>
 
       {!hasAnswer && (
-        <p className="text-[9px] font-mono text-zinc-700 text-center">
+        <p className="text-[11px] font-mono text-zinc-400 text-center">
           スキップ可 — 後で修正できます
         </p>
       )}
@@ -275,7 +275,7 @@ export default function WizardPanel({ onApply }: Props) {
           <button
             key={m}
             onClick={() => handleMode(m)}
-            className={`flex-1 h-6 text-[10px] font-mono rounded border transition-all ${
+            className={`flex-1 h-8 text-[12px] font-mono rounded border transition-all ${
               mode === m
                 ? m === "quick"
                   ? "border-blue-400 text-blue-700 bg-blue-50"
@@ -289,7 +289,7 @@ export default function WizardPanel({ onApply }: Props) {
       </div>
 
       {/* Mode description */}
-      <p className="text-[9px] font-mono text-zinc-700 leading-snug -mt-1 pb-1">
+      <p className="text-[12px] font-mono text-zinc-500 leading-snug pb-1">
         {mode === "quick"
           ? "感覚で素早くPromptを組み立てる"
           : "12問で世界観を細かく設計する"}

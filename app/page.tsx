@@ -107,7 +107,7 @@ function CopyBtn({ text, label, dim }: { text: string; label: string; dim?: bool
     <button
       onClick={() => { if (!text) return; navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
       disabled={!text}
-      className={`text-xs font-mono px-2.5 py-1 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
+      className={`text-[12px] font-mono px-3 py-1.5 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
         copied
           ? "border-emerald-500 text-emerald-700 bg-emerald-50"
           : dim
@@ -124,7 +124,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className={`px-4 h-full text-xs font-mono tracking-wider border-b-2 transition-colors ${
+      className={`px-4 h-full text-[13px] font-mono tracking-wider border-b-2 transition-colors ${
         active
           ? "border-blue-500 text-zinc-900 bg-black/[0.04]"
           : "border-transparent text-zinc-500 hover:text-zinc-800 hover:bg-black/[0.03]"
@@ -137,7 +137,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 
 function PanelHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="shrink-0 h-9 border-b border-[#d0d7de] flex items-stretch" style={{ background: "var(--bg-panel-hdr)" }}>
+    <div className="shrink-0 h-10 border-b border-[#d0d7de] flex items-stretch" style={{ background: "var(--bg-panel-hdr)" }}>
       {children}
     </div>
   );
@@ -145,7 +145,7 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
 
 function SampleBadge() {
   return (
-    <span className="self-center ml-auto mr-2 text-[11px] font-mono text-zinc-500 border border-[#c8cdd4] px-2 py-0.5 rounded tracking-wider">
+    <span className="self-center ml-auto mr-2 text-[12px] font-mono text-zinc-500 border border-[#c8cdd4] px-2 py-0.5 rounded tracking-wider">
       SAMPLE
     </span>
   );
@@ -154,8 +154,8 @@ function SampleBadge() {
 function Pill({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <span className="flex items-center gap-1">
-      <span className="text-[11px] font-mono text-zinc-500">{label}</span>
-      <span className={`text-xs font-mono font-bold tabular-nums ${warn ? "text-amber-600" : "text-zinc-700"}`}>{value}</span>
+      <span className="text-[12px] font-mono text-zinc-500">{label}</span>
+      <span className={`text-[13px] font-mono font-bold tabular-nums ${warn ? "text-amber-600" : "text-zinc-700"}`}>{value}</span>
     </span>
   );
 }
@@ -166,7 +166,7 @@ function CopyAllBtn({ onCopy, hasContent }: { onCopy: () => void; hasContent: bo
     <button
       onClick={() => { if (!hasContent) return; onCopy(); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
       disabled={!hasContent}
-      className={`text-xs font-mono px-3 py-1 rounded border font-bold transition-all disabled:opacity-20 disabled:cursor-default ${
+      className={`text-[13px] font-mono px-3 py-1.5 rounded border font-bold transition-all disabled:opacity-20 disabled:cursor-default ${
         copied ? "border-emerald-500 text-emerald-700 bg-emerald-50" : "border-[#c8cdd4] text-zinc-700 hover:border-blue-400 hover:text-blue-700"
       }`}
     >
@@ -197,7 +197,7 @@ function MemoryPanel({
       style={{ background: "rgba(246,248,250,0.97)" }}
     >
       <div className="shrink-0 h-9 border-b border-[#d0d7de] flex items-center px-4 gap-3" style={{ background: "var(--bg-panel-hdr)" }}>
-        <span className="text-xs font-mono text-zinc-700 tracking-widest">MEMORY</span>
+        <span className="text-[13px] font-mono text-zinc-700 tracking-widest">MEMORY</span>
         <span className="text-[11px] font-mono text-zinc-500">{memories.length} / 20 saved</span>
         <button
           onClick={onClose}
@@ -470,14 +470,14 @@ export default function Home() {
   const rewriteBar = (
     <div className="shrink-0 border-t border-[#2a2f3a]/80" style={{ background: "var(--bg-rewrite)" }}>
       {/* Row 1: Intensity + Section target */}
-      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 px-3 pt-2 pb-1.5 border-b border-[#d0d7de]">
-        <span className="text-[10px] font-mono text-zinc-500 shrink-0 tracking-wider">INTENSITY</span>
-        <div className="flex gap-0.5">
+      <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 px-4 pt-2.5 pb-2 border-b border-[#d0d7de]">
+        <span className="text-[12px] font-mono text-zinc-500 shrink-0 tracking-wider">INTENSITY</span>
+        <div className="flex gap-1">
           {INTENSITY_OPTS.map(([lv, lbl]) => (
             <button
               key={lv}
               onClick={() => setIntensity(lv)}
-              className={`px-2 py-0.5 text-[10px] font-mono rounded border transition-colors ${
+              className={`px-2.5 py-1 text-[12px] font-mono rounded border transition-colors ${
                 intensity === lv
                   ? "border-blue-400 text-blue-700 bg-blue-50"
                   : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
@@ -487,14 +487,14 @@ export default function Home() {
             </button>
           ))}
         </div>
-        <div className="w-px h-3 bg-[#d0d7de] shrink-0" />
-        <span className="text-[10px] font-mono text-zinc-500 shrink-0 tracking-wider">SECTION</span>
-        <div className="flex gap-0.5 flex-wrap">
+        <div className="w-px h-4 bg-[#d0d7de] shrink-0" />
+        <span className="text-[12px] font-mono text-zinc-500 shrink-0 tracking-wider">SECTION</span>
+        <div className="flex gap-1 flex-wrap">
           {SECTION_OPTS.map(([val, lbl]) => (
             <button
               key={val}
               onClick={() => setSectionTarget(val)}
-              className={`px-2 py-0.5 text-[10px] font-mono rounded border transition-colors ${
+              className={`px-2.5 py-1 text-[12px] font-mono rounded border transition-colors ${
                 sectionTarget === val
                   ? "border-violet-400 text-violet-700 bg-violet-50"
                   : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
@@ -507,7 +507,7 @@ export default function Home() {
       </div>
 
       {/* Row 2: Rewrite mode buttons */}
-      <div className="flex flex-wrap gap-1.5 px-3 py-2">
+      <div className="flex flex-wrap gap-2 px-4 py-2.5">
         {REWRITE_MODES.map(([mode, label]) => {
           const isLoading = loadingMode === mode;
           const isDisabled = !!loadingMode;
@@ -516,7 +516,7 @@ export default function Home() {
               key={mode}
               onClick={() => handleRewrite(mode)}
               disabled={isDisabled}
-              className={`px-3 py-1 text-xs font-mono border rounded transition-all disabled:cursor-not-allowed ${
+              className={`px-3 py-1.5 text-[13px] font-mono border rounded transition-all disabled:cursor-not-allowed ${
                 isLoading
                   ? "border-blue-400 text-blue-600 bg-blue-50 animate-pulse"
                   : isDisabled
@@ -531,18 +531,18 @@ export default function Home() {
       </div>
 
       {/* Row 3: Undo + status badge + notes */}
-      <div className="flex items-start gap-2 px-3 pb-2.5 min-h-[1.75rem]">
+      <div className="flex items-center gap-2 px-4 pb-3 min-h-[2rem]">
         {history.length > 0 && (
           <button
             onClick={handleUndo}
             title={`Undo: ${history[0]?.label}`}
-            className="shrink-0 text-[11px] font-mono px-2 py-0.5 rounded border border-[#c8cdd4] text-zinc-600 hover:border-blue-400 hover:text-blue-700 transition-colors active:scale-95"
+            className="shrink-0 text-[12px] font-mono px-2.5 py-1 rounded border border-[#c8cdd4] text-zinc-600 hover:border-blue-400 hover:text-blue-700 transition-colors active:scale-95"
           >
             ↩ UNDO{history.length > 1 ? ` (${history.length})` : ""}
           </button>
         )}
         {rewriteSource && (
-          <span className={`shrink-0 text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${
+          <span className={`shrink-0 text-[12px] font-mono font-bold px-2.5 py-1 rounded border ${
             rewriteSource === "claude"
               ? "border-blue-300 text-blue-700 bg-blue-50"
               : "border-[#c8cdd4] text-zinc-600 bg-zinc-100"
@@ -551,7 +551,7 @@ export default function Home() {
           </span>
         )}
         {rewriteNotes && (
-          <p className="text-[11px] font-mono text-zinc-600 leading-relaxed line-clamp-2">
+          <p className="text-[12px] font-mono text-zinc-600 leading-relaxed line-clamp-2">
             {rewriteNotes}
           </p>
         )}
@@ -578,13 +578,13 @@ export default function Home() {
 
       {/* ── Titlebar ────────────────────────────────────────────────────────── */}
       <header
-        className="relative z-20 shrink-0 h-9 border-b border-[#d0d7de] flex items-center px-4 gap-4 select-none"
+        className="relative z-20 shrink-0 h-10 border-b border-[#d0d7de] flex items-center px-4 gap-4 select-none"
         style={{ background: "var(--bg-titlebar)" }}
       >
-        <span className="font-mono font-bold text-[13px] text-blue-600 tracking-widest">
+        <span className="font-mono font-bold text-[15px] text-blue-600 tracking-widest">
           MORA<span className="text-zinc-400">.</span>exe
         </span>
-        <span className="text-zinc-400 font-mono text-[11px] tracking-[0.2em] hidden sm:block">
+        <span className="text-zinc-400 font-mono text-[12px] tracking-[0.2em] hidden sm:block">
           SUNO PROMPT FORGE
         </span>
 
@@ -614,7 +614,7 @@ export default function Home() {
 
       {/* ── Mobile tab strip ────────────────────────────────────────────────── */}
       <div
-        className="relative z-10 shrink-0 flex h-8 border-b border-[#d0d7de] lg:hidden"
+        className="relative z-10 shrink-0 flex h-9 border-b border-[#d0d7de] lg:hidden"
         style={{ background: "var(--bg-panel-hdr)" }}
       >
         {(["concept", "prompt", "lyrics", "tuner"] as MobileTab[]).map((t) => (
@@ -634,12 +634,12 @@ export default function Home() {
         >
           {/* Sidebar header — CONCEPT / WIZARD tabs */}
           <div
-            className="shrink-0 h-8 border-b border-[#d0d7de] flex items-stretch"
+            className="shrink-0 h-9 border-b border-[#d0d7de] flex items-stretch"
             style={{ background: "var(--bg-panel-hdr)" }}
           >
             <button
               onClick={() => setSidebar("concept")}
-              className={`px-3 h-full text-[9px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
+              className={`px-3 h-full text-[11px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
                 sidebarMode === "concept"
                   ? "border-blue-500 text-zinc-900"
                   : "border-transparent text-zinc-500 hover:text-zinc-700"
@@ -649,7 +649,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setSidebar("wizard")}
-              className={`px-3 h-full text-[9px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
+              className={`px-3 h-full text-[11px] font-mono tracking-[0.2em] border-b-2 transition-colors ${
                 sidebarMode === "wizard"
                   ? "border-violet-500 text-violet-700"
                   : "border-transparent text-zinc-500 hover:text-zinc-700"
@@ -686,7 +686,7 @@ export default function Home() {
           style={{ background: "var(--bg-center)" }}
         >
           <PanelHeader>
-            <span className="flex items-center px-3 text-xs font-mono text-zinc-700 tracking-[0.2em]">
+            <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-[0.2em]">
               STYLE PROMPT
             </span>
             {isSample && <SampleBadge />}
@@ -699,7 +699,7 @@ export default function Home() {
 
           <div className="shrink-0 border-t border-[#d0d7de]" style={{ background: "var(--bg-neg)" }}>
             <div className="flex items-center px-4 pt-2 pb-1 gap-2">
-              <span className="text-xs font-mono text-zinc-500 tracking-[0.15em]">NEGATIVE</span>
+              <span className="text-[13px] font-mono text-zinc-500 tracking-[0.15em]">NEGATIVE</span>
               <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
             </div>
             <textarea
@@ -707,7 +707,7 @@ export default function Home() {
               onChange={(e) => setNeg(e.target.value)}
               rows={2}
               className="w-full bg-transparent resize-none px-4 pb-2 font-mono text-[11px] leading-relaxed focus:outline-none"
-              style={{ color: "#57606a" }}
+              style={{ color: "#57606a", fontSize: "13px" }}
               spellCheck={false}
             />
           </div>
@@ -760,7 +760,7 @@ export default function Home() {
         {mobileTab === "prompt" && (
           <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--bg-center)" }}>
             <PanelHeader>
-              <span className="flex items-center px-3 text-xs font-mono text-zinc-700 tracking-widest">STYLE PROMPT</span>
+              <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-widest">STYLE PROMPT</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
             </PanelHeader>
@@ -773,7 +773,7 @@ export default function Home() {
               <MemoryPanel onClose={() => setShowMemory(false)} onRestore={handleRestoreMemory} />
             )}
             <PanelHeader>
-              <span className="flex items-center px-3 text-xs font-mono text-zinc-700 tracking-widest">LYRICS</span>
+              <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-widest">LYRICS</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={lyrics} label="COPY" /></div>
             </PanelHeader>
@@ -797,12 +797,12 @@ export default function Home() {
             onChange={(e) => setSaveMemo(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSaveMemory(); }}
             placeholder="memo (optional)"
-            className="flex-1 min-w-0 bg-transparent font-mono text-[11px] text-zinc-600 placeholder-zinc-400 focus:outline-none"
+            className="flex-1 min-w-0 bg-transparent font-mono text-[13px] text-zinc-600 placeholder-zinc-400 focus:outline-none"
           />
           <button
             onClick={handleSaveMemory}
             disabled={!lyrics || isSample}
-            className={`text-[11px] font-mono px-2.5 py-0.5 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
+            className={`text-[13px] font-mono px-3 py-1 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
               saveFlash
                 ? "border-emerald-400 text-emerald-700 bg-emerald-50"
                 : "border-[#c8cdd4] text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
@@ -812,7 +812,7 @@ export default function Home() {
           </button>
           <button
             onClick={() => setShowMemory((v) => !v)}
-            className={`text-[11px] font-mono px-2.5 py-0.5 rounded border transition-all ${
+            className={`text-[13px] font-mono px-3 py-1 rounded border transition-all ${
               showMemory
                 ? "border-violet-400 text-violet-700 bg-violet-50"
                 : "border-[#c8cdd4] text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
@@ -823,8 +823,8 @@ export default function Home() {
         </div>
 
         {/* Output copy row */}
-        <div className="h-8 flex items-center px-4 gap-2 border-t border-[#d0d7de]">
-          <span className="text-xs font-mono text-zinc-500 tracking-[0.2em] shrink-0">OUTPUT</span>
+        <div className="h-9 flex items-center px-4 gap-2 border-t border-[#d0d7de]">
+          <span className="text-[13px] font-mono text-zinc-500 tracking-[0.2em] shrink-0">OUTPUT</span>
           <div className="w-px h-3 bg-[#d0d7de] mx-1 shrink-0" />
           <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
             <CopyBtn text={stylePrompt} label="STYLE" />

@@ -42,8 +42,8 @@ function highlight(text: string): string {
 
 // ─── Shared style tokens ─────────────────────────────────────────────────────
 
-const MONO = "font-mono text-[15px] leading-[2]";
-const PAD  = "px-5 py-4";
+const MONO = "font-mono text-[16px] leading-[2.1]";
+const PAD  = "px-5 py-5";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 

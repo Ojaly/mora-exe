@@ -39,7 +39,7 @@ function highlight(text: string, changedLines: number[]): string {
 
 // ─── Shared tokens ───────────────────────────────────────────────────────────
 
-const MONO = "font-mono text-[15px] leading-[2]";
+const MONO = "font-mono text-[16px] leading-[2.1]";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -65,7 +65,7 @@ export default function LyricsEditor({ value, onChange, isSample, changedLines =
         className={`shrink-0 w-11 select-none border-r border-[#d0d7de] ${MONO} text-right`}
         style={{ background: "#eaedf1", overflowY: "hidden", overflowX: "hidden" }}
       >
-        <div className="px-2 py-4 text-zinc-400">
+        <div className="px-2 py-5 text-zinc-400">
           {Array.from({ length: lineCount }, (_, i) => (
             <div key={i}>{i + 1}</div>
           ))}
