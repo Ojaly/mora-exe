@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { WorldExpansion } from "@/types";
 import MusicDirectionPanel from "@/components/MusicDirectionPanel";
+import { ruleBasedForge } from "@/lib/ruleBasedForge";
+
+// Tauri environment detection (injected by Tauri runtime, absent in browser/dev)
+const isTauriEnv =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -81,18 +86,32 @@ export default function WorldForge({
     setIsForging(true);
     onExpansionChange(null);
 
-    try {
-      const res = await fetch("/api/ai/forge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ worldSeed: worldSeed.trim() }),
-      });
+    const seed = worldSeed.trim();
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: WorldExpansion = await res.json();
-      onExpansionChange(data);
+    try {
+      if (isTauriEnv) {
+        // ── Packaged EXE: invoke Rust command ─────────────────────────────
+        const { invoke } = await import("@tauri-apps/api/core");
+        const result = await invoke<WorldExpansion | null>("forge_world", {
+          worldSeed: seed,
+        });
+        // null = no API key → rule-based fallback
+        onExpansionChange(result ?? ruleBasedForge(seed));
+      } else {
+        // ── Dev / web: use Next.js API route ──────────────────────────────
+        const res = await fetch("/api/ai/forge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ worldSeed: seed }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: WorldExpansion = await res.json();
+        onExpansionChange(data);
+      }
     } catch (err) {
       console.error("[WorldForge] forge failed:", err);
+      // Any error in Tauri path → rule-based fallback
+      if (isTauriEnv) onExpansionChange(ruleBasedForge(seed));
     } finally {
       setIsForging(false);
     }
