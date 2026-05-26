@@ -23,6 +23,12 @@ function val(answers: WizardAnswers, key: string): string {
   return a.free?.trim() || a.chip || "";
 }
 
+// ─── Prose helper ─────────────────────────────────────────────────────────────
+
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 // ─── Quick Mode ───────────────────────────────────────────────────────────────
 
 function buildQuick(answers: WizardAnswers): WizardResult {
@@ -32,17 +38,25 @@ function buildQuick(answers: WizardAnswers): WizardResult {
   const world      = val(answers, "world");
   const impression = val(answers, "impression");
 
-  const lines: string[] = [];
+  const sentences: string[] = [];
 
+  // S1: genre + emotion
   const styleParts = [base, emotion].filter(Boolean);
-  if (styleParts.length) lines.push(`[Style:] ${styleParts.join(", ")}`);
-  if (vocal)             lines.push(`[Vocal:] ${vocal}`);
-  if (world)             lines.push(`[World Aesthetic:] ${world}`);
-  if (impression)        lines.push(`[Vibe:] ${impression}`);
-  lines.push(`[Note:] raw emotion over polish — unexpected imagery, avoid AI clichés`);
+  if (styleParts.length) sentences.push(cap(styleParts.join(", ")) + ".");
+
+  // S2: vocal
+  if (vocal) sentences.push(cap(vocal) + ".");
+
+  // S3: world / texture
+  if (world) sentences.push(cap(world) + ".");
+
+  // S4: overall vibe
+  if (impression) sentences.push(cap(impression) + ".");
+
+  sentences.push("Raw emotion over polish. Avoid generic AI clichés.");
 
   return {
-    prompt: lines.join("\n"),
+    prompt: sentences.join(" "),
     negative:
       "generic vocal phrases, over-polished production, predictable chord progressions, muzak blandness",
   };
@@ -64,48 +78,44 @@ function buildDeep(answers: WizardAnswers): WizardResult {
   const world      = val(answers, "world");
   const impression = val(answers, "impression");
 
-  const lines: string[] = [];
+  const sentences: string[] = [];
 
-  if (genre) lines.push(`[Style:] ${genre}`);
-  if (tempo) lines.push(`[Tempo:] ${tempo}`);
+  // S1: genre + tempo
+  const s1Parts = [genre, tempo].filter(Boolean);
+  if (s1Parts.length) sentences.push(cap(s1Parts.join(", ")) + ".");
 
-  // Instruments: lead + density descriptor + drums
-  const instrParts = [
-    lead,
-    instDens,
-    drums && !drums.startsWith("beatless") ? drums : "",
-  ].filter(Boolean);
-  if (instrParts.length) lines.push(`[Instruments:] ${instrParts.join("; ")}`);
-
-  // Bass (only if non-trivial)
-  if (bass && !bass.startsWith("bass-light")) lines.push(`[Bass:] ${bass}`);
-
-  // Vocal: texture + FX
+  // S2: vocal (texture + fx)
   const vocalParts = [
     vocalTex,
     vocalFx && !vocalFx.startsWith("dry") ? vocalFx : "",
   ].filter(Boolean);
-  if (vocalParts.length) lines.push(`[Vocal:] ${vocalParts.join(", ")}`);
+  if (vocalParts.length) sentences.push(cap(vocalParts.join(", ")) + ".");
 
-  // Production / electronic treatment (skip neutral values)
-  if (
-    electronic &&
-    !electronic.startsWith("fully acoustic") &&
-    !electronic.startsWith("clean digital")
-  ) {
-    lines.push(`[Production:] ${electronic}`);
-  }
+  // S3: instruments (lead + density + drums + bass)
+  const instrParts = [
+    lead,
+    instDens,
+    drums && !drums.startsWith("beatless") ? drums : "",
+    bass && !bass.startsWith("bass-light") ? bass : "",
+  ].filter(Boolean);
+  if (instrParts.length) sentences.push(cap(instrParts.join(", ")) + ".");
 
-  if (space)      lines.push(`[Texture:] ${space}`);
-  if (world)      lines.push(`[World Aesthetic:] ${world}`);
-  if (impression) lines.push(`[Vibe:] ${impression}`);
+  // S4: production / texture / space
+  const texParts = [
+    electronic && !electronic.startsWith("fully acoustic") && !electronic.startsWith("clean digital")
+      ? electronic : "",
+    space,
+  ].filter(Boolean);
+  if (texParts.length) sentences.push(cap(texParts.join(", ")) + ".");
 
-  lines.push(
-    `[Note:] atmosphere and world-building over technical correctness — avoid AI clichés`
-  );
+  // S5: world aesthetic + vibe
+  const worldParts = [world, impression].filter(Boolean);
+  if (worldParts.length) sentences.push(cap(worldParts.join(", ")) + ".");
+
+  sentences.push("Avoid generic AI clichés, over-polished sheen, muzak blandness.");
 
   return {
-    prompt: lines.join("\n"),
+    prompt: sentences.join(" "),
     negative:
       "generic AI vocal tropes, muzak blandness, over-explained production, predictable progressions",
   };
