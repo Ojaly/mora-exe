@@ -691,8 +691,13 @@ export default function Home() {
               setNeg(neg);
               setIsSample(false);
             }}
-            onApplyExpansion={(stylePrompt) => {
-              setStyle(stylePrompt);
+            onApplyExpansion={() => {
+              // GENERATE と同じ関数で Style Prompt を生成し一本化する
+              if (!expansion) return;
+              const sp = buildStylePromptFromExpansion(expansion, input, input.theme);
+              const np = buildNegativePromptFromExpansion(expansion, input);
+              setStyle(sp);
+              setNeg(np);
               setIsSample(false);
             }}
             expansion={expansion}
@@ -787,8 +792,13 @@ export default function Home() {
                 setIsSample(false);
                 setMobile("prompt");
               }}
-              onApplyExpansion={(stylePrompt) => {
-                setStyle(stylePrompt);
+              onApplyExpansion={() => {
+                // GENERATE と同じ関数で Style Prompt を生成し一本化する
+                if (!expansion) return;
+                const sp = buildStylePromptFromExpansion(expansion, input, input.theme);
+                const np = buildNegativePromptFromExpansion(expansion, input);
+                setStyle(sp);
+                setNeg(np);
                 setIsSample(false);
                 setMobile("prompt");
               }}
