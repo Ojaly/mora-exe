@@ -5,6 +5,21 @@ import { WORLD_PRESETS } from "@/lib/worldPresets";
 
 export const dynamic = "force-dynamic";
 
+/** Claude レスポンスから JSON オブジェクトを堅牢に抽出する */
+function extractJson(text: string): Record<string, unknown> {
+  // コードフェンス・前後テキストを除去
+  const s = text.trim().replace(/^```(?:json)?\r?\n?/, "").replace(/\r?\n?```$/, "");
+  const start = s.indexOf("{");
+  if (start === -1) throw new Error("No JSON object found");
+  let depth = 0, end = -1;
+  for (let i = start; i < s.length; i++) {
+    if (s[i] === "{") depth++;
+    else if (s[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end === -1) throw new Error("Unterminated JSON");
+  return JSON.parse(s.slice(start, end + 1));
+}
+
 function buildSections(input: SongInput): string {
   if (input.startWithChorus) {
     if (input.songLength === "30s") return "[Chorus]";
@@ -187,12 +202,14 @@ export async function POST(req: NextRequest) {
     const content = message.content[0];
     if (content.type !== "text") throw new Error("Unexpected response type");
 
-    const raw = content.text
-      .trim()
-      .replace(/^```(?:json)?\n?/, "")
-      .replace(/\n?```$/, "");
-
-    const parsed = JSON.parse(raw);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = extractJson(content.text);
+    } catch (parseErr) {
+      console.error("[mora/generate] JSON parse failed:", parseErr, "| raw:", content.text.slice(0, 300));
+      // parse失敗 → クライアントのルールベースフォールバックへ
+      return NextResponse.json({ lyrics: "", notes: "" });
+    }
 
     return NextResponse.json({
       lyrics: parsed.lyrics ?? "",
@@ -209,6 +226,7 @@ export async function POST(req: NextRequest) {
     } else if ((err as Record<string, unknown>)?.status === 429) {
       console.error("[mora/generate] → Rate limited by Anthropic. Retry after a moment.");
     }
-    return NextResponse.json({ error: "Claude API failed", detail }, { status: 500 });
+    // API障害 → クライアントフォールバックへ (500より200でフォールバックさせる)
+    return NextResponse.json({ lyrics: "", notes: "" });
   }
 }

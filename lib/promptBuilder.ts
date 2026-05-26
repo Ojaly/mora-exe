@@ -121,19 +121,21 @@ export function buildStylePrompt(
   lines.push(`[Tempo:] ${input.bpm ? input.bpm + " BPM, " : ""}${groove}`);
   if (input.key) lines.push(`[Key:] ${input.key}`);
   lines.push(`[Vocal:] ${vocal}`);
-  lines.push(`[Groove:] ${groove}, rhythmically tight`);
+  // [Groove:] 削除 — Tempo と重複するため
   lines.push(`[Instruments:] ${instruments}`);
   lines.push(`[Texture:] ${texture}`);
   lines.push(`[Structure:] ${structure}`);
   lines.push(`[Mix Aesthetic:] ${mix}`);
 
-  // Concrete motifs as [Concept:] line
+  // Concrete motifs — 最大4件
   if (themeDesc && themeDesc.enMotifs.length > 0) {
-    lines.push(`[Concept:] ${themeDesc.enMotifs.join(", ")}`);
+    lines.push(`[Concept:] ${themeDesc.enMotifs.slice(0, 4).join(", ")}`);
   }
 
   if (activePreset?.styleOverrides.note) {
-    lines.push(`[World Aesthetic:] ${activePreset.styleOverrides.note}`);
+    // "Aesthetic: " prefix を除去して短縮
+    const note = activePreset.styleOverrides.note.replace(/^Aesthetic:\s*/i, "").trim();
+    lines.push(`[World:] ${note}`);
   }
 
   // Fine Tune nudges
@@ -143,17 +145,14 @@ export function buildStylePrompt(
   }
 
   if (theme) {
-    const avoidNote = input.avoidAiCliche
-      ? " — no generic filler, every line traceable to this world"
-      : " — concrete imagery, stay inside this world";
-    lines.push(`[Note:] Theme: "${theme}"${avoidNote}`);
+    lines.push(`[Note:] "${theme}" — concrete imagery only`);
   } else if (input.avoidAiCliche) {
-    lines.push(
-      "[Note:] Avoid generic AI clichés — use unexpected imagery, raw emotion over polish"
-    );
+    lines.push("[Note:] unexpected imagery, raw emotion over polish");
   }
 
-  return lines.join("\n");
+  const result = lines.join("\n");
+  // 800文字以内に収める（通常はトリガーされない）
+  return result.length <= 800 ? result : result.slice(0, 797) + "...";
 }
 
 export function buildNegativePrompt(input: SongInput): string {
@@ -268,25 +267,25 @@ export function buildStylePromptFromExpansion(
     lines.push(`[Instruments:] ${md.instruments.join(", ")}`);
   }
 
-  // Texture — from expansion
+  // Texture — 最大3件
   if (expansion.texture.length > 0) {
-    lines.push(`[Texture:] ${expansion.texture.join(", ")}`);
+    lines.push(`[Texture:] ${expansion.texture.slice(0, 3).join(", ")}`);
   }
 
-  // Concrete motifs as [Concept:]
+  // Concrete motifs — 最大4件
   if (expansion.objects.length > 0) {
-    lines.push(`[Concept:] ${expansion.objects.slice(0, 6).join(", ")}`);
+    lines.push(`[Concept:] ${expansion.objects.slice(0, 4).join(", ")}`);
   }
 
   // Structure
   lines.push(`[Structure:] ${buildStructureLine(input.songLength, input.startWithChorus)}`);
 
   // Mix — atmosphere-forward
-  lines.push(`[Mix:] cinematic balance, atmosphere-forward, world over polish`);
+  lines.push(`[Mix:] atmosphere-forward, world over polish`);
 
-  // Contradiction — the poetic core
+  // Contradiction — 最初の1件のみ
   if (expansion.contradiction.length > 0) {
-    lines.push(`[World:] ${expansion.contradiction.join(" / ")}`);
+    lines.push(`[World:] ${expansion.contradiction[0]}`);
   }
 
   // Fine Tune nudges — directional corrections on top of AI inference
@@ -306,7 +305,9 @@ export function buildStylePromptFromExpansion(
   if (input.avoidExpressions?.trim()) avoidParts.push(input.avoidExpressions.trim());
   if (avoidParts.length > 0) lines.push(`[Avoid:] ${avoidParts.join(", ")}`);
 
-  return lines.join("\n");
+  const result = lines.join("\n");
+  // 800文字以内に収める
+  return result.length <= 800 ? result : result.slice(0, 797) + "...";
 }
 
 /**

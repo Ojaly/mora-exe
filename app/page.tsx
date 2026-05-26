@@ -359,6 +359,7 @@ export default function Home() {
     setRewriteNotes("");
     setRewriteSource(null);
     setHistory([]);
+    setLyricsRaw("");   // 前回lyrics即クリア — 同じWorldから引きずらないように
     setIsGenerating(true);
 
     try {
