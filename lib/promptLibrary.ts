@@ -8,6 +8,8 @@
  * 外部通信なし・ビルド不要・ランタイムのみで動作。
  */
 
+import type { WorldExpansion } from "@/types";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type PromptLibraryCategory =
@@ -989,6 +991,111 @@ export function buildLibraryMetaTagHint(items: PromptLibraryItem[]): string {
     .filter((i) => i.category === "metaTag")
     .map((i) => i.promptText)
     .join(" ");
+}
+
+// ─── Forge recommendation ─────────────────────────────────────────────────────
+
+/** Categories eligible for recommendation (metaTag / production are too generic) */
+const RECOMMEND_CATS: PromptLibraryCategory[] = [
+  "genre", "mood", "vocal", "instrument", "texture", "structure",
+];
+
+/** Maximum items to surface per category */
+const REC_CAT_MAX: Partial<Record<PromptLibraryCategory, number>> = {
+  genre: 3, mood: 3, instrument: 2, texture: 2, structure: 2, vocal: 1,
+};
+
+/**
+ * Recommends up to 12 Prompt Library items from a WorldForge expansion result.
+ *
+ * Scoring: keyword overlap between each item's label / tags / aliases / promptText
+ * and the structured English-language music-direction fields from the expansion
+ * (genreHint, atmosphere, moodWords, instruments, vocalStyle, soundDirection).
+ * A lighter pass over the Japanese texture / emotion / lyricsDirection corpus
+ * adds a secondary signal.
+ *
+ * Results are category-balanced (≤ REC_CAT_MAX per category) and capped at 12.
+ */
+export function recommendFromExpansion(expansion: WorldExpansion): PromptLibraryItem[] {
+  const md = expansion.musicDirection;
+
+  // ── High-signal English corpus ────────────────────────────────────────────
+  const corpusEN = [
+    md.genreHint,
+    md.atmosphere,
+    md.vocalStyle,
+    md.tempoFeel,
+    ...md.instruments,
+    ...md.moodWords,
+    ...(expansion.soundDirection ?? []),
+    expansion.stylePromptDraft ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  // ── Lower-signal Japanese corpus ──────────────────────────────────────────
+  const corpusJP = [
+    ...expansion.emotion,
+    ...expansion.texture,
+    expansion.lyricsDirection ?? "",
+  ].join(" ");
+
+  // ── Score every eligible item ─────────────────────────────────────────────
+  const scored = PROMPT_LIBRARY
+    .filter((item) => RECOMMEND_CATS.includes(item.category))
+    .map((item) => {
+      let score = 0;
+
+      // Collect terms to match against English corpus
+      const itemTerms = [
+        item.label,
+        ...item.tags,
+        ...item.aliases,
+        ...item.promptText.split(/[\s,/]+/).filter((w) => w.length > 2),
+      ];
+
+      for (const term of itemTerms) {
+        const t = term.toLowerCase().trim();
+        if (t.length < 3) continue;
+        if (corpusEN.includes(t)) {
+          // Longer, more specific matches earn more
+          score += t.length >= 6 ? 4 : 2;
+        }
+      }
+
+      // Japanese description overlap (weak positive signal)
+      if (corpusJP) {
+        const jpTokens = corpusJP
+          .split(/[\s、。「」\n]+/)
+          .filter((w) => w.length > 1);
+        for (const w of jpTokens) {
+          if (item.description.includes(w)) score += 1;
+        }
+      }
+
+      return { item, score };
+    });
+
+  // ── Keep only positive matches, sort descending ───────────────────────────
+  const ranked = scored
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  // ── Category-balanced selection (≤ REC_CAT_MAX, total ≤ 12) ──────────────
+  const catCount: Partial<Record<PromptLibraryCategory, number>> = {};
+  const results: PromptLibraryItem[] = [];
+
+  for (const { item } of ranked) {
+    const max   = REC_CAT_MAX[item.category] ?? 2;
+    const count = catCount[item.category] ?? 0;
+    if (count >= max) continue;
+    catCount[item.category] = count + 1;
+    results.push(item);
+    if (results.length >= 12) break;
+  }
+
+  return results;
 }
 
 // ─── Search / retrieval helpers ───────────────────────────────────────────────

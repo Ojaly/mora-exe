@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { QUICK_QUESTIONS, DEEP_QUESTIONS } from "@/lib/wizardData";
@@ -8,6 +8,7 @@ import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
 import WorldForge from "@/components/WorldForge";
 import SourceAlchemy from "@/components/SourceAlchemy";
 import PromptLibraryPanel from "@/components/PromptLibraryPanel";
+import { recommendFromExpansion } from "@/lib/promptLibrary";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -261,6 +262,23 @@ export default function Sidebar({
   const [wizardAnswers, setWizardAnswers]   = useState<WizardAnswers>({});
   const [appliedFlash, setAppliedFlash]     = useState(false);
 
+  // ─── Forge-driven recommendations ───────────────────────────────────────────
+
+  /** Auto-open the library panel whenever a new Forge result arrives */
+  const prevExpansionRef = useRef<WorldExpansion | null>(null);
+  useEffect(() => {
+    if (expansion && expansion !== prevExpansionRef.current) {
+      setLibraryOpen(true);
+      prevExpansionRef.current = expansion;
+    }
+  }, [expansion]);
+
+  /** Recommendations recomputed only when expansion changes */
+  const recommendations = useMemo(
+    () => (expansion ? recommendFromExpansion(expansion) : []),
+    [expansion]
+  );
+
   const set = <K extends keyof SongInput>(key: K, val: SongInput[K]) =>
     onInputChange({ ...input, [key]: val });
 
@@ -502,7 +520,13 @@ export default function Sidebar({
 
         {/* ══ 3. PROMPT LIBRARY ════════════════════════════════════════════════ */}
         <CollapseSection
-          label={`Prompt Library${libraryIds.length > 0 ? ` · ${libraryIds.length}` : ""}`}
+          label={
+            libraryIds.length > 0
+              ? `Prompt Library · ${libraryIds.length}`
+              : recommendations.length > 0
+                ? `Prompt Library · ◆${recommendations.length}`
+                : "Prompt Library"
+          }
           open={libraryOpen}
           onToggle={() => setLibraryOpen((v) => !v)}
         >
@@ -510,6 +534,7 @@ export default function Sidebar({
             <PromptLibraryPanel
               selectedIds={libraryIds}
               onSelectionChange={onLibraryIdsChange}
+              recommendedItems={recommendations}
             />
           </div>
         </CollapseSection>

@@ -14,6 +14,8 @@ import {
 interface Props {
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
+  /** Items recommended by WorldForge — shown in a dedicated section above search */
+  recommendedItems?: PromptLibraryItem[];
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -56,7 +58,7 @@ const CAT_LABEL: Record<PromptLibraryCategory, string> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function PromptLibraryPanel({ selectedIds, onSelectionChange }: Props) {
+export default function PromptLibraryPanel({ selectedIds, onSelectionChange, recommendedItems }: Props) {
   const [query,          setQuery]  = useState("");
   const [activeCat, setActiveCat]   = useState<PromptLibraryCategory | "all">("all");
 
@@ -107,6 +109,40 @@ export default function PromptLibraryPanel({ selectedIds, onSelectionChange }: P
 
   return (
     <div className="space-y-2">
+
+      {/* ── Recommended (from Forge) ──────────────────────────────────────── */}
+      {recommendedItems && recommendedItems.length > 0 && (
+        <div className="rounded border border-amber-200 bg-amber-50 px-2 py-1.5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-mono tracking-widest uppercase font-semibold text-amber-600">
+              ◆ Recommended
+            </span>
+            <span className="text-[9px] font-mono text-amber-400 leading-none">
+              Forge結果から · {recommendedItems.length}件
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {recommendedItems.map((item) => {
+              const selected = selectedIds.includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => toggle(item.id)}
+                  title={item.description}
+                  className={`px-1.5 py-[2px] text-[11px] font-mono rounded border transition-all leading-tight ${
+                    selected
+                      ? "border-zinc-600 text-zinc-900 bg-zinc-200 font-semibold ring-1 ring-zinc-400"
+                      : `${CHIP[item.category]} hover:ring-1 hover:ring-current`
+                  }`}
+                >
+                  {selected && <span className="mr-0.5 opacity-70">✓</span>}
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Search ───────────────────────────────────────────────────────── */}
       <input
