@@ -82,9 +82,9 @@ function buildExpansionUserPrompt(
   const md   = expansion.musicDirection;
   const seed = input.theme?.trim() || "";
 
-  return `╔═══ WORLD SEED (TOP PRIORITY) ═══╗
+  return `╔═══ QUICK IDEA ═══╗
 ${seed || "(no seed provided)"}
-╚══════════════════════════════════╝
+╚═══════════════════╝
 
 WORLD EXPANSION:
 
