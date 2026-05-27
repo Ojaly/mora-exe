@@ -652,7 +652,7 @@ export default function Sidebar({
         )}
         {expansion && (
           <p className="text-[10px] font-mono text-emerald-600 mb-1.5 leading-snug">
-            ↳ World Forge active — expansion-first generate
+            ↳ World Forge active — ▶ GENERATE DRAFT でまとめて生成
           </p>
         )}
         <button
@@ -664,7 +664,7 @@ export default function Sidebar({
               : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white"
           }`}
         >
-          {isGenerating ? "… GENERATING" : "▶  GENERATE"}
+          {isGenerating ? "… GENERATING" : expansion ? "↺ RE-GENERATE" : "▶  GENERATE"}
         </button>
       </div>
     </div>

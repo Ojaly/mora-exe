@@ -233,7 +233,7 @@ function MemoryPanel({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {memories.map((m) => (
+          {memories.map((m, i) => (
             <div
               key={m.id}
               className="border border-[#d0d7de] rounded p-3 hover:border-zinc-400 transition-colors group"
@@ -255,9 +255,16 @@ function MemoryPanel({
                   {m.memo && (
                     <p className="text-[11px] font-mono text-zinc-500 mb-1 line-clamp-1">{m.memo}</p>
                   )}
-                  <span className="text-[10px] font-mono text-zinc-400">
-                    {new Date(m.ts).toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    {i === 0 && (
+                      <span className="text-[9px] font-mono font-bold px-1 py-px rounded border border-emerald-300 text-emerald-700 bg-emerald-50 leading-tight">
+                        LATEST
+                      </span>
+                    )}
+                    <span className="text-[11px] font-mono text-zinc-500 font-medium">
+                      保存: {new Date(m.ts).toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button
@@ -280,6 +287,30 @@ function MemoryPanel({
       )}
     </div>
   );
+}
+
+// ─── Diff helper ─────────────────────────────────────────────────────────────
+
+/**
+ * Compute 1-indexed content line numbers that differ between two lyric strings.
+ * Section tags ([Chorus] etc.) and blank-blank pairs are excluded from counting,
+ * matching LyricsEditor's lineNum increment logic exactly.
+ */
+function computeLineDiff(original: string, merged: string): number[] {
+  const origLines  = original.split("\n");
+  const mergedLines = merged.split("\n");
+  const changed: number[] = [];
+  let contentLineNum = 0;
+  const maxLen = Math.max(origLines.length, mergedLines.length);
+  for (let i = 0; i < maxLen; i++) {
+    const a = (origLines[i]  ?? "").trim();
+    const b = (mergedLines[i] ?? "").trim();
+    if (/^\[[^\]]+\]$/.test(a) || /^\[[^\]]+\]$/.test(b)) continue; // skip tags
+    if (!a && !b) continue;                                           // skip blank-blank
+    contentLineNum++;
+    if (a !== b) changed.push(contentLineNum);
+  }
+  return changed;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -445,8 +476,9 @@ export default function Home() {
       analyse(merged);
       setRewriteNotes(result.notes ?? "");
       setRewriteSource("claude");
-      // changedLines from Claude may reference sections we discarded — clear for non-"all"
-      setChangedLines(sectionTarget === "all" ? (result.changedLines ?? []) : []);
+      // Compute actual diff from original → merged so highlights are always accurate,
+      // regardless of whether Claude's changedLines array was for "all" or a sub-section.
+      setChangedLines(computeLineDiff(lyrics, merged));
     } else {
       const v = applyRewriteMode(lyrics, mode, sectionTarget);
       setLyricsRaw(v);
@@ -469,6 +501,43 @@ export default function Home() {
     setChangedLines([]);
     setRewriteNotes("");
     setRewriteSource(null);
+  };
+
+  const handleRegenLyrics = async () => {
+    if (isGenerating || loadingMode) return;
+    // Push current lyrics to history before overwriting
+    setHistory((prev) => [{ lyrics, label: "regen", ts: Date.now() }, ...prev].slice(0, 10));
+    setChangedLines([]);
+    setRewriteNotes("");
+    setRewriteSource(null);
+    setLyricsRaw("");
+    setIsGenerating(true);
+
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songInput: input, expansion }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.lyrics) {
+          setLyricsRaw(data.lyrics);
+          analyse(data.lyrics);
+          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("claude"); }
+          setIsGenerating(false);
+          return;
+        }
+      }
+    } catch { /* fallthrough */ }
+
+    // Fallback: rule-based draft
+    const ly = expansion
+      ? buildExpansionLyricsFallback(expansion, input)
+      : draftToRaw(buildLyricsDraft(input));
+    setLyricsRaw(ly);
+    analyse(ly);
+    setIsGenerating(false);
   };
 
   const handleFix = (ln: number, rep: string | string[]) => {
@@ -609,8 +678,8 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Row 3: Undo + status badge + notes */}
-      <div className="flex items-center gap-2 px-4 pb-3 min-h-[2rem]">
+      {/* Row 3: Undo + REGEN LYRICS + source badge */}
+      <div className="flex items-center gap-2 px-4 pt-1 pb-2 flex-wrap">
         {history.length > 0 && (
           <button
             onClick={handleUndo}
@@ -620,6 +689,17 @@ export default function Home() {
             ↩ UNDO{history.length > 1 ? ` (${history.length})` : ""}
           </button>
         )}
+        <button
+          onClick={handleRegenLyrics}
+          disabled={isGenerating || !!loadingMode}
+          className={`shrink-0 text-[12px] font-mono px-2.5 py-1 rounded border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+            isGenerating
+              ? "border-amber-300 text-amber-500 bg-amber-50 animate-pulse"
+              : "border-[#c8cdd4] text-zinc-600 hover:border-amber-400 hover:text-amber-700"
+          }`}
+        >
+          {isGenerating ? "…" : "↺ REGEN LYRICS"}
+        </button>
         {rewriteSource && (
           <span className={`shrink-0 text-[12px] font-mono font-bold px-2.5 py-1 rounded border ${
             rewriteSource === "claude"
@@ -629,12 +709,21 @@ export default function Home() {
             {rewriteSource === "claude" ? "Claude AI" : "ルールベース"}
           </span>
         )}
-        {rewriteNotes && (
-          <p className="text-[12px] font-mono text-zinc-600 leading-relaxed line-clamp-2">
-            {rewriteNotes}
-          </p>
-        )}
       </div>
+
+      {/* Row 4: Claude変更理由コメント (bordered box, only when present) */}
+      {rewriteNotes && (
+        <div className="px-4 pb-3">
+          <div className="border border-[#d0d7de] rounded px-2.5 py-1.5" style={{ background: "#f6f8fa" }}>
+            <span className="text-[9px] font-mono text-zinc-400 tracking-widest uppercase font-semibold block mb-0.5">
+              {sectionTarget !== "all" ? `${sectionTarget.toUpperCase()} · ` : ""}変更メモ
+            </span>
+            <p className="text-[12px] font-mono text-zinc-700 leading-relaxed">
+              {rewriteNotes}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 

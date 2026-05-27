@@ -78,7 +78,10 @@ function modeInstruction(mode: RewriteMode, moraWarnings: number[]): string {
 
   const map: Record<RewriteMode, string> = {
     catchy:
-      "Make it catchier. Cut long lines to their sharpest fragment. Hooks must be punchy, one-breath singable, and impossible to forget.",
+      "Make it catchier and more memorable. Prioritize hook quality above all else: the chorus must be impossible to unhear, built on rhythmic repetition and a single unforgettable phrase. " +
+      "Verse lines should build tension toward that hook. Only shorten a line when cutting it makes it hit harder rhythmically — not for brevity's sake. " +
+      "The goal is earworm density: every bar should feel like it wants to be sung again. " +
+      "Favor short, punchy words with strong vowel sounds. If the chorus doesn't lodge in the listener's head, rewrite it until it does.",
     "remove-ai":
       "Strip all generic AI poetry — both English and Japanese clichés. " +
       "English: remove 'feel alive', 'lose control', 'rise above', 'break free', 'in my veins', 'warrior', 'burning inside'. " +

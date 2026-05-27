@@ -288,7 +288,7 @@ export default function WorldForge({
               </pre>
             </details>
 
-            {/* Apply button */}
+            {/* Generate Draft button (triggers full lyrics + style generation) */}
             <button
               onClick={handleApply}
               className={`w-full h-8 font-mono font-bold text-[12px] tracking-wider rounded border transition-all ${
@@ -297,7 +297,7 @@ export default function WorldForge({
                   : "border-[#0969da] text-[#0969da] hover:bg-[#0969da] hover:text-white active:scale-[0.98]"
               }`}
             >
-              {applyFlash ? "✓ Draft Created" : "→ Create Draft"}
+              {applyFlash ? "✓ Generating…" : "▶ GENERATE DRAFT"}
             </button>
 
           </div>
