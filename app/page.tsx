@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import PromptEditor from "@/components/PromptEditor";
 import LyricsEditor from "@/components/LyricsEditor";
@@ -22,6 +22,13 @@ import { generateMoraSuggestions, applyLineFix } from "@/lib/moraTuner";
 import { applyRewriteMode, mergeSections } from "@/lib/rewriteModes";
 import { callClaudeRewrite } from "@/lib/claudeRewrite";
 import { loadMemories, saveMemory, deleteMemory, PromptMemory } from "@/lib/promptMemory";
+import {
+  getPromptItemById,
+  buildLibraryStyleAddition,
+  buildLibraryStructureHint,
+  buildLibraryMetaTagHint,
+  PromptLibraryItem,
+} from "@/lib/promptLibrary";
 
 // ─── Sample content ───────────────────────────────────────────────────────────
 
@@ -353,6 +360,18 @@ export default function Home() {
   const [saveMemo, setSaveMemo] = useState("");
   const [saveFlash, setSaveFlash] = useState(false);
 
+  // Prompt Library — persisted in localStorage
+  const [libraryIds, setLibraryIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem("mora-library-ids");
+      return stored ? (JSON.parse(stored) as string[]) : [];
+    } catch { return []; }
+  });
+  useEffect(() => {
+    localStorage.setItem("mora-library-ids", JSON.stringify(libraryIds));
+  }, [libraryIds]);
+
   // ─── Handlers ──────────────────────────────────────────────────────────
 
   const analyse = useCallback((txt: string) => {
@@ -364,6 +383,22 @@ export default function Home() {
     setRisks(predictCollapse(txt, lines));
     setSugs(generateMoraSuggestions(txt));
   }, []);
+
+  /** Resolve current libraryIds to items and build API payloads */
+  const buildLibraryContext = () => {
+    const items = libraryIds
+      .map((id) => getPromptItemById(id))
+      .filter((x): x is PromptLibraryItem => x !== undefined);
+    return {
+      items,
+      styleAddition:  buildLibraryStyleAddition(items),
+      structureHint:  buildLibraryStructureHint(items),
+      metaTagHint:    buildLibraryMetaTagHint(items),
+      chorusFirst:    items.some(
+        (i) => i.category === "structure" && i.label === "chorus first"
+      ),
+    };
+  };
 
   const handleGenerate = async () => {
     const rp = buildRegeneratePrompt(input);
@@ -381,16 +416,27 @@ export default function Home() {
     // When expansion is present EVERY stage uses expansion data.
     // This path always returns — the legacy path below can never run.
     if (expansion) {
+      const lib = buildLibraryContext();
       const sp = buildStylePromptFromExpansion(expansion, input, input.theme);
       const np = buildNegativePromptFromExpansion(expansion, input);
-      setStyle(sp);
+      // Append library style additions to displayed style prompt
+      setStyle(lib.styleAddition ? `${sp}, ${lib.styleAddition}` : sp);
       setNeg(np);
+
+      // Override startWithChorus if "chorus first" was selected in library
+      const apiInput = lib.chorusFirst ? { ...input, startWithChorus: true } : input;
 
       try {
         const res = await fetch("/api/ai/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ songInput: input, expansion }),
+          body: JSON.stringify({
+            songInput: apiInput,
+            expansion,
+            libraryStyleAddition: lib.styleAddition,
+            libraryStructureHint: lib.structureHint,
+            libraryMetaTagHint:   lib.metaTagHint,
+          }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -414,16 +460,25 @@ export default function Home() {
     }
 
     // ── PATH B: Legacy (no expansion — form input / manual settings) ────────
-    const sp = buildStylePrompt(input, preset);
-    const np = buildNegativePrompt(input);
-    setStyle(sp);
+    const lib = buildLibraryContext();
+    const sp  = buildStylePrompt(input, preset);
+    const np  = buildNegativePrompt(input);
+    setStyle(lib.styleAddition ? `${sp}, ${lib.styleAddition}` : sp);
     setNeg(np);
+
+    const apiInput = lib.chorusFirst ? { ...input, startWithChorus: true } : input;
 
     try {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songInput: input, expansion: null }),
+        body: JSON.stringify({
+          songInput: apiInput,
+          expansion: null,
+          libraryStyleAddition: lib.styleAddition,
+          libraryStructureHint: lib.structureHint,
+          libraryMetaTagHint:   lib.metaTagHint,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -513,11 +568,20 @@ export default function Home() {
     setLyricsRaw("");
     setIsGenerating(true);
 
+    const regenLib = buildLibraryContext();
+    const regenInput = regenLib.chorusFirst ? { ...input, startWithChorus: true } : input;
+
     try {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songInput: input, expansion }),
+        body: JSON.stringify({
+          songInput: regenInput,
+          expansion,
+          libraryStyleAddition: regenLib.styleAddition,
+          libraryStructureHint: regenLib.structureHint,
+          libraryMetaTagHint:   regenLib.metaTagHint,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -819,6 +883,8 @@ export default function Home() {
             }}
             expansion={expansion}
             onExpansionChange={setExpansion}
+            libraryIds={libraryIds}
+            onLibraryIdsChange={setLibraryIds}
           />
         </aside>
 
@@ -916,6 +982,8 @@ export default function Home() {
               }}
               expansion={expansion}
               onExpansionChange={setExpansion}
+              libraryIds={libraryIds}
+              onLibraryIdsChange={setLibraryIds}
             />
           </div>
         )}

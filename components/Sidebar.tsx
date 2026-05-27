@@ -7,6 +7,7 @@ import { QUICK_QUESTIONS, DEEP_QUESTIONS } from "@/lib/wizardData";
 import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
 import WorldForge from "@/components/WorldForge";
 import SourceAlchemy from "@/components/SourceAlchemy";
+import PromptLibraryPanel from "@/components/PromptLibraryPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ interface Props {
   onApplyExpansion: (stylePrompt: string) => void;
   expansion: WorldExpansion | null;
   onExpansionChange: (e: WorldExpansion | null) => void;
+  libraryIds: string[];
+  onLibraryIdsChange: (ids: string[]) => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -243,9 +246,12 @@ export default function Sidebar({
   onApplyExpansion,
   expansion,
   onExpansionChange,
+  libraryIds,
+  onLibraryIdsChange,
 }: Props) {
   const [alchemyOpen,  setAlchemyOpen]  = useState(false);
   const [fineTuneOpen, setFineTuneOpen] = useState(false);
+  const [libraryOpen,  setLibraryOpen]  = useState(false);
   const [avoidOpen,    setAvoidOpen]    = useState(false);
   const [guidedOpen,   setGuidedOpen]   = useState(false);
 
@@ -494,7 +500,21 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 3. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
+        {/* ══ 3. PROMPT LIBRARY ════════════════════════════════════════════════ */}
+        <CollapseSection
+          label={`Prompt Library${libraryIds.length > 0 ? ` · ${libraryIds.length}` : ""}`}
+          open={libraryOpen}
+          onToggle={() => setLibraryOpen((v) => !v)}
+        >
+          <div className="pb-2 pt-1">
+            <PromptLibraryPanel
+              selectedIds={libraryIds}
+              onSelectionChange={onLibraryIdsChange}
+            />
+          </div>
+        </CollapseSection>
+
+        {/* ══ 4. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
         <CollapseSection
           label="Avoid / Negative"
           open={avoidOpen}
@@ -521,7 +541,7 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 4. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
+        {/* ══ 5. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
         <CollapseSection
           label="Guided Mode"
           open={guidedOpen}

@@ -81,9 +81,16 @@ OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
 
 // ─── User prompt builders ─────────────────────────────────────────────────────
 
+interface LibraryContext {
+  styleAddition: string;
+  structureHint: string;
+  metaTagHint: string;
+}
+
 function buildExpansionUserPrompt(
   expansion: WorldExpansion,
-  input: SongInput
+  input: SongInput,
+  lib: LibraryContext
 ): string {
   const md   = expansion.musicDirection;
   const seed = input.theme?.trim() || "";
@@ -120,7 +127,8 @@ LYRICS DIRECTION: ${expansion.lyricsDirection}
 PARAMETERS:
 TITLE: ${input.title || "(未設定)"}
 LANGUAGE: ${langInstruction(input.englishRatio)}
-STRUCTURE: ${pickStructureForClaude(input)}
+STRUCTURE: ${pickStructureForClaude(input)}${lib.structureHint ? `\nSTRUCTURE PREFERENCE: ${lib.structureHint}` : ""}${lib.metaTagHint ? `\nPREFERRED SECTIONS: ${lib.metaTagHint}` : ""}
+STYLE TAGS: ${[md.genreHint, md.atmosphere, md.vocalStyle, lib.styleAddition].filter(Boolean).join(", ")}
 AVOID: ${input.avoidExpressions || "(none)"}${(input.nudges ?? []).length > 0 ? `\nFINE TUNE (directional corrections): ${input.nudges.join(", ")}` : ""}
 
 INSTRUCTION:
@@ -132,7 +140,7 @@ Embody the detected music direction — atmosphere over generic melody.
 Return JSON only.`;
 }
 
-function buildLegacyUserPrompt(input: SongInput, presetDeep: string): string {
+function buildLegacyUserPrompt(input: SongInput, presetDeep: string, lib: LibraryContext): string {
   const quickIdea = input.theme?.trim() || input.title?.trim() || "";
   return `${
     quickIdea
@@ -150,7 +158,7 @@ SONG LENGTH: ${input.songLength}
 LANGUAGE: ${langInstruction(input.englishRatio)}
 REFERENCE VIBE: ${input.referenceVibe || "(none)"}
 AVOID: ${input.avoidExpressions || "(none)"}
-STRUCTURE: ${pickStructureForClaude(input)}
+STRUCTURE: ${pickStructureForClaude(input)}${lib.structureHint ? `\nSTRUCTURE PREFERENCE: ${lib.structureHint}` : ""}${lib.metaTagHint ? `\nPREFERRED SECTIONS: ${lib.metaTagHint}` : ""}${lib.styleAddition ? `\nSTYLE TAGS: ${lib.styleAddition}` : ""}
 ${presetDeep ? `\nWORLD PRESET LENS: ${presetDeep}` : ""}
 
 ${
@@ -177,10 +185,16 @@ export async function POST(req: NextRequest) {
 
   let input: SongInput;
   let expansion: WorldExpansion | null = null;
+  let lib: LibraryContext = { styleAddition: "", structureHint: "", metaTagHint: "" };
   try {
     const body = await req.json();
     input = body.songInput;
     expansion = body.expansion ?? null;
+    lib = {
+      styleAddition:  typeof body.libraryStyleAddition === "string"  ? body.libraryStyleAddition  : "",
+      structureHint:  typeof body.libraryStructureHint === "string"  ? body.libraryStructureHint  : "",
+      metaTagHint:    typeof body.libraryMetaTagHint   === "string"  ? body.libraryMetaTagHint    : "",
+    };
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -190,8 +204,8 @@ export async function POST(req: NextRequest) {
     : "";
 
   const userPrompt = expansion
-    ? buildExpansionUserPrompt(expansion, input)
-    : buildLegacyUserPrompt(input, presetDeep);
+    ? buildExpansionUserPrompt(expansion, input, lib)
+    : buildLegacyUserPrompt(input, presetDeep, lib);
 
   try {
     const client = new Anthropic({ apiKey });

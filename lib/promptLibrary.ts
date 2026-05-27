@@ -950,7 +950,48 @@ export const PROMPT_LIBRARY: PromptLibraryItem[] = [
   },
 ];
 
-// ─── Helper functions ─────────────────────────────────────────────────────────
+// ─── Prompt builder helpers ───────────────────────────────────────────────────
+
+/** Categories whose promptText feeds into the Suno Style Prompt field */
+const STYLE_CATEGORIES: PromptLibraryCategory[] = [
+  "genre", "mood", "vocal", "instrument", "texture", "production",
+];
+
+/**
+ * Builds a comma-separated style addition string from selected items.
+ * Only includes style-relevant categories (genre, mood, vocal, instrument,
+ * texture, production). Empty string when no matching items.
+ */
+export function buildLibraryStyleAddition(items: PromptLibraryItem[]): string {
+  return items
+    .filter((i) => STYLE_CATEGORIES.includes(i.category))
+    .map((i) => i.promptText)
+    .join(", ");
+}
+
+/**
+ * Builds a structure preference hint from selected structure items.
+ * Injected into the Claude generate prompt as a STRUCTURE PREFERENCE note.
+ */
+export function buildLibraryStructureHint(items: PromptLibraryItem[]): string {
+  return items
+    .filter((i) => i.category === "structure")
+    .map((i) => `${i.label}: ${i.promptText}`)
+    .join("; ");
+}
+
+/**
+ * Builds a preferred-sections hint from selected metaTag items.
+ * Injected into the Claude generate prompt as a PREFERRED SECTIONS note.
+ */
+export function buildLibraryMetaTagHint(items: PromptLibraryItem[]): string {
+  return items
+    .filter((i) => i.category === "metaTag")
+    .map((i) => i.promptText)
+    .join(" ");
+}
+
+// ─── Search / retrieval helpers ───────────────────────────────────────────────
 
 /**
  * Full-text search across label, promptText, description, aliases, and tags.
