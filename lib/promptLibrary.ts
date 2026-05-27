@@ -1058,7 +1058,7 @@ export const PROMPT_LIBRARY: PromptLibraryItem[] = [
     label: "future garage",
     category: "genre",
     promptText: "future garage, pitched vocal chops, atmospheric pads, sub bass, melancholy electronic",
-    description: "大気的なパッドとサブベースが漂うフューチャー・ガラージ。内省的な電子音楽。",
+    description: "雰囲気豊かなパッドとサブベースが漂うフューチャー・ガラージ。内省的な電子音楽。",
     aliases: ["フューチャーガラージ", "atmospheric garage", "deep garage"],
     tags: ["genre", "garage", "atmospheric", "electronic", "deep"],
   },
