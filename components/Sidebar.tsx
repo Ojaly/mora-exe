@@ -38,6 +38,12 @@ interface Props {
   onStructurePresetChange: (p: StructurePreset) => void;
   customBlueprint: string;
   onCustomBlueprintChange: (v: string) => void;
+  /**
+   * True only after the client has mounted and localStorage has been restored.
+   * Dynamic labels that depend on localStorage values must be gated behind this
+   * to prevent SSR/client hydration mismatches.
+   */
+  mounted?: boolean;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -268,6 +274,7 @@ export default function Sidebar({
   onStructurePresetChange,
   customBlueprint,
   onCustomBlueprintChange,
+  mounted = false,
 }: Props) {
   const [alchemyOpen,    setAlchemyOpen]    = useState(false);
   const [fineTuneOpen,   setFineTuneOpen]   = useState(false);
@@ -530,11 +537,13 @@ export default function Sidebar({
         {/* ══ 3. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
         <CollapseSection
           label={
-            structureMode === "preset"
-              ? `Structure · ${structureMode}`
-              : structureMode === "custom" && customBlueprint.trim()
-                ? "Structure · custom ✎"
-                : "Structure"
+            !mounted
+              ? "Structure"
+              : structureMode === "preset"
+                ? "Structure · preset"
+                : structureMode === "custom" && customBlueprint.trim()
+                  ? "Structure · custom ✎"
+                  : "Structure"
           }
           open={structureOpen}
           onToggle={() => setStructureOpen((v) => !v)}
@@ -552,11 +561,13 @@ export default function Sidebar({
         {/* ══ 4. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
         <CollapseSection
           label={
-            selectedLibraryItems.length > 0
-              ? `Prompt Library · ${selectedLibraryItems.length}`
-              : recommendations.length > 0
-                ? `Prompt Library · ◆${recommendations.length}`
-                : "Prompt Library"
+            !mounted
+              ? "Prompt Library"
+              : selectedLibraryItems.length > 0
+                ? `Prompt Library · ${selectedLibraryItems.length}`
+                : recommendations.length > 0
+                  ? `Prompt Library · ◆${recommendations.length}`
+                  : "Prompt Library"
           }
           open={libraryOpen}
           onToggle={() => setLibraryOpen((v) => !v)}

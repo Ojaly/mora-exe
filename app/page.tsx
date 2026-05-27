@@ -367,34 +367,42 @@ export default function Home() {
   const [saveFlash, setSaveFlash] = useState(false);
 
   // Prompt Library — persisted in localStorage
-  const [libraryIds, setLibraryIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const stored = localStorage.getItem("mora-library-ids");
-      return stored ? (JSON.parse(stored) as string[]) : [];
-    } catch { return []; }
-  });
-  useEffect(() => {
-    localStorage.setItem("mora-library-ids", JSON.stringify(libraryIds));
-  }, [libraryIds]);
+  // ⚠ Do NOT read localStorage in useState initializer — causes SSR/client
+  //   hydration mismatch. All localStorage reads happen in the mount effect below.
+  const [libraryIds, setLibraryIds] = useState<string[]>([]);
 
   // ── Structure Blueprint state (persisted in localStorage) ────────────────
-  const [structureMode, setStructureMode] = useState<StructureMode>(() => {
-    if (typeof window === "undefined") return "auto";
-    return (localStorage.getItem("mora-structure-mode") as StructureMode | null) ?? "auto";
-  });
-  const [structurePreset, setStructurePreset] = useState<StructurePreset>(() => {
-    if (typeof window === "undefined") return "chorus-first";
-    return (localStorage.getItem("mora-structure-preset") as StructurePreset | null) ?? "chorus-first";
-  });
-  const [customBlueprint, setCustomBlueprint] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("mora-structure-custom") ?? "";
-  });
+  const [structureMode,   setStructureMode]   = useState<StructureMode>("auto");
+  const [structurePreset, setStructurePreset] = useState<StructurePreset>("chorus-first");
+  const [customBlueprint, setCustomBlueprint] = useState<string>("");
 
-  useEffect(() => { localStorage.setItem("mora-structure-mode",   structureMode);   }, [structureMode]);
-  useEffect(() => { localStorage.setItem("mora-structure-preset", structurePreset); }, [structurePreset]);
-  useEffect(() => { localStorage.setItem("mora-structure-custom", customBlueprint); }, [customBlueprint]);
+  // Becomes true after first client-side render — gates localStorage-derived UI labels
+  const [mounted, setMounted] = useState(false);
+
+  // Single mount effect: restore all localStorage state then flip mounted.
+  // This runs only on the client, after hydration is complete — no mismatch.
+  useEffect(() => {
+    try {
+      const storedIds = localStorage.getItem("mora-library-ids");
+      if (storedIds) setLibraryIds(JSON.parse(storedIds) as string[]);
+    } catch { /* ignore corrupt data */ }
+
+    const storedMode   = localStorage.getItem("mora-structure-mode");
+    const storedPreset = localStorage.getItem("mora-structure-preset");
+    const storedCustom = localStorage.getItem("mora-structure-custom");
+    if (storedMode)           setStructureMode(storedMode as StructureMode);
+    if (storedPreset)         setStructurePreset(storedPreset as StructurePreset);
+    if (storedCustom !== null) setCustomBlueprint(storedCustom);
+
+    setMounted(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist changes back to localStorage (runs after each value change, post-mount)
+  useEffect(() => { if (mounted) localStorage.setItem("mora-library-ids",       JSON.stringify(libraryIds)); }, [libraryIds,       mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-mode",     structureMode);              }, [structureMode,    mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-preset",   structurePreset);            }, [structurePreset,  mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-custom",   customBlueprint);            }, [customBlueprint,  mounted]);
 
   /**
    * Returns the structure string to send to the API, or undefined for Auto mode.
@@ -959,6 +967,7 @@ export default function Home() {
             onStructurePresetChange={setStructurePreset}
             customBlueprint={customBlueprint}
             onCustomBlueprintChange={setCustomBlueprint}
+            mounted={mounted}
           />
         </aside>
 
@@ -1084,6 +1093,7 @@ export default function Home() {
               onStructurePresetChange={setStructurePreset}
               customBlueprint={customBlueprint}
               onCustomBlueprintChange={setCustomBlueprint}
+              mounted={mounted}
             />
           </div>
         )}
