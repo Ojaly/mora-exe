@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import PromptEditor from "@/components/PromptEditor";
+import PromptLibraryPanel from "@/components/PromptLibraryPanel";
 import LyricsEditor from "@/components/LyricsEditor";
 import MoraTunerPanel from "@/components/MoraTunerPanel";
 import {
@@ -27,6 +28,7 @@ import {
   buildLibraryStyleAddition,
   buildLibraryStructureHint,
   buildLibraryMetaTagHint,
+  recommendFromExpansion,
   PromptLibraryItem,
 } from "@/lib/promptLibrary";
 
@@ -76,7 +78,8 @@ const SAMPLE_LYRICS = `[Intro]
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type RightView = "lyrics" | "tuner";
-type MobileTab = "concept" | "prompt" | "lyrics" | "tuner";
+type CenterTab = "prompt" | "library";
+type MobileTab = "concept" | "prompt" | "lyrics" | "tuner" | "library";
 
 const defaultInput: SongInput = {
   title: "", theme: "", genre: "jpop", bpm: "", key: "", mood: "melancholic",
@@ -328,6 +331,7 @@ export default function Home() {
   const [expansion, setExpansion] = useState<WorldExpansion | null>(null);
   const [rightView, setRight]     = useState<RightView>("lyrics");
   const [mobileTab, setMobile]    = useState<MobileTab>("concept");
+  const [centerTab, setCenterTab] = useState<CenterTab>("prompt");
   const [isSample, setIsSample]   = useState(true);
 
   const [stylePrompt, setStyle]   = useState(SAMPLE_PROMPT);
@@ -371,6 +375,21 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("mora-library-ids", JSON.stringify(libraryIds));
   }, [libraryIds]);
+
+  // Forge-driven recommendations (recomputed only when expansion changes)
+  const recommendations = useMemo(
+    () => (expansion ? recommendFromExpansion(expansion) : []),
+    [expansion]
+  );
+
+  // Auto-switch CENTER to Library tab when a new Forge result arrives
+  const prevExpansionRef = useRef<WorldExpansion | null>(null);
+  useEffect(() => {
+    if (expansion && expansion !== prevExpansionRef.current) {
+      setCenterTab("library");
+      prevExpansionRef.current = expansion;
+    }
+  }, [expansion]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -849,9 +868,12 @@ export default function Home() {
         className="relative z-10 shrink-0 flex h-9 border-b border-[#d0d7de] lg:hidden"
         style={{ background: "var(--bg-panel-hdr)" }}
       >
-        {(["concept", "prompt", "lyrics", "tuner"] as MobileTab[]).map((t) => (
+        {(["concept", "prompt", "library", "lyrics", "tuner"] as MobileTab[]).map((t) => (
           <TabBtn key={t} active={mobileTab === t} onClick={() => setMobile(t)}>
-            {t === "tuner" && dangers > 0 ? `TUNER ▲${dangers}` : t.toUpperCase()}
+            {t === "tuner"   && dangers > 0       ? `TUNER ▲${dangers}` :
+             t === "library" && libraryIds.length > 0 ? `LIB·${libraryIds.length}` :
+             t === "library" && recommendations.length > 0 ? `LIB◆${recommendations.length}` :
+             t.toUpperCase()}
           </TabBtn>
         ))}
       </div>
@@ -885,40 +907,60 @@ export default function Home() {
             onExpansionChange={setExpansion}
             libraryIds={libraryIds}
             onLibraryIdsChange={setLibraryIds}
+            recommendations={recommendations}
+            onOpenLibrary={() => setCenterTab("library")}
           />
         </aside>
 
-        {/* CENTER: Style Prompt */}
+        {/* CENTER: Style Prompt / Library */}
         <section
           className="flex-1 flex flex-col border-r border-[#d0d7de] min-w-0"
           style={{ background: "var(--bg-center)" }}
         >
           <PanelHeader>
-            <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-[0.2em]">
+            <TabBtn active={centerTab === "prompt"} onClick={() => setCenterTab("prompt")}>
               STYLE PROMPT
-            </span>
-            {isSample && <SampleBadge />}
+            </TabBtn>
+            <TabBtn active={centerTab === "library"} onClick={() => setCenterTab("library")}>
+              {libraryIds.length > 0
+                ? `LIBRARY · ${libraryIds.length}`
+                : recommendations.length > 0
+                  ? `LIBRARY ◆${recommendations.length}`
+                  : "LIBRARY"}
+            </TabBtn>
+            {centerTab === "prompt" && isSample && <SampleBadge />}
             <div className="flex items-center gap-1.5 px-2 ml-auto">
-              <CopyBtn text={stylePrompt} label="COPY" />
+              {centerTab === "prompt" && <CopyBtn text={stylePrompt} label="COPY" />}
             </div>
           </PanelHeader>
 
-          <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
-
-          <div className="shrink-0 border-t border-[#d0d7de]" style={{ background: "var(--bg-neg)" }}>
-            <div className="flex items-center px-4 pt-2 pb-1 gap-2">
-              <span className="text-[13px] font-mono text-zinc-500 tracking-[0.15em]">NEGATIVE</span>
-              <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
+          {centerTab === "prompt" ? (
+            <>
+              <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
+              <div className="shrink-0 border-t border-[#d0d7de]" style={{ background: "var(--bg-neg)" }}>
+                <div className="flex items-center px-4 pt-2 pb-1 gap-2">
+                  <span className="text-[13px] font-mono text-zinc-500 tracking-[0.15em]">NEGATIVE</span>
+                  <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
+                </div>
+                <textarea
+                  value={negPrompt}
+                  onChange={(e) => setNeg(e.target.value)}
+                  rows={2}
+                  className="w-full bg-transparent resize-none px-4 pb-2 font-mono text-[11px] leading-relaxed focus:outline-none"
+                  style={{ color: "#57606a", fontSize: "13px" }}
+                  spellCheck={false}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 min-h-0 overflow-y-auto p-4">
+              <PromptLibraryPanel
+                selectedIds={libraryIds}
+                onSelectionChange={setLibraryIds}
+                recommendedItems={recommendations}
+              />
             </div>
-            <textarea
-              value={negPrompt}
-              onChange={(e) => setNeg(e.target.value)}
-              rows={2}
-              className="w-full bg-transparent resize-none px-4 pb-2 font-mono text-[11px] leading-relaxed focus:outline-none"
-              style={{ color: "#57606a", fontSize: "13px" }}
-              spellCheck={false}
-            />
-          </div>
+          )}
         </section>
 
         {/* RIGHT: Lyrics / Tuner — with Memory panel overlay */}
@@ -984,6 +1026,8 @@ export default function Home() {
               onExpansionChange={setExpansion}
               libraryIds={libraryIds}
               onLibraryIdsChange={setLibraryIds}
+              recommendations={recommendations}
+              onOpenLibrary={() => setMobile("library")}
             />
           </div>
         )}
@@ -995,6 +1039,22 @@ export default function Home() {
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
             </PanelHeader>
             <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
+          </div>
+        )}
+        {mobileTab === "library" && (
+          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--bg-center)" }}>
+            <PanelHeader>
+              <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-widest">
+                {libraryIds.length > 0 ? `LIBRARY · ${libraryIds.length}` : "LIBRARY"}
+              </span>
+            </PanelHeader>
+            <div className="flex-1 overflow-y-auto p-3">
+              <PromptLibraryPanel
+                selectedIds={libraryIds}
+                onSelectionChange={setLibraryIds}
+                recommendedItems={recommendations}
+              />
+            </div>
           </div>
         )}
         {mobileTab === "lyrics" && (

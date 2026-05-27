@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState } from "react";
 import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { QUICK_QUESTIONS, DEEP_QUESTIONS } from "@/lib/wizardData";
 import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
 import WorldForge from "@/components/WorldForge";
 import SourceAlchemy from "@/components/SourceAlchemy";
-import PromptLibraryPanel from "@/components/PromptLibraryPanel";
-import { recommendFromExpansion } from "@/lib/promptLibrary";
+import { getPromptItemById, PromptLibraryItem } from "@/lib/promptLibrary";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +26,10 @@ interface Props {
   onExpansionChange: (e: WorldExpansion | null) => void;
   libraryIds: string[];
   onLibraryIdsChange: (ids: string[]) => void;
+  /** Pre-computed Forge recommendations — shown as count badge in compact summary */
+  recommendations?: PromptLibraryItem[];
+  /** Called when user clicks "OPEN LIBRARY →" to switch to center panel */
+  onOpenLibrary?: () => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -249,6 +252,8 @@ export default function Sidebar({
   onExpansionChange,
   libraryIds,
   onLibraryIdsChange,
+  recommendations = [],
+  onOpenLibrary,
 }: Props) {
   const [alchemyOpen,  setAlchemyOpen]  = useState(false);
   const [fineTuneOpen, setFineTuneOpen] = useState(false);
@@ -262,22 +267,11 @@ export default function Sidebar({
   const [wizardAnswers, setWizardAnswers]   = useState<WizardAnswers>({});
   const [appliedFlash, setAppliedFlash]     = useState(false);
 
-  // ─── Forge-driven recommendations ───────────────────────────────────────────
+  // ─── Compact library summary ─────────────────────────────────────────────────
 
-  /** Auto-open the library panel whenever a new Forge result arrives */
-  const prevExpansionRef = useRef<WorldExpansion | null>(null);
-  useEffect(() => {
-    if (expansion && expansion !== prevExpansionRef.current) {
-      setLibraryOpen(true);
-      prevExpansionRef.current = expansion;
-    }
-  }, [expansion]);
-
-  /** Recommendations recomputed only when expansion changes */
-  const recommendations = useMemo(
-    () => (expansion ? recommendFromExpansion(expansion) : []),
-    [expansion]
-  );
+  const selectedLibraryItems = libraryIds
+    .map((id) => getPromptItemById(id))
+    .filter((x): x is PromptLibraryItem => x !== undefined);
 
   const set = <K extends keyof SongInput>(key: K, val: SongInput[K]) =>
     onInputChange({ ...input, [key]: val });
@@ -518,11 +512,11 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 3. PROMPT LIBRARY ════════════════════════════════════════════════ */}
+        {/* ══ 3. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
         <CollapseSection
           label={
-            libraryIds.length > 0
-              ? `Prompt Library · ${libraryIds.length}`
+            selectedLibraryItems.length > 0
+              ? `Prompt Library · ${selectedLibraryItems.length}`
               : recommendations.length > 0
                 ? `Prompt Library · ◆${recommendations.length}`
                 : "Prompt Library"
@@ -530,12 +524,48 @@ export default function Sidebar({
           open={libraryOpen}
           onToggle={() => setLibraryOpen((v) => !v)}
         >
-          <div className="pb-2 pt-1">
-            <PromptLibraryPanel
-              selectedIds={libraryIds}
-              onSelectionChange={onLibraryIdsChange}
-              recommendedItems={recommendations}
-            />
+          <div className="pb-2 pt-0.5 space-y-1.5">
+
+            {/* Recommendation hint */}
+            {recommendations.length > 0 && selectedLibraryItems.length === 0 && (
+              <p className="text-[10px] font-mono text-amber-600 leading-snug">
+                ◆ {recommendations.length}件のおすすめ候補あり
+              </p>
+            )}
+
+            {/* Selected item chips (up to 6, then +N more) */}
+            {selectedLibraryItems.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {selectedLibraryItems.slice(0, 6).map((item) => (
+                  <span
+                    key={item.id}
+                    className="px-1.5 py-[2px] text-[11px] font-mono rounded border border-[#d0d7de] text-zinc-600 bg-zinc-50 leading-tight"
+                  >
+                    {item.label}
+                  </span>
+                ))}
+                {selectedLibraryItems.length > 6 && (
+                  <span className="text-[10px] font-mono text-zinc-400 self-center">
+                    +{selectedLibraryItems.length - 6}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {selectedLibraryItems.length === 0 && recommendations.length === 0 && (
+              <p className="text-[10px] font-mono text-zinc-400 leading-snug">
+                タグなし — Forgeでおすすめを取得
+              </p>
+            )}
+
+            {/* Open library button */}
+            <button
+              onClick={onOpenLibrary}
+              className="w-full h-7 text-[11px] font-mono border border-[#c8cdd4] rounded text-zinc-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition-all"
+            >
+              OPEN LIBRARY →
+            </button>
           </div>
         </CollapseSection>
 

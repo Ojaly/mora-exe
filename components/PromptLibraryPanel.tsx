@@ -173,7 +173,7 @@ export default function PromptLibraryPanel({ selectedIds, onSelectionChange, rec
 
       {/* ── Results (grouped by category) ─────────────────────────────────── */}
       {results.length > 0 && (
-        <div className="max-h-44 overflow-y-auto space-y-2.5 pr-0.5">
+        <div className="space-y-2.5 pr-0.5">
           {[...grouped.entries()].map(([cat, items]) => (
             <div key={cat}>
               <span className={`text-[9px] font-mono tracking-widest uppercase font-semibold block mb-1 ${CAT_LABEL[cat]}`}>
