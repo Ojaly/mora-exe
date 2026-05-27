@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
+import { pickStructureForClaude } from "@/lib/structureVariation";
 
 /** Claude レスポンスから JSON オブジェクトを堅牢に抽出する */
 function extractJson(text: string): Record<string, unknown> {
@@ -18,16 +19,6 @@ function extractJson(text: string): Record<string, unknown> {
   return JSON.parse(s.slice(start, end + 1));
 }
 
-function buildSections(input: SongInput): string {
-  if (input.startWithChorus) {
-    if (input.songLength === "30s") return "[Chorus]";
-    if (input.songLength === "90s") return "[Chorus] → [Verse 1] → [Pre-Chorus] → [Chorus]";
-    return "[Chorus] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Outro]";
-  }
-  if (input.songLength === "30s") return "[Chorus]";
-  if (input.songLength === "90s") return "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus]";
-  return "[Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Outro]";
-}
 
 function langInstruction(ratio: string): string {
   if (ratio === "high") return "Write mostly in English (80%+). Japanese phrases ok for flavor.";
@@ -49,12 +40,26 @@ Step 3 — NEVER fall back to generic J-Pop imagery ("街の灯り", "光の中�
      The Quick Idea replaces all defaults. If it's about udon, write about udon —麺, だし, 丼, 湯気, 偏執, 祈り.
 ═══════════════════════════
 
+STRUCTURE RULES:
+- Write EXACTLY the sections listed in the STRUCTURE parameter — no extras, no omissions.
+- Do not default to [Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Outro] unless the STRUCTURE parameter specifies it.
+- Section tags must be written exactly as they appear in STRUCTURE, enclosed in square brackets.
+- Valid section tag families (use only what STRUCTURE specifies):
+    Standard:   [Intro] [Verse 1] [Verse 2] [Pre-Chorus] [Chorus] [Bridge] [Final Chorus] [Outro]
+    Dance/EDM:  [Build] [Drop] [Breakdown] [Verse]
+    Rap/Hook:   [Hook] [Final Hook] [Break]
+    Theatrical: [Spoken Intro] [Scene Change] [Finale]
+    Short:      [Verse] [Hook]
+
 HARD RULES:
-- Section tags REQUIRED, written exactly: [Intro] [Verse 1] [Verse 2] [Pre-Chorus] [Chorus] [Bridge] [Outro]
 - Japanese lines: mora count 4–14 (ideal 6–12). Never write run-on lines.
-- Chorus: short, emotionally direct, singable, built for repetition. 3–5 lines.
+- High-energy sections ([Chorus] [Drop] [Hook] [Final Chorus] [Final Hook]): short, direct, singable, 3–5 lines.
+- [Build]: 2–3 lines of rising tension; no resolution.
+- [Spoken Intro]: narrative, atmospheric, no melody required; 2–3 lines.
+- [Scene Change]: 2–3 lines, shifts perspective or time.
+- [Finale] / [Outro]: 2–3 lines, closes the arc.
 - Blank line after each section's content, before the next tag.
-- Lines per section: Intro 2–3, Verse 4–6, Pre-Chorus 2–3, Chorus 3–5, Bridge 3–4, Outro 2–3
+- Lines per section: Intro/Spoken Intro 2–3, Verse 4–6, Pre-Chorus/Build 2–3, Chorus/Drop/Hook 3–5, Bridge/Break/Breakdown/Scene Change 3–4, Outro/Finale 2–3
 
 BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me higher"
   "warrior" "rise above" "burning inside" "meant to be" "forever and always"
@@ -63,8 +68,9 @@ BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me 
 QUALITY:
 - Concrete > abstract. Name the thing. "うどんの麺が震える" beats "何かが溢れる".
 - Obsessive, abnormal, or absurd themes need MATCHING imagery — lean into the weirdness.
-- Chorus lines must be memorable in isolation — singable, repeatable, unforgettable.
-- Verse lines build a scene. Pre-chorus raises tension. Bridge shifts perspective.
+- Match energy and pacing to the structure type: a Dance Drop should feel physically urgent; a Ballad Narrative should breathe slowly.
+- Chorus/Hook/Drop lines must be memorable in isolation — singable, repeatable, unforgettable.
+- Verse lines build a scene. Pre-chorus/Build raises tension. Bridge/Scene Change shifts perspective.
 - No over-explanation. Trust the image.
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
@@ -114,7 +120,7 @@ LYRICS DIRECTION: ${expansion.lyricsDirection}
 PARAMETERS:
 TITLE: ${input.title || "(未設定)"}
 LANGUAGE: ${langInstruction(input.englishRatio)}
-STRUCTURE: ${buildSections(input)}
+STRUCTURE: ${pickStructureForClaude(input)}
 AVOID: ${input.avoidExpressions || "(none)"}${(input.nudges ?? []).length > 0 ? `\nFINE TUNE (directional corrections): ${input.nudges.join(", ")}` : ""}
 
 INSTRUCTION:
@@ -144,7 +150,7 @@ SONG LENGTH: ${input.songLength}
 LANGUAGE: ${langInstruction(input.englishRatio)}
 REFERENCE VIBE: ${input.referenceVibe || "(none)"}
 AVOID: ${input.avoidExpressions || "(none)"}
-STRUCTURE: ${buildSections(input)}
+STRUCTURE: ${pickStructureForClaude(input)}
 ${presetDeep ? `\nWORLD PRESET LENS: ${presetDeep}` : ""}
 
 ${

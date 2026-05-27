@@ -4,8 +4,9 @@ import {
   buildThemeLines,
   SectionType,
 } from "@/lib/themeExtractor";
+import { pickSectionList, RuleBasedSectionKey } from "@/lib/structureVariation";
 
-type SectionKey = "Intro" | "Verse 1" | "Verse 2" | "Pre-Chorus" | "Chorus" | "Bridge" | "Outro";
+type SectionKey = RuleBasedSectionKey;
 
 type MoodPool = {
   intro: string[];
@@ -929,15 +930,7 @@ const SECTION_LINE_COUNTS: Record<string, number> = {
 };
 
 function getSections(input: SongInput): SectionKey[] {
-  if (input.startWithChorus) {
-    if (input.songLength === "30s") return ["Chorus"];
-    if (input.songLength === "90s") return ["Chorus", "Verse 1", "Pre-Chorus", "Chorus"];
-    return ["Chorus", "Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus", "Bridge", "Outro"];
-  }
-  if (input.songLength === "30s") return ["Chorus"];
-  if (input.songLength === "90s")
-    return ["Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus"];
-  return ["Intro", "Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus", "Bridge", "Outro"];
+  return pickSectionList(input);
 }
 
 const SECTION_KEY_MAP: Record<SectionKey, keyof MoodPool> = {
@@ -1027,15 +1020,8 @@ type SectionTag =
   | "Pre-Chorus" | "Chorus" | "Bridge" | "Outro";
 
 function expansionSectionList(input: SongInput): SectionTag[] {
-  if (input.songLength === "30s") return ["Chorus"];
-  if (input.startWithChorus) {
-    return input.songLength === "90s"
-      ? ["Chorus", "Verse 1", "Pre-Chorus", "Chorus"]
-      : ["Chorus", "Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus", "Bridge", "Outro"];
-  }
-  return input.songLength === "90s"
-    ? ["Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus"]
-    : ["Intro", "Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus", "Bridge", "Outro"];
+  // RuleBasedSectionKey is a subset of SectionTag — cast is safe
+  return pickSectionList(input) as SectionTag[];
 }
 
 /**
