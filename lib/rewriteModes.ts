@@ -277,6 +277,45 @@ function applyToSection(
     .join("");
 }
 
+/**
+ * Merges Claude-rewritten lyrics with the original.
+ * Only sections matching `target` are taken from `rewritten`.
+ * All other sections are unconditionally restored from `original`,
+ * preventing Claude from silently editing sections outside the target.
+ *
+ * Example: target="chorus" → [Chorus] from rewritten, everything else from original.
+ * Guarantees [Pre-Chorus] is never touched when target is "chorus".
+ */
+export function mergeSections(
+  original: string,
+  rewritten: string,
+  target: SectionTarget
+): string {
+  if (target === "all") return rewritten;
+
+  const t = sectionTagForTarget(target).toLowerCase();
+
+  // Build tag → section-text map from Claude's output
+  const rewrittenMap = new Map<string, string>();
+  for (const section of rewritten.split(/(?=\[)/)) {
+    const m = section.match(/^\[([^\]]+)\]/);
+    if (m) rewrittenMap.set(m[1].toLowerCase(), section);
+  }
+
+  // Walk original structure; swap in rewritten only for matching sections
+  return original
+    .split(/(?=\[)/)
+    .map((section) => {
+      const m = section.match(/^\[([^\]]+)\]/);
+      if (!m) return section; // pre-tag content (rare)
+      const tag = m[1].toLowerCase();
+      const isTarget = tag === t || tag.startsWith(t + " ");
+      if (!isTarget) return section; // always keep original for non-target
+      return rewrittenMap.get(tag) ?? section; // fallback if Claude omitted the section
+    })
+    .join("");
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const REWRITE_MODE_LABELS: Record<RewriteMode, string> = {

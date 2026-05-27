@@ -19,7 +19,7 @@ import { analyzeLyrics, calcSongStats } from "@/lib/moraAnalyzer";
 import { detectAiPhrases, detectSyntaxPatterns } from "@/lib/phraseDetector";
 import { predictCollapse } from "@/lib/collapsePredictor";
 import { generateMoraSuggestions, applyLineFix } from "@/lib/moraTuner";
-import { applyRewriteMode } from "@/lib/rewriteModes";
+import { applyRewriteMode, mergeSections } from "@/lib/rewriteModes";
 import { callClaudeRewrite } from "@/lib/claudeRewrite";
 import { loadMemories, saveMemory, deleteMemory, PromptMemory } from "@/lib/promptMemory";
 
@@ -437,11 +437,16 @@ export default function Home() {
     const result = await callClaudeRewrite(mode, lyrics, stylePrompt, input, moraLines, intensity, sectionTarget);
 
     if (result) {
-      setLyricsRaw(result.rewrittenLyrics);
-      analyse(result.rewrittenLyrics);
+      // Enforce section target: only accept Claude's edits for the target section.
+      // Non-target sections are always restored from the original to prevent
+      // Claude from silently modifying sections it was told to leave alone.
+      const merged = mergeSections(lyrics, result.rewrittenLyrics, sectionTarget);
+      setLyricsRaw(merged);
+      analyse(merged);
       setRewriteNotes(result.notes ?? "");
       setRewriteSource("claude");
-      setChangedLines(result.changedLines ?? []);
+      // changedLines from Claude may reference sections we discarded — clear for non-"all"
+      setChangedLines(sectionTarget === "all" ? (result.changedLines ?? []) : []);
     } else {
       const v = applyRewriteMode(lyrics, mode, sectionTarget);
       setLyricsRaw(v);
