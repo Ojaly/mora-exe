@@ -140,6 +140,22 @@ export interface HistoryEntry {
   ts: number;
 }
 
+// ─── Structure Blueprint ──────────────────────────────────────────────────────
+
+export type StructureMode = "auto" | "preset" | "custom";
+
+export type StructurePreset =
+  | "chorus-first"
+  | "dance-drop"
+  | "hook-loop"
+  | "ballad-narrative"
+  | "rap-hook"
+  | "theatrical"
+  | "short-viral"
+  | "verse-first"
+  | "spoken-intro"
+  | "final-chorus-build";
+
 // ─── Source Alchemy ──────────────────────────────────────────────────────────
 
 export interface AlchemyResult {

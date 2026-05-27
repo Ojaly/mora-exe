@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
+import { SongInput, WorldPresetKey, WorldExpansion, StructureMode, StructurePreset } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { QUICK_QUESTIONS, DEEP_QUESTIONS } from "@/lib/wizardData";
 import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
 import WorldForge from "@/components/WorldForge";
 import SourceAlchemy from "@/components/SourceAlchemy";
+import StructureBlueprint from "@/components/StructureBlueprint";
 import { getPromptItemById, PromptLibraryItem } from "@/lib/promptLibrary";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,6 +31,13 @@ interface Props {
   recommendations?: PromptLibraryItem[];
   /** Called when user clicks "OPEN LIBRARY →" to switch to center panel */
   onOpenLibrary?: () => void;
+  // ── Structure Blueprint ────────────────────────────────────────────────────
+  structureMode: StructureMode;
+  onStructureModeChange: (m: StructureMode) => void;
+  structurePreset: StructurePreset;
+  onStructurePresetChange: (p: StructurePreset) => void;
+  customBlueprint: string;
+  onCustomBlueprintChange: (v: string) => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -254,12 +262,19 @@ export default function Sidebar({
   onLibraryIdsChange,
   recommendations = [],
   onOpenLibrary,
+  structureMode,
+  onStructureModeChange,
+  structurePreset,
+  onStructurePresetChange,
+  customBlueprint,
+  onCustomBlueprintChange,
 }: Props) {
-  const [alchemyOpen,  setAlchemyOpen]  = useState(false);
-  const [fineTuneOpen, setFineTuneOpen] = useState(false);
-  const [libraryOpen,  setLibraryOpen]  = useState(false);
-  const [avoidOpen,    setAvoidOpen]    = useState(false);
-  const [guidedOpen,   setGuidedOpen]   = useState(false);
+  const [alchemyOpen,    setAlchemyOpen]    = useState(false);
+  const [fineTuneOpen,   setFineTuneOpen]   = useState(false);
+  const [structureOpen,  setStructureOpen]  = useState(false);
+  const [libraryOpen,    setLibraryOpen]    = useState(false);
+  const [avoidOpen,      setAvoidOpen]      = useState(false);
+  const [guidedOpen,     setGuidedOpen]     = useState(false);
 
   // Wizard state
   const [wizardMode, setWizardMode]         = useState<WizardMode>("quick");
@@ -512,7 +527,29 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 3. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
+        {/* ══ 3. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
+        <CollapseSection
+          label={
+            structureMode === "preset"
+              ? `Structure · ${structureMode}`
+              : structureMode === "custom" && customBlueprint.trim()
+                ? "Structure · custom ✎"
+                : "Structure"
+          }
+          open={structureOpen}
+          onToggle={() => setStructureOpen((v) => !v)}
+        >
+          <StructureBlueprint
+            mode={structureMode}
+            onModeChange={onStructureModeChange}
+            preset={structurePreset}
+            onPresetChange={onStructurePresetChange}
+            customBlueprint={customBlueprint}
+            onCustomBlueprintChange={onCustomBlueprintChange}
+          />
+        </CollapseSection>
+
+        {/* ══ 4. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
         <CollapseSection
           label={
             selectedLibraryItems.length > 0
@@ -569,7 +606,7 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 4. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
+        {/* ══ 5. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
         <CollapseSection
           label="Avoid / Negative"
           open={avoidOpen}
@@ -596,7 +633,7 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 5. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
+        {/* ══ 6. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
         <CollapseSection
           label="Guided Mode"
           open={guidedOpen}

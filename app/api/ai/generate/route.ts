@@ -87,10 +87,32 @@ interface LibraryContext {
   metaTagHint: string;
 }
 
+/** Builds the STRUCTURE line for the Claude prompt, honouring override priority. */
+function resolveStructure(
+  input: SongInput,
+  lib: LibraryContext,
+  structureOverride?: string,
+  isCustomBlueprint?: boolean,
+): string {
+  const base = structureOverride ?? pickStructureForClaude(input);
+  // When custom blueprint or preset override is active, suppress the library
+  // structure hint (it would conflict with the explicit user choice).
+  const hint = (!structureOverride && lib.structureHint)
+    ? `\nSTRUCTURE PREFERENCE: ${lib.structureHint}`
+    : "";
+  const custom = isCustomBlueprint
+    ? "\nSTRUCTURE CONSTRAINT: Use EXACTLY the sections listed above in that order. Do not add, remove, or reorder any section. Each section's content is free."
+    : "";
+  const meta = lib.metaTagHint ? `\nPREFERRED SECTIONS: ${lib.metaTagHint}` : "";
+  return `${base}${hint}${custom}${meta}`;
+}
+
 function buildExpansionUserPrompt(
   expansion: WorldExpansion,
   input: SongInput,
-  lib: LibraryContext
+  lib: LibraryContext,
+  structureOverride?: string,
+  isCustomBlueprint?: boolean,
 ): string {
   const md   = expansion.musicDirection;
   const seed = input.theme?.trim() || "";
@@ -127,7 +149,7 @@ LYRICS DIRECTION: ${expansion.lyricsDirection}
 PARAMETERS:
 TITLE: ${input.title || "(未設定)"}
 LANGUAGE: ${langInstruction(input.englishRatio)}
-STRUCTURE: ${pickStructureForClaude(input)}${lib.structureHint ? `\nSTRUCTURE PREFERENCE: ${lib.structureHint}` : ""}${lib.metaTagHint ? `\nPREFERRED SECTIONS: ${lib.metaTagHint}` : ""}
+STRUCTURE: ${resolveStructure(input, lib, structureOverride, isCustomBlueprint)}
 STYLE TAGS: ${[md.genreHint, md.atmosphere, md.vocalStyle, lib.styleAddition].filter(Boolean).join(", ")}
 AVOID: ${input.avoidExpressions || "(none)"}${(input.nudges ?? []).length > 0 ? `\nFINE TUNE (directional corrections): ${input.nudges.join(", ")}` : ""}
 
@@ -140,7 +162,13 @@ Embody the detected music direction — atmosphere over generic melody.
 Return JSON only.`;
 }
 
-function buildLegacyUserPrompt(input: SongInput, presetDeep: string, lib: LibraryContext): string {
+function buildLegacyUserPrompt(
+  input: SongInput,
+  presetDeep: string,
+  lib: LibraryContext,
+  structureOverride?: string,
+  isCustomBlueprint?: boolean,
+): string {
   const quickIdea = input.theme?.trim() || input.title?.trim() || "";
   return `${
     quickIdea
@@ -158,7 +186,7 @@ SONG LENGTH: ${input.songLength}
 LANGUAGE: ${langInstruction(input.englishRatio)}
 REFERENCE VIBE: ${input.referenceVibe || "(none)"}
 AVOID: ${input.avoidExpressions || "(none)"}
-STRUCTURE: ${pickStructureForClaude(input)}${lib.structureHint ? `\nSTRUCTURE PREFERENCE: ${lib.structureHint}` : ""}${lib.metaTagHint ? `\nPREFERRED SECTIONS: ${lib.metaTagHint}` : ""}${lib.styleAddition ? `\nSTYLE TAGS: ${lib.styleAddition}` : ""}
+STRUCTURE: ${resolveStructure(input, lib, structureOverride, isCustomBlueprint)}${lib.styleAddition ? `\nSTYLE TAGS: ${lib.styleAddition}` : ""}
 ${presetDeep ? `\nWORLD PRESET LENS: ${presetDeep}` : ""}
 
 ${
@@ -186,6 +214,8 @@ export async function POST(req: NextRequest) {
   let input: SongInput;
   let expansion: WorldExpansion | null = null;
   let lib: LibraryContext = { styleAddition: "", structureHint: "", metaTagHint: "" };
+  let structureOverride: string | undefined;
+  let isCustomBlueprint = false;
   try {
     const body = await req.json();
     input = body.songInput;
@@ -195,6 +225,10 @@ export async function POST(req: NextRequest) {
       structureHint:  typeof body.libraryStructureHint === "string"  ? body.libraryStructureHint  : "",
       metaTagHint:    typeof body.libraryMetaTagHint   === "string"  ? body.libraryMetaTagHint    : "",
     };
+    if (typeof body.structureOverride === "string" && body.structureOverride.trim()) {
+      structureOverride = body.structureOverride.trim();
+    }
+    isCustomBlueprint = body.isCustomBlueprint === true;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -204,8 +238,8 @@ export async function POST(req: NextRequest) {
     : "";
 
   const userPrompt = expansion
-    ? buildExpansionUserPrompt(expansion, input, lib)
-    : buildLegacyUserPrompt(input, presetDeep, lib);
+    ? buildExpansionUserPrompt(expansion, input, lib, structureOverride, isCustomBlueprint)
+    : buildLegacyUserPrompt(input, presetDeep, lib, structureOverride, isCustomBlueprint);
 
   try {
     const client = new Anthropic({ apiKey });

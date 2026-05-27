@@ -10,7 +10,9 @@ import {
   SongInput, WorldPresetKey, WorldExpansion,
   MoraLine, MoraSuggestion, PhraseMatch, SyntaxMatch, CollapseRisk, SongStats,
   RewriteMode, RewriteIntensity, SectionTarget, HistoryEntry,
+  StructureMode, StructurePreset,
 } from "@/types";
+import { getPresetStructure } from "@/lib/structureVariation";
 import {
   buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt,
   buildStylePromptFromExpansion, buildNegativePromptFromExpansion,
@@ -376,6 +378,39 @@ export default function Home() {
     localStorage.setItem("mora-library-ids", JSON.stringify(libraryIds));
   }, [libraryIds]);
 
+  // ── Structure Blueprint state (persisted in localStorage) ────────────────
+  const [structureMode, setStructureMode] = useState<StructureMode>(() => {
+    if (typeof window === "undefined") return "auto";
+    return (localStorage.getItem("mora-structure-mode") as StructureMode | null) ?? "auto";
+  });
+  const [structurePreset, setStructurePreset] = useState<StructurePreset>(() => {
+    if (typeof window === "undefined") return "chorus-first";
+    return (localStorage.getItem("mora-structure-preset") as StructurePreset | null) ?? "chorus-first";
+  });
+  const [customBlueprint, setCustomBlueprint] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("mora-structure-custom") ?? "";
+  });
+
+  useEffect(() => { localStorage.setItem("mora-structure-mode",   structureMode);   }, [structureMode]);
+  useEffect(() => { localStorage.setItem("mora-structure-preset", structurePreset); }, [structurePreset]);
+  useEffect(() => { localStorage.setItem("mora-structure-custom", customBlueprint); }, [customBlueprint]);
+
+  /**
+   * Returns the structure string to send to the API, or undefined for Auto mode.
+   * Priority: Custom > Preset > Auto (structureVariation)
+   */
+  const resolvedStructureOverride = (): string | undefined => {
+    if (structureMode === "custom") {
+      const trimmed = customBlueprint.trim();
+      return trimmed || undefined;
+    }
+    if (structureMode === "preset") {
+      return getPresetStructure(structurePreset, input.songLength);
+    }
+    return undefined;
+  };
+
   // Forge-driven recommendations (recomputed only when expansion changes)
   const recommendations = useMemo(
     () => (expansion ? recommendFromExpansion(expansion, input.theme) : []),
@@ -445,6 +480,7 @@ export default function Home() {
       // Override startWithChorus if "chorus first" was selected in library
       const apiInput = lib.chorusFirst ? { ...input, startWithChorus: true } : input;
 
+      const structOvr = resolvedStructureOverride();
       try {
         const res = await fetch("/api/ai/generate", {
           method: "POST",
@@ -455,6 +491,8 @@ export default function Home() {
             libraryStyleAddition: lib.styleAddition,
             libraryStructureHint: lib.structureHint,
             libraryMetaTagHint:   lib.metaTagHint,
+            structureOverride:    structOvr,
+            isCustomBlueprint:    structureMode === "custom" && !!structOvr,
           }),
         });
         if (res.ok) {
@@ -487,6 +525,7 @@ export default function Home() {
 
     const apiInput = lib.chorusFirst ? { ...input, startWithChorus: true } : input;
 
+    const structOvrB = resolvedStructureOverride();
     try {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
@@ -497,6 +536,8 @@ export default function Home() {
           libraryStyleAddition: lib.styleAddition,
           libraryStructureHint: lib.structureHint,
           libraryMetaTagHint:   lib.metaTagHint,
+          structureOverride:    structOvrB,
+          isCustomBlueprint:    structureMode === "custom" && !!structOvrB,
         }),
       });
       if (res.ok) {
@@ -589,6 +630,7 @@ export default function Home() {
 
     const regenLib = buildLibraryContext();
     const regenInput = regenLib.chorusFirst ? { ...input, startWithChorus: true } : input;
+    const regenStructOvr = resolvedStructureOverride();
 
     try {
       const res = await fetch("/api/ai/generate", {
@@ -600,6 +642,8 @@ export default function Home() {
           libraryStyleAddition: regenLib.styleAddition,
           libraryStructureHint: regenLib.structureHint,
           libraryMetaTagHint:   regenLib.metaTagHint,
+          structureOverride:    regenStructOvr,
+          isCustomBlueprint:    structureMode === "custom" && !!regenStructOvr,
         }),
       });
       if (res.ok) {
@@ -909,6 +953,12 @@ export default function Home() {
             onLibraryIdsChange={setLibraryIds}
             recommendations={recommendations}
             onOpenLibrary={() => setCenterTab("library")}
+            structureMode={structureMode}
+            onStructureModeChange={setStructureMode}
+            structurePreset={structurePreset}
+            onStructurePresetChange={setStructurePreset}
+            customBlueprint={customBlueprint}
+            onCustomBlueprintChange={setCustomBlueprint}
           />
         </aside>
 
@@ -1028,6 +1078,12 @@ export default function Home() {
               onLibraryIdsChange={setLibraryIds}
               recommendations={recommendations}
               onOpenLibrary={() => setMobile("library")}
+              structureMode={structureMode}
+              onStructureModeChange={setStructureMode}
+              structurePreset={structurePreset}
+              onStructurePresetChange={setStructurePreset}
+              customBlueprint={customBlueprint}
+              onCustomBlueprintChange={setCustomBlueprint}
             />
           </div>
         )}

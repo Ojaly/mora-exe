@@ -1,4 +1,4 @@
-import { SongInput } from "@/types";
+import { SongInput, StructurePreset } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,6 +134,106 @@ export function pickStructureForClaude(input: SongInput): string {
     ],
   };
   return pick(opts[cat]);
+}
+
+// ─── Structure Presets ────────────────────────────────────────────────────────
+
+/**
+ * Human-readable label for each preset, used in the UI dropdown.
+ */
+export const STRUCTURE_PRESET_LABELS: Record<StructurePreset, string> = {
+  "chorus-first":       "Chorus First",
+  "dance-drop":         "Dance Drop",
+  "hook-loop":          "Hook Loop",
+  "ballad-narrative":   "Ballad Narrative",
+  "rap-hook":           "Rap Hook",
+  "theatrical":         "Theatrical",
+  "short-viral":        "Short Viral",
+  "verse-first":        "Verse First",
+  "spoken-intro":       "Spoken Intro",
+  "final-chorus-build": "Final Chorus Build",
+};
+
+/**
+ * Short structure hint shown under the dropdown.
+ */
+export const STRUCTURE_PRESET_HINTS: Record<StructurePreset, string> = {
+  "chorus-first":       "[Chorus] → [Verse] → [Bridge] → [Final Chorus]",
+  "dance-drop":         "[Build] → [Drop] → [Verse] → [Drop] → [Outro]",
+  "hook-loop":          "[Hook] → [Verse] → [Hook] → [Break] → [Final Hook]",
+  "ballad-narrative":   "[Verse 1] → [Verse 2] → [Chorus] → [Bridge] → [Final Chorus]",
+  "rap-hook":           "[Hook] → [Verse 1] → [Hook] → [Verse 2] → [Final Hook]",
+  "theatrical":         "[Spoken Intro] → [Verse] → [Chorus] → [Scene Change] → [Finale]",
+  "short-viral":        "[Hook] → [Verse] → [Final Hook]",
+  "verse-first":        "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Final Chorus]",
+  "spoken-intro":       "[Spoken Intro] → [Verse] → [Build] → [Drop] → [Final Chorus]",
+  "final-chorus-build": "[Verse 1] → [Chorus] → [Bridge] → [Chorus] → [Final Chorus]",
+};
+
+type StructureLengthKey = "30s" | "90s" | "full";
+
+const PRESET_STRUCTURES: Record<StructurePreset, Record<StructureLengthKey, string>> = {
+  "chorus-first": {
+    "30s":  "[Chorus]",
+    "90s":  "[Chorus] → [Verse 1] → [Pre-Chorus] → [Chorus]",
+    "full": "[Chorus] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Bridge] → [Final Chorus]",
+  },
+  "dance-drop": {
+    "30s":  "[Build] → [Drop]",
+    "90s":  "[Intro] → [Build] → [Drop] → [Verse] → [Drop]",
+    "full": "[Intro] → [Build] → [Drop] → [Verse 1] → [Build] → [Drop] → [Breakdown] → [Drop] → [Outro]",
+  },
+  "hook-loop": {
+    "30s":  "[Hook]",
+    "90s":  "[Hook] → [Verse 1] → [Hook] → [Verse 2] → [Hook]",
+    "full": "[Hook] → [Verse 1] → [Hook] → [Verse 2] → [Hook] → [Break] → [Final Hook]",
+  },
+  "ballad-narrative": {
+    "30s":  "[Verse] → [Chorus]",
+    "90s":  "[Verse 1] → [Verse 2] → [Chorus] → [Bridge] → [Chorus]",
+    "full": "[Verse 1] → [Verse 2] → [Pre-Chorus] → [Chorus] → [Bridge] → [Final Chorus]",
+  },
+  "rap-hook": {
+    "30s":  "[Hook] → [Verse] → [Hook]",
+    "90s":  "[Hook] → [Verse 1] → [Hook] → [Verse 2] → [Hook]",
+    "full": "[Intro] → [Hook] → [Verse 1] → [Hook] → [Verse 2] → [Break] → [Final Hook]",
+  },
+  "theatrical": {
+    "30s":  "[Spoken Intro] → [Chorus]",
+    "90s":  "[Spoken Intro] → [Verse] → [Chorus] → [Bridge] → [Chorus]",
+    "full": "[Spoken Intro] → [Verse 1] → [Chorus] → [Scene Change] → [Verse 2] → [Bridge] → [Finale]",
+  },
+  "short-viral": {
+    "30s":  "[Hook]",
+    "90s":  "[Hook] → [Verse] → [Hook]",
+    "full": "[Hook] → [Verse] → [Hook] → [Verse 2] → [Final Hook]",
+  },
+  "verse-first": {
+    "30s":  "[Verse] → [Chorus]",
+    "90s":  "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus]",
+    "full": "[Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Bridge] → [Final Chorus]",
+  },
+  "spoken-intro": {
+    "30s":  "[Spoken Intro] → [Hook]",
+    "90s":  "[Spoken Intro] → [Verse 1] → [Build] → [Drop] → [Outro]",
+    "full": "[Spoken Intro] → [Verse 1] → [Build] → [Drop] → [Verse 2] → [Bridge] → [Final Chorus] → [Outro]",
+  },
+  "final-chorus-build": {
+    "30s":  "[Verse] → [Chorus]",
+    "90s":  "[Verse 1] → [Chorus] → [Bridge] → [Chorus] → [Final Chorus]",
+    "full": "[Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Bridge] → [Chorus] → [Final Chorus]",
+  },
+};
+
+/**
+ * Returns the fixed structure string for a given preset and song length.
+ * Used when structure mode is "preset".
+ */
+export function getPresetStructure(
+  preset: StructurePreset,
+  songLength: StructureLengthKey,
+): string {
+  return PRESET_STRUCTURES[preset][songLength];
 }
 
 // ─── Rule-based builder section list ─────────────────────────────────────────
