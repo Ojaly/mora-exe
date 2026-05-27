@@ -312,3 +312,29 @@ export function pickSectionList(input: SongInput): RuleBasedSectionKey[] {
     ["Intro", "Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Pre-Chorus", "Chorus", "Bridge", "Outro"],
   ] as RuleBasedSectionKey[][]);
 }
+
+// ─── Builder section candidates ───────────────────────────────────────────────
+
+/**
+ * Ordered list of section names available in the Builder UI.
+ * Each entry maps to a [BracketTag] injected into the Claude prompt.
+ */
+export const BUILDER_SECTIONS = [
+  "Intro",
+  "Spoken Intro",
+  "Hook",
+  "Verse 1",
+  "Verse 2",
+  "Pre-Chorus",
+  "Chorus",
+  "Post-Chorus",
+  "Build",
+  "Drop",
+  "Break",
+  "Bridge",
+  "Interlude",
+  "Instrumental",
+  "Breakdown",
+  "Final Chorus",
+  "Outro",
+] as const;

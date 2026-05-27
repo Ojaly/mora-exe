@@ -10,7 +10,7 @@ import {
   SongInput, WorldPresetKey, WorldExpansion,
   MoraLine, MoraSuggestion, PhraseMatch, SyntaxMatch, CollapseRisk, SongStats,
   RewriteMode, RewriteIntensity, SectionTarget, HistoryEntry,
-  StructureMode, StructurePreset,
+  StructureMode, StructurePreset, BuilderSection,
 } from "@/types";
 import { getPresetStructure } from "@/lib/structureVariation";
 import {
@@ -139,12 +139,12 @@ function CopyBtn({ text, label, dim }: { text: string; label: string; dim?: bool
     <button
       onClick={() => { if (!text) return; navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
       disabled={!text}
-      className={`text-[12px] font-mono px-3 py-1.5 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
+      className={`text-[13px] font-mono px-3 py-1.5 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
         copied
           ? "border-emerald-500 text-emerald-700 bg-emerald-50"
           : dim
-          ? "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
-          : "border-[#c8cdd4] text-zinc-600 hover:border-zinc-500 hover:text-zinc-900"
+          ? "border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700"
+          : "border-[#c4cdd6] text-zinc-700 hover:border-zinc-600 hover:text-zinc-900"
       }`}
     >
       {copied ? `✓ ${label}` : label}
@@ -158,8 +158,8 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       onClick={onClick}
       className={`px-4 h-full text-[13px] font-mono tracking-wider border-b-2 transition-colors ${
         active
-          ? "border-blue-500 text-zinc-900 bg-black/[0.04]"
-          : "border-transparent text-zinc-500 hover:text-zinc-800 hover:bg-black/[0.03]"
+          ? "border-blue-500 text-zinc-900 font-semibold bg-black/[0.04]"
+          : "border-transparent text-zinc-600 hover:text-zinc-900 hover:bg-black/[0.04]"
       }`}
     >
       {children}
@@ -169,7 +169,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 
 function PanelHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="shrink-0 h-10 border-b border-[#d0d7de] flex items-stretch" style={{ background: "var(--bg-panel-hdr)" }}>
+    <div className="shrink-0 h-11 border-b border-[#E2E8F0] flex items-stretch" style={{ background: "var(--bg-panel-hdr)" }}>
       {children}
     </div>
   );
@@ -177,7 +177,7 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
 
 function SampleBadge() {
   return (
-    <span className="self-center ml-auto mr-2 text-[12px] font-mono text-zinc-500 border border-[#c8cdd4] px-2 py-0.5 rounded tracking-wider">
+    <span className="self-center ml-auto mr-2 text-[12px] font-mono text-zinc-500 border border-[#E2E8F0] px-2 py-0.5 rounded tracking-wider">
       SAMPLE
     </span>
   );
@@ -186,8 +186,8 @@ function SampleBadge() {
 function Pill({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <span className="flex items-center gap-1">
-      <span className="text-[12px] font-mono text-zinc-500">{label}</span>
-      <span className={`text-[13px] font-mono font-bold tabular-nums ${warn ? "text-amber-600" : "text-zinc-700"}`}>{value}</span>
+      <span className="text-[13px] font-mono text-zinc-500">{label}</span>
+      <span className={`text-[13px] font-mono font-bold tabular-nums ${warn ? "text-amber-600" : "text-zinc-800"}`}>{value}</span>
     </span>
   );
 }
@@ -199,7 +199,7 @@ function CopyAllBtn({ onCopy, hasContent }: { onCopy: () => void; hasContent: bo
       onClick={() => { if (!hasContent) return; onCopy(); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
       disabled={!hasContent}
       className={`text-[13px] font-mono px-3 py-1.5 rounded border font-bold transition-all disabled:opacity-20 disabled:cursor-default ${
-        copied ? "border-emerald-500 text-emerald-700 bg-emerald-50" : "border-[#c8cdd4] text-zinc-700 hover:border-blue-400 hover:text-blue-700"
+        copied ? "border-emerald-500 text-emerald-700 bg-emerald-50" : "border-[#c4cdd6] text-zinc-700 hover:border-blue-400 hover:text-blue-700"
       }`}
     >
       {copied ? "COPIED ✓" : "COPY ALL"}
@@ -228,9 +228,9 @@ function MemoryPanel({
       className="absolute inset-0 z-50 flex flex-col"
       style={{ background: "rgba(246,248,250,0.97)" }}
     >
-      <div className="shrink-0 h-9 border-b border-[#d0d7de] flex items-center px-4 gap-3" style={{ background: "var(--bg-panel-hdr)" }}>
-        <span className="text-[13px] font-mono text-zinc-700 tracking-widest">MEMORY</span>
-        <span className="text-[11px] font-mono text-zinc-500">{memories.length} / 20 saved</span>
+      <div className="shrink-0 h-11 border-b border-[#E2E8F0] flex items-center px-4 gap-3" style={{ background: "var(--bg-panel-hdr)" }}>
+        <span className="text-[13px] font-mono text-zinc-800 font-semibold tracking-widest">MEMORY</span>
+        <span className="text-[12px] font-mono text-zinc-500">{memories.length} / 20 saved</span>
         <button
           onClick={onClose}
           className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[#c8cdd4] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
@@ -241,39 +241,39 @@ function MemoryPanel({
 
       {memories.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <span className="text-[11px] font-mono text-zinc-400">No saved memories. Use SAVE in the footer.</span>
+          <span className="text-[12px] font-mono text-zinc-500">No saved memories. Use SAVE in the footer.</span>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {memories.map((m, i) => (
             <div
               key={m.id}
-              className="border border-[#d0d7de] rounded p-3 hover:border-zinc-400 transition-colors group"
+              className="border border-[#E2E8F0] rounded-lg p-3 hover:border-slate-300 transition-colors group"
               style={{ background: "#ffffff" }}
             >
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono font-bold text-zinc-800 truncate">{m.title || "(untitled)"}</span>
+                    <span className="text-[13px] font-mono font-bold text-zinc-800 truncate">{m.title || "(untitled)"}</span>
                     {m.score !== null && (
-                      <span className={`text-[10px] font-mono font-bold tabular-nums ${m.score >= 80 ? "text-emerald-600" : m.score >= 50 ? "text-amber-600" : "text-red-600"}`}>
+                      <span className={`text-[12px] font-mono font-bold tabular-nums ${m.score >= 80 ? "text-emerald-600" : m.score >= 50 ? "text-amber-600" : "text-red-600"}`}>
                         {m.score}
                       </span>
                     )}
                     {m.worldPreset && (
-                      <span className="text-[10px] font-mono text-zinc-500 border border-[#c8cdd4] px-1 rounded">{m.worldPreset}</span>
+                      <span className="text-[11px] font-mono text-zinc-500 border border-[#c4cdd6] px-1 rounded">{m.worldPreset}</span>
                     )}
                   </div>
                   {m.memo && (
-                    <p className="text-[11px] font-mono text-zinc-500 mb-1 line-clamp-1">{m.memo}</p>
+                    <p className="text-[12px] font-mono text-zinc-600 mb-1 line-clamp-1">{m.memo}</p>
                   )}
                   <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                     {i === 0 && (
-                      <span className="text-[9px] font-mono font-bold px-1 py-px rounded border border-emerald-300 text-emerald-700 bg-emerald-50 leading-tight">
+                      <span className="text-[10px] font-mono font-bold px-1 py-px rounded border border-emerald-300 text-emerald-700 bg-emerald-50 leading-tight">
                         LATEST
                       </span>
                     )}
-                    <span className="text-[11px] font-mono text-zinc-500 font-medium">
+                    <span className="text-[12px] font-mono text-zinc-500 font-medium">
                       保存: {new Date(m.ts).toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
@@ -281,13 +281,13 @@ function MemoryPanel({
                 <div className="flex gap-1 shrink-0">
                   <button
                     onClick={() => { onRestore(m); onClose(); }}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors"
+                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors"
                   >
                     RESTORE
                   </button>
                   <button
                     onClick={() => handleDelete(m.id)}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded border border-[#d0d7de] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
+                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
                   >
                     DEL
                   </button>
@@ -334,12 +334,12 @@ export default function Home() {
   const [rightView, setRight]     = useState<RightView>("lyrics");
   const [mobileTab, setMobile]    = useState<MobileTab>("concept");
   const [centerTab, setCenterTab] = useState<CenterTab>("prompt");
-  const [isSample, setIsSample]   = useState(true);
+  const [isSample, setIsSample]   = useState(false);
 
-  const [stylePrompt, setStyle]   = useState(SAMPLE_PROMPT);
-  const [negPrompt, setNeg]       = useState("generic AI vocal phrases, over-polished production, synthetic timbre");
+  const [stylePrompt, setStyle]   = useState("");
+  const [negPrompt, setNeg]       = useState("");
   const [regenPrompt, setRegen]   = useState("");
-  const [lyrics, setLyricsRaw]    = useState(SAMPLE_LYRICS);
+  const [lyrics, setLyricsRaw]    = useState("");
 
   const [moraLines, setLines]       = useState<MoraLine[]>([]);
   const [suggestions, setSugs]      = useState<MoraSuggestion[]>([]);
@@ -372,9 +372,9 @@ export default function Home() {
   const [libraryIds, setLibraryIds] = useState<string[]>([]);
 
   // ── Structure Blueprint state (persisted in localStorage) ────────────────
-  const [structureMode,   setStructureMode]   = useState<StructureMode>("auto");
+  const [structureMode,   setStructureMode]   = useState<StructureMode>("preset");
   const [structurePreset, setStructurePreset] = useState<StructurePreset>("chorus-first");
-  const [customBlueprint, setCustomBlueprint] = useState<string>("");
+  const [builderSections, setBuilderSections] = useState<BuilderSection[]>([]);
 
   // Becomes true after first client-side render — gates localStorage-derived UI labels
   const [mounted, setMounted] = useState(false);
@@ -387,37 +387,51 @@ export default function Home() {
       if (storedIds) setLibraryIds(JSON.parse(storedIds) as string[]);
     } catch { /* ignore corrupt data */ }
 
-    const storedMode   = localStorage.getItem("mora-structure-mode");
-    const storedPreset = localStorage.getItem("mora-structure-preset");
-    const storedCustom = localStorage.getItem("mora-structure-custom");
-    if (storedMode)           setStructureMode(storedMode as StructureMode);
-    if (storedPreset)         setStructurePreset(storedPreset as StructurePreset);
-    if (storedCustom !== null) setCustomBlueprint(storedCustom);
+    const storedMode    = localStorage.getItem("mora-structure-mode");
+    const storedPreset  = localStorage.getItem("mora-structure-preset");
+    const storedBuilder = localStorage.getItem("mora-structure-custom"); // キーを流用
+
+    // 旧値 "auto"/"custom" は "preset" にフォールバック
+    if (storedMode === "preset" || storedMode === "builder") {
+      setStructureMode(storedMode);
+    }
+    if (storedPreset) setStructurePreset(storedPreset as StructurePreset);
+    // 旧テキスト値は JSON.parse 失敗 → [] で無視
+    try {
+      const parsed = JSON.parse(storedBuilder ?? "[]");
+      if (Array.isArray(parsed)) setBuilderSections(parsed as BuilderSection[]);
+    } catch { /* 旧 custom テキストは破棄 */ }
 
     setMounted(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist changes back to localStorage (runs after each value change, post-mount)
-  useEffect(() => { if (mounted) localStorage.setItem("mora-library-ids",       JSON.stringify(libraryIds)); }, [libraryIds,       mounted]);
-  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-mode",     structureMode);              }, [structureMode,    mounted]);
-  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-preset",   structurePreset);            }, [structurePreset,  mounted]);
-  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-custom",   customBlueprint);            }, [customBlueprint,  mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-library-ids",     JSON.stringify(libraryIds));           }, [libraryIds,       mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-mode",   structureMode);                        }, [structureMode,    mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-preset", structurePreset);                      }, [structurePreset,  mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-structure-custom", JSON.stringify(builderSections));      }, [builderSections,  mounted]);
 
   /**
-   * Returns the structure string to send to the API, or undefined for Auto mode.
-   * Priority: Custom > Preset > Auto (structureVariation)
+   * Returns the structure string to send to the API.
+   * - preset: preset 構成文字列を返す
+   * - builder: 選択済みセクションを [Bracket] 改行区切りで返す（0件なら undefined）
    */
   const resolvedStructureOverride = (): string | undefined => {
-    if (structureMode === "custom") {
-      const trimmed = customBlueprint.trim();
-      return trimmed || undefined;
+    if (structureMode === "builder") {
+      const valid = builderSections.filter(Boolean);
+      if (valid.length === 0) return undefined;
+      return valid.map((s) => `[${s}]`).join("\n");
     }
-    if (structureMode === "preset") {
-      return getPresetStructure(structurePreset, input.songLength);
-    }
-    return undefined;
+    // preset
+    return getPresetStructure(structurePreset, input.songLength);
   };
+
+  /**
+   * Builderモードで有効セクションが0件の場合は Generate 不可。
+   * Autoフォールバックはしない方針。
+   */
+  const builderIsEmpty = structureMode === "builder" && builderSections.filter(Boolean).length === 0;
 
   // Forge-driven recommendations (recomputed only when expansion changes)
   const recommendations = useMemo(
@@ -500,7 +514,7 @@ export default function Home() {
             libraryStructureHint: lib.structureHint,
             libraryMetaTagHint:   lib.metaTagHint,
             structureOverride:    structOvr,
-            isCustomBlueprint:    structureMode === "custom" && !!structOvr,
+            isCustomBlueprint:    structureMode === "builder" && !!structOvr,
           }),
         });
         if (res.ok) {
@@ -545,7 +559,7 @@ export default function Home() {
           libraryStructureHint: lib.structureHint,
           libraryMetaTagHint:   lib.metaTagHint,
           structureOverride:    structOvrB,
-          isCustomBlueprint:    structureMode === "custom" && !!structOvrB,
+          isCustomBlueprint:    structureMode === "builder" && !!structOvrB,
         }),
       });
       if (res.ok) {
@@ -651,7 +665,7 @@ export default function Home() {
           libraryStructureHint: regenLib.structureHint,
           libraryMetaTagHint:   regenLib.metaTagHint,
           structureOverride:    regenStructOvr,
-          isCustomBlueprint:    structureMode === "custom" && !!regenStructOvr,
+          isCustomBlueprint:    structureMode === "builder" && !!regenStructOvr,
         }),
       });
       if (res.ok) {
@@ -720,6 +734,18 @@ export default function Home() {
     setExpansion(null);
   };
 
+  const handleLoadSample = () => {
+    setStyle(SAMPLE_PROMPT);
+    setNeg("generic AI vocal phrases, over-polished production, synthetic timbre");
+    setLyricsRaw(SAMPLE_LYRICS);
+    setIsSample(true);
+    analyse(SAMPLE_LYRICS);
+    setChangedLines([]);
+    setRewriteNotes("");
+    setRewriteSource(null);
+    setHistory([]);
+  };
+
   const copyAll = () => {
     const p = [
       stylePrompt  && `=== STYLE PROMPT ===\n${stylePrompt}`,
@@ -740,37 +766,42 @@ export default function Home() {
   // ─── Rewrite bar ──────────────────────────────────────────────────────────
 
   const rewriteBar = (
-    <div className="shrink-0 border-t border-[#2a2f3a]/80" style={{ background: "var(--bg-rewrite)" }}>
+    <div className="shrink-0 border-t border-[#E2E8F0]" style={{ background: "#ffffff" }}>
+
+      {/* REWRITE TOOLS header */}
+      <div className="flex items-center px-4 pt-2 pb-1.5 border-b border-[#E2E8F0]">
+        <span className="text-[11px] font-mono font-bold text-zinc-500 tracking-[0.15em] uppercase">REWRITE TOOLS</span>
+      </div>
 
       {/* Row 1: SECTION + INTENSITY (compact combined row) */}
-      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 px-4 pt-2 pb-1.5 border-b border-[#d0d7de]">
-        <span className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase shrink-0">SECTION</span>
+      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 px-4 pt-2 pb-2 border-b border-[#E2E8F0]">
+        <span className="text-[11px] font-mono text-zinc-600 tracking-widest uppercase shrink-0">SECTION</span>
         <div className="flex gap-1">
           {SECTION_OPTS.map(([val, lbl]) => (
             <button
               key={val}
               onClick={() => setSectionTarget(val)}
-              className={`px-2 py-0.5 text-[11px] font-mono rounded border transition-colors ${
+              className={`px-2 py-0.5 text-[12px] font-mono rounded border transition-colors ${
                 sectionTarget === val
                   ? "border-violet-400 text-violet-700 bg-violet-50"
-                  : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                  : "border-[#c4cdd6] text-zinc-600 hover:border-zinc-500 hover:text-zinc-800"
               }`}
             >
               {lbl}
             </button>
           ))}
         </div>
-        <div className="w-px h-3 bg-[#d0d7de] shrink-0 mx-0.5" />
-        <span className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase shrink-0">INTENSITY</span>
+        <div className="w-px h-3 bg-[#c4cdd6] shrink-0 mx-0.5" />
+        <span className="text-[11px] font-mono text-zinc-600 tracking-widest uppercase shrink-0">INTENSITY</span>
         <div className="flex gap-1">
           {INTENSITY_OPTS.map(([lv, lbl]) => (
             <button
               key={lv}
               onClick={() => setIntensity(lv)}
-              className={`px-2 py-0.5 text-[11px] font-mono rounded border transition-colors ${
+              className={`px-2 py-0.5 text-[12px] font-mono rounded border transition-colors ${
                 intensity === lv
                   ? "border-blue-400 text-blue-700 bg-blue-50"
-                  : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                  : "border-[#c4cdd6] text-zinc-600 hover:border-zinc-500 hover:text-zinc-800"
               }`}
             >
               {lbl}
@@ -780,10 +811,10 @@ export default function Home() {
       </div>
 
       {/* Row 2: Categorized rewrite buttons */}
-      <div className="px-4 pt-2 pb-1 space-y-1.5">
+      <div className="px-4 pt-2 pb-1.5 space-y-1.5">
         {REWRITE_CATS.map(({ label, modes }) => (
           <div key={label} className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase w-11 shrink-0">
+            <span className="text-[11px] font-mono text-zinc-500 tracking-[0.18em] uppercase w-12 shrink-0">
               {label}
             </span>
             {modes.map(([mode, display, tooltip]) => {
@@ -795,14 +826,14 @@ export default function Home() {
                   onClick={() => handleRewrite(mode)}
                   disabled={isDisabled}
                   title={tooltip}
-                  className={`px-2.5 py-1 text-[12px] font-mono border rounded transition-all disabled:cursor-not-allowed ${
+                  className={`px-2.5 py-0.5 text-[12px] font-mono border rounded transition-all disabled:cursor-not-allowed ${
                     isLoading
                       ? "border-blue-400 text-blue-600 bg-blue-50 animate-pulse"
                       : isDisabled
-                      ? "border-[#d0d7de] text-zinc-400"
+                      ? "border-[#c4cdd6] text-zinc-400"
                       : mode === "ojaly"
                       ? "border-violet-300 text-violet-700 hover:border-violet-500 hover:bg-violet-50 active:scale-95"
-                      : "border-[#c8cdd4] text-zinc-700 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 active:scale-95"
+                      : "border-[#c4cdd6] text-zinc-700 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 active:scale-95"
                   }`}
                 >
                   {isLoading ? "…" : display}
@@ -814,32 +845,32 @@ export default function Home() {
       </div>
 
       {/* Row 3: Undo + REGEN LYRICS + source badge */}
-      <div className="flex items-center gap-2 px-4 pt-1 pb-2 flex-wrap">
+      <div className="flex items-center gap-2 px-4 pt-1.5 pb-2 flex-wrap border-t border-[#E2E8F0]">
         {history.length > 0 && (
           <button
             onClick={handleUndo}
             title={`Undo: ${history[0]?.label}`}
-            className="shrink-0 text-[12px] font-mono px-2.5 py-1 rounded border border-[#c8cdd4] text-zinc-600 hover:border-blue-400 hover:text-blue-700 transition-colors active:scale-95"
+            className="shrink-0 text-[12px] font-mono px-2.5 py-0.5 rounded border border-[#c4cdd6] text-zinc-700 hover:border-blue-400 hover:text-blue-700 transition-colors active:scale-95"
           >
             ↩ UNDO{history.length > 1 ? ` (${history.length})` : ""}
           </button>
         )}
         <button
           onClick={handleRegenLyrics}
-          disabled={isGenerating || !!loadingMode}
-          className={`shrink-0 text-[12px] font-mono px-2.5 py-1 rounded border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+          disabled={isGenerating || !!loadingMode || builderIsEmpty}
+          className={`shrink-0 text-[12px] font-mono px-2.5 py-0.5 rounded border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
             isGenerating
               ? "border-amber-300 text-amber-500 bg-amber-50 animate-pulse"
-              : "border-[#c8cdd4] text-zinc-600 hover:border-amber-400 hover:text-amber-700"
+              : "border-[#c4cdd6] text-zinc-700 hover:border-amber-400 hover:text-amber-700"
           }`}
         >
           {isGenerating ? "…" : "↺ REGEN LYRICS"}
         </button>
         {rewriteSource && (
-          <span className={`shrink-0 text-[12px] font-mono font-bold px-2.5 py-1 rounded border ${
+          <span className={`shrink-0 text-[12px] font-mono font-bold px-2.5 py-0.5 rounded border ${
             rewriteSource === "claude"
               ? "border-blue-300 text-blue-700 bg-blue-50"
-              : "border-[#c8cdd4] text-zinc-600 bg-zinc-100"
+              : "border-[#c4cdd6] text-zinc-700 bg-zinc-100"
           }`}>
             {rewriteSource === "claude" ? "Claude AI" : "ルールベース"}
           </span>
@@ -848,12 +879,12 @@ export default function Home() {
 
       {/* Row 4: Claude変更理由コメント (bordered box, only when present) */}
       {rewriteNotes && (
-        <div className="px-4 pb-3">
-          <div className="border border-[#d0d7de] rounded px-2.5 py-1.5" style={{ background: "#f6f8fa" }}>
-            <span className="text-[9px] font-mono text-zinc-400 tracking-widest uppercase font-semibold block mb-0.5">
+        <div className="px-4 pb-2.5">
+          <div className="border border-[#E2E8F0] rounded-lg px-3 py-2" style={{ background: "#F8FAFC" }}>
+            <span className="text-[10px] font-mono text-zinc-500 tracking-widest uppercase font-semibold block mb-0.5">
               {sectionTarget !== "all" ? `${sectionTarget.toUpperCase()} · ` : ""}変更メモ
             </span>
-            <p className="text-[12px] font-mono text-zinc-700 leading-relaxed">
+            <p className="text-[12px] font-mono text-zinc-700 leading-relaxed overflow-y-auto" style={{ maxHeight: "4.5rem" }}>
               {rewriteNotes}
             </p>
           </div>
@@ -881,13 +912,13 @@ export default function Home() {
 
       {/* ── Titlebar ────────────────────────────────────────────────────────── */}
       <header
-        className="relative z-20 shrink-0 h-10 border-b border-[#d0d7de] flex items-center px-4 gap-4 select-none"
+        className="relative z-20 shrink-0 h-11 border-b border-[#E2E8F0] flex items-center px-5 gap-4 select-none"
         style={{ background: "var(--bg-titlebar)" }}
       >
         <span className="font-mono font-bold text-[15px] text-blue-600 tracking-widest">
           MORA<span className="text-zinc-400">.</span>exe
         </span>
-        <span className="text-zinc-400 font-mono text-[12px] tracking-[0.2em] hidden sm:block">
+        <span className="text-zinc-500 font-mono text-[13px] tracking-[0.2em] hidden sm:block">
           SUNO PROMPT FORGE
         </span>
 
@@ -903,7 +934,7 @@ export default function Home() {
         <div className="ml-auto flex items-center gap-3">
           {isSample && (
             <span className="text-[11px] font-mono text-zinc-400 tracking-wider hidden sm:block">
-              SAMPLE — ▶ GENERATE でカスタム生成
+              SAMPLE MODE
             </span>
           )}
           {score !== null && (
@@ -911,13 +942,24 @@ export default function Home() {
               SCORE {score}
             </span>
           )}
+          <button
+            onClick={handleLoadSample}
+            title="サンプルのStyle / Lyrics / Negativeを読み込む"
+            className={`text-[12px] font-mono px-2.5 py-1 rounded border transition-colors ${
+              isSample
+                ? "border-amber-300 text-amber-600 bg-amber-50"
+                : "border-[#E2E8F0] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+            }`}
+          >
+            SAMPLE
+          </button>
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
         </div>
       </header>
 
       {/* ── Mobile tab strip ────────────────────────────────────────────────── */}
       <div
-        className="relative z-10 shrink-0 flex h-9 border-b border-[#d0d7de] lg:hidden"
+        className="relative z-10 shrink-0 flex h-9 border-b border-[#E2E8F0] lg:hidden"
         style={{ background: "var(--bg-panel-hdr)" }}
       >
         {(["concept", "prompt", "library", "lyrics", "tuner"] as MobileTab[]).map((t) => (
@@ -935,7 +977,7 @@ export default function Home() {
 
         {/* LEFT: Sidebar */}
         <aside
-          className="w-[252px] shrink-0 flex flex-col border-r border-[#d0d7de]"
+          className="w-[260px] shrink-0 flex flex-col border-r border-[#E2E8F0]"
           style={{ background: "var(--bg-sidebar)" }}
         >
           <Sidebar
@@ -965,16 +1007,17 @@ export default function Home() {
             onStructureModeChange={setStructureMode}
             structurePreset={structurePreset}
             onStructurePresetChange={setStructurePreset}
-            customBlueprint={customBlueprint}
-            onCustomBlueprintChange={setCustomBlueprint}
+            builderSections={builderSections}
+            onBuilderSectionsChange={setBuilderSections}
+            builderIsEmpty={builderIsEmpty}
             mounted={mounted}
           />
         </aside>
 
-        {/* CENTER: Style Prompt / Library */}
+        {/* CENTER: Style Prompt / Library — flex 8 (≈40% of remaining) */}
         <section
-          className="flex-1 flex flex-col border-r border-[#d0d7de] min-w-0"
-          style={{ background: "var(--bg-center)" }}
+          className="flex flex-col border-r border-[#E2E8F0] min-w-0"
+          style={{ flex: "8 1 0%", background: "var(--bg-center)" }}
         >
           <PanelHeader>
             <TabBtn active={centerTab === "prompt"} onClick={() => setCenterTab("prompt")}>
@@ -995,18 +1038,23 @@ export default function Home() {
 
           {centerTab === "prompt" ? (
             <>
-              <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
-              <div className="shrink-0 border-t border-[#d0d7de]" style={{ background: "var(--bg-neg)" }}>
-                <div className="flex items-center px-4 pt-2 pb-1 gap-2">
-                  <span className="text-[13px] font-mono text-zinc-500 tracking-[0.15em]">NEGATIVE</span>
+              <PromptEditor
+                value={stylePrompt}
+                onChange={handleStyleEdit}
+                isSample={isSample}
+                placeholder="Generate後にStyle Promptがここに表示されます"
+              />
+              <div className="shrink-0 border-t border-[#E2E8F0]" style={{ background: "var(--bg-neg)" }}>
+                <div className="flex items-center px-5 pt-2.5 pb-1 gap-2">
+                  <span className="text-[12px] font-mono text-zinc-600 font-bold tracking-[0.15em]">NEGATIVE</span>
                   <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
                 </div>
                 <textarea
                   value={negPrompt}
                   onChange={(e) => setNeg(e.target.value)}
                   rows={2}
-                  className="w-full bg-transparent resize-none px-4 pb-2 font-mono text-[11px] leading-relaxed focus:outline-none"
-                  style={{ color: "#57606a", fontSize: "13px" }}
+                  className="w-full bg-transparent resize-none px-5 pb-3 font-mono leading-relaxed focus:outline-none"
+                  style={{ color: "#44505c", fontSize: "14px" }}
                   spellCheck={false}
                 />
               </div>
@@ -1022,10 +1070,10 @@ export default function Home() {
           )}
         </section>
 
-        {/* RIGHT: Lyrics / Tuner — with Memory panel overlay */}
+        {/* RIGHT: Lyrics / Tuner — flex 12 (≈60% of remaining) */}
         <section
-          className="flex-1 flex flex-col min-w-0 relative"
-          style={{ background: "var(--bg-right)" }}
+          className="flex flex-col min-w-0 relative"
+          style={{ flex: "12 1 0%", background: "var(--bg-right)" }}
         >
           {showMemory && (
             <MemoryPanel
@@ -1052,6 +1100,7 @@ export default function Home() {
                 onChange={handleLyricsEdit}
                 isSample={isSample}
                 changedLines={changedLines}
+                placeholder="Generate後に歌詞がここに表示されます"
               />
               {rewriteBar}
             </>
@@ -1091,8 +1140,9 @@ export default function Home() {
               onStructureModeChange={setStructureMode}
               structurePreset={structurePreset}
               onStructurePresetChange={setStructurePreset}
-              customBlueprint={customBlueprint}
-              onCustomBlueprintChange={setCustomBlueprint}
+              builderSections={builderSections}
+              onBuilderSectionsChange={setBuilderSections}
+              builderIsEmpty={builderIsEmpty}
               mounted={mounted}
             />
           </div>
@@ -1133,7 +1183,7 @@ export default function Home() {
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={lyrics} label="COPY" /></div>
             </PanelHeader>
-            <LyricsEditor value={lyrics} onChange={handleLyricsEdit} isSample={isSample} changedLines={changedLines} />
+            <LyricsEditor value={lyrics} onChange={handleLyricsEdit} isSample={isSample} changedLines={changedLines} placeholder="Generate後に歌詞がここに表示されます" />
             {rewriteBar}
           </div>
         )}

@@ -1,19 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f8fa;
-  --foreground: #1f2328;
+  --background:    #F9FAFB;
+  --foreground:    #0d1117;
 
-  --bg-app:        #f6f8fa;
+  --bg-app:        #F1F5F9;
   --bg-titlebar:   #ffffff;
-  --bg-sidebar:    #f0f2f5;
-  --bg-panel-hdr:  #eaedf1;
+  --bg-sidebar:    #F1F5F9;
+  --bg-panel-hdr:  #EEF2F6;
   --bg-center:     #ffffff;
-  --bg-right:      #fafbfc;
+  --bg-right:      #ffffff;
   --bg-editor:     #ffffff;
-  --bg-rewrite:    #f0f2f5;
-  --bg-neg:        #f6f8fa;
-  --border:        #d0d7de;
+  --bg-rewrite:    #ffffff;
+  --bg-neg:        #F8FAFC;
+  --border:        #E2E8F0;
+  --border-strong: #CBD5E1;
+
+  /* Card primitives */
+  --card-bg:       #ffffff;
+  --card-border:   #E2E8F0;
+  --card-radius:   8px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -23,22 +29,32 @@ body {
   color: var(--foreground);
   font-family: "SF Mono", "Fira Code", "JetBrains Mono", "Consolas", monospace;
   -webkit-font-smoothing: antialiased;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-/* Thin IDE-style scrollbars */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+/* Thin scrollbars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #c8cdd4; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #a0a8b4; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 .hide-scrollbar { scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
+/* ── Sidebar card primitive ─────────────────────────────────────────────────── */
+.sidebar-card {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+}
+
 .panel {
   background: #ffffff;
-  border: 1px solid #d0d7de;
-  border-radius: 4px;
-  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
 }
 
 /* Scanlines — off on light theme */
@@ -49,29 +65,29 @@ body {
 .neon-pink { }
 
 /* ── Textarea caret ───────────────────────────────────────────────────────── */
-textarea { caret-color: #0969da; }
+textarea { caret-color: #3B82F6; }
 
 /* ── PromptEditor token colors ────────────────────────────────────────────── */
 
-/* [Tag:] — GitHub blue */
-.pe-tag  { color: #0969da; font-weight: 700; }
+/* [Tag:] — blue */
+.pe-tag  { color: #2563EB; font-weight: 700; }
 /* tag value — near black */
-.pe-val  { color: #1f2328; }
+.pe-val  { color: #1e293b; }
 /* bare [Section] lines — purple */
-.pe-section { color: #6639ba; font-weight: 600; }
-/* plain/comment — muted gray */
-.pe-plain { color: #57606a; }
+.pe-section { color: #7C3AED; font-weight: 600; }
+/* plain/comment — muted slate */
+.pe-plain { color: #475569; }
 
 /* ── LyricsEditor token colors ────────────────────────────────────────────── */
 
 /* [Chorus] etc. — deep violet */
 .le-tag  {
-  color: #8250df;
+  color: #7C3AED;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 /* Regular lyric lines — near black */
-.le-line { color: #1f2328; }
+.le-line { color: #1e293b; }
 /* Claude-changed lines — teal */
 .le-changed {
   color: #0a7c6e;

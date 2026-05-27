@@ -142,7 +142,26 @@ export interface HistoryEntry {
 
 // ─── Structure Blueprint ──────────────────────────────────────────────────────
 
-export type StructureMode = "auto" | "preset" | "custom";
+export type StructureMode = "preset" | "builder";
+
+export type BuilderSection =
+  | "Intro"
+  | "Spoken Intro"
+  | "Hook"
+  | "Verse 1"
+  | "Verse 2"
+  | "Pre-Chorus"
+  | "Chorus"
+  | "Post-Chorus"
+  | "Build"
+  | "Drop"
+  | "Break"
+  | "Bridge"
+  | "Interlude"
+  | "Instrumental"
+  | "Breakdown"
+  | "Final Chorus"
+  | "Outro";
 
 export type StructurePreset =
   | "chorus-first"

@@ -56,7 +56,7 @@ function ExpRow({
 }) {
   return (
     <div className="space-y-1">
-      <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase font-semibold">
+      <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-semibold">
         {label}
       </span>
       <div>{children}</div>
@@ -122,21 +122,18 @@ export default function WorldForge({
 
       {/* World Seed input */}
       <div className="space-y-1.5">
-        <label className="block text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase">
-          World Seed
-        </label>
         <textarea
           value={worldSeed}
           onChange={(e) => onWorldSeedChange(e.target.value)}
           placeholder={"退廃的なうどん愛を語る偏執狂\n深夜のラーメン屋で神を待つ男\n企業CMみたいに完璧で不気味なファンク"}
           rows={3}
-          className="w-full border border-[#d0d7de] rounded px-2.5 py-2 text-[13px] font-mono text-zinc-800 placeholder-zinc-300 focus:outline-none focus:border-blue-400 transition-colors resize-none leading-relaxed"
+          className="w-full border border-[#E2E8F0] rounded-md px-2.5 py-2 text-[13px] font-mono text-zinc-800 placeholder-zinc-300 focus:outline-none focus:border-blue-400 transition-colors resize-none leading-relaxed"
           style={{ background: "#fafbfc" }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleForge();
           }}
         />
-        <p className="text-[10px] font-mono text-zinc-400">⌘Enter で Forge</p>
+        <p className="text-[11px] font-mono text-zinc-400">⌘Enter で Forge</p>
       </div>
 
       {/* Forge button */}
@@ -162,15 +159,18 @@ export default function WorldForge({
         >
           {/* Header bar */}
           <div
-            className="flex items-center justify-between px-3 py-1.5 border-b border-[#d0d7de]"
-            style={{ background: "#eaedf1" }}
+            className="flex items-center justify-between px-3 py-2 border-b border-[#E2E8F0]"
+            style={{ background: "#EEF2F6" }}
           >
-            <span className="text-[10px] font-mono text-zinc-500 tracking-widest font-semibold">
-              WORLD EXPANSION
-            </span>
+            <div>
+              <span className="text-[11px] font-mono text-zinc-700 tracking-[0.12em] font-bold uppercase">
+                FORGED WORLD
+              </span>
+              <span className="text-[11px] font-mono text-zinc-400 ml-2">— Seedから広げたモチーフ</span>
+            </div>
             <div className="flex items-center gap-2">
               {source && (
-                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
                   source === "claude"
                     ? "border-blue-200 text-blue-600 bg-blue-50"
                     : "border-zinc-300 text-zinc-500 bg-zinc-50"
@@ -289,16 +289,21 @@ export default function WorldForge({
             </details>
 
             {/* Generate Draft button (triggers full lyrics + style generation) */}
-            <button
-              onClick={handleApply}
-              className={`w-full h-8 font-mono font-bold text-[12px] tracking-wider rounded border transition-all ${
-                applyFlash
-                  ? "border-emerald-400 text-emerald-700 bg-emerald-50"
-                  : "border-[#0969da] text-[#0969da] hover:bg-[#0969da] hover:text-white active:scale-[0.98]"
-              }`}
-            >
-              {applyFlash ? "✓ Generating…" : "▶ GENERATE DRAFT"}
-            </button>
+            <div>
+              <button
+                onClick={handleApply}
+                className={`w-full h-9 font-mono font-bold text-[13px] tracking-wider rounded border transition-all ${
+                  applyFlash
+                    ? "border-emerald-400 text-emerald-700 bg-emerald-50"
+                    : "border-[#0969da] text-[#0969da] hover:bg-[#0969da] hover:text-white active:scale-[0.98]"
+                }`}
+              >
+                {applyFlash ? "✓ Generating…" : "▶ GENERATE DRAFT"}
+              </button>
+              <p className="text-[10px] font-mono text-zinc-400 text-center mt-1 leading-snug">
+                このWorldからStyle + Lyricsを一括生成
+              </p>
+            </div>
 
           </div>
         </div>

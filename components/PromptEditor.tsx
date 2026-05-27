@@ -6,6 +6,7 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   isSample?: boolean;
+  placeholder?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -42,12 +43,12 @@ function highlight(text: string): string {
 
 // ─── Shared style tokens ─────────────────────────────────────────────────────
 
-const MONO = "font-mono text-[16px] leading-[2.1]";
-const PAD  = "px-5 py-5";
+const MONO = "font-mono text-[16px] leading-[2.2]";
+const PAD  = "px-6 py-6";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function PromptEditor({ value, onChange, isSample }: Props) {
+export default function PromptEditor({ value, onChange, isSample, placeholder }: Props) {
   const preRef  = useRef<HTMLPreElement>(null);
   const taRef   = useRef<HTMLTextAreaElement>(null);
 
@@ -68,6 +69,17 @@ export default function PromptEditor({ value, onChange, isSample }: Props) {
         style={{ overflow: "hidden" }}
         dangerouslySetInnerHTML={{ __html: highlight(value) }}
       />
+
+      {/* ── Placeholder overlay (empty state) ─────────────────────────── */}
+      {!value && placeholder && (
+        <div
+          aria-hidden="true"
+          className={`absolute inset-0 ${PAD} ${MONO} whitespace-pre-wrap pointer-events-none select-none`}
+          style={{ color: "#CBD5E1" }}
+        >
+          {placeholder}
+        </div>
+      )}
 
       {/* ── Transparent editing layer ──────────────────────────────────── */}
       <textarea

@@ -7,6 +7,7 @@ interface Props {
   onChange: (v: string) => void;
   isSample?: boolean;
   changedLines?: number[];
+  placeholder?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -39,11 +40,11 @@ function highlight(text: string, changedLines: number[]): string {
 
 // ─── Shared tokens ───────────────────────────────────────────────────────────
 
-const MONO = "font-mono text-[16px] leading-[2.1]";
+const MONO = "font-mono text-[16px] leading-[2.2]";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function LyricsEditor({ value, onChange, isSample, changedLines = [] }: Props) {
+export default function LyricsEditor({ value, onChange, isSample, changedLines = [], placeholder }: Props) {
   const lineNumRef = useRef<HTMLDivElement>(null);
   const preRef     = useRef<HTMLPreElement>(null);
   const taRef      = useRef<HTMLTextAreaElement>(null);
@@ -62,8 +63,8 @@ export default function LyricsEditor({ value, onChange, isSample, changedLines =
       {/* ── Line numbers ────────────────────────────────────────────────── */}
       <div
         ref={lineNumRef}
-        className={`shrink-0 w-11 select-none border-r border-[#d0d7de] ${MONO} text-right`}
-        style={{ background: "#eaedf1", overflowY: "hidden", overflowX: "hidden" }}
+        className={`shrink-0 w-11 select-none border-r border-[#E2E8F0] ${MONO} text-right`}
+        style={{ background: "#EEF2F6", overflowY: "hidden", overflowX: "hidden" }}
       >
         <div className="px-2 py-5 text-zinc-400">
           {Array.from({ length: lineCount }, (_, i) => (
@@ -78,10 +79,21 @@ export default function LyricsEditor({ value, onChange, isSample, changedLines =
         <pre
           ref={preRef}
           aria-hidden="true"
-          className={`absolute inset-0 px-4 py-4 ${MONO} whitespace-pre-wrap break-words pointer-events-none select-none`}
+          className={`absolute inset-0 px-5 py-5 ${MONO} whitespace-pre-wrap break-words pointer-events-none select-none`}
           style={{ overflow: "hidden" }}
           dangerouslySetInnerHTML={{ __html: highlight(value, changedLines) }}
         />
+
+        {/* Placeholder overlay (empty state) */}
+        {!value && placeholder && (
+          <div
+            aria-hidden="true"
+            className={`absolute inset-0 px-5 py-5 ${MONO} whitespace-pre-wrap pointer-events-none select-none`}
+            style={{ color: "#CBD5E1" }}
+          >
+            {placeholder}
+          </div>
+        )}
 
         {/* Transparent edit layer */}
         <textarea
@@ -89,7 +101,7 @@ export default function LyricsEditor({ value, onChange, isSample, changedLines =
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onScroll={syncScroll}
-          className={`absolute inset-0 px-4 py-4 ${MONO} bg-transparent resize-none focus:outline-none whitespace-pre-wrap`}
+          className={`absolute inset-0 px-5 py-5 ${MONO} bg-transparent resize-none focus:outline-none whitespace-pre-wrap`}
           style={{ caretColor: "#38bdf8", color: "transparent" }}
           spellCheck={false}
         />

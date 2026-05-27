@@ -40,9 +40,10 @@ export default function MusicDirectionPanel({ direction, lyricsDirection }: Prop
 
   return (
     <div>
-      <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase font-semibold">
-        DETECTED DIRECTION
+      <span className="text-[11px] font-mono text-zinc-600 tracking-[0.12em] uppercase font-bold">
+        DIRECTION
       </span>
+      <span className="text-[11px] font-mono text-zinc-400 ml-2">— MORAが検出した音楽方向</span>
 
       <div
         className="mt-1.5 rounded-lg overflow-hidden border"
@@ -56,8 +57,8 @@ export default function MusicDirectionPanel({ direction, lyricsDirection }: Prop
               style={{ background: highlight ? "#eff6ff" : "#ffffff" }}
             >
               <span
-                className="text-[9px] font-mono tracking-[0.14em] uppercase shrink-0 pt-[3px] w-[5.5rem]"
-                style={{ color: "#93c5fd" }}
+                className="text-[10px] font-mono tracking-[0.1em] uppercase shrink-0 pt-[2px] w-[5.5rem] font-semibold"
+                style={{ color: "#60a5fa" }}
               >
                 {label}
               </span>
@@ -77,8 +78,8 @@ export default function MusicDirectionPanel({ direction, lyricsDirection }: Prop
           {lyricsDirection && (
             <div className="flex gap-2 px-2.5 py-1.5" style={{ background: "#f0f7ff" }}>
               <span
-                className="text-[9px] font-mono tracking-[0.14em] uppercase shrink-0 pt-[3px] w-[5.5rem]"
-                style={{ color: "#93c5fd" }}
+                className="text-[10px] font-mono tracking-[0.1em] uppercase shrink-0 pt-[2px] w-[5.5rem] font-semibold"
+                style={{ color: "#60a5fa" }}
               >
                 Lyric Angle
               </span>
@@ -94,8 +95,8 @@ export default function MusicDirectionPanel({ direction, lyricsDirection }: Prop
       </div>
 
       {direction.source === "rule" && (
-        <p className="text-[9px] font-mono text-zinc-400 mt-1 pl-1">
-          rule-based estimate — Forge with Claude for richer inference
+        <p className="text-[10px] font-mono text-zinc-400 mt-1 pl-1">
+          rule-based estimate — Claude Forgeでより精密な推論が可能
         </p>
       )}
     </div>

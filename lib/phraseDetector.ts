@@ -63,7 +63,7 @@ const SYNTAX_PATTERNS: SyntaxPattern[] = [
     id: "find-the-light",
     label: "光メタファー汎用",
     pattern: /\b(see|find|reach|follow|be)\b.{0,15}\bthe\s+(light|glow|shine)\b|\bshine?\s+so\s+bright\b/i,
-    suggestion: "光源を特定（蛍光灯の残光/ライターの炎/スマホ画面）",
+    suggestion: "光源を特定（廊下の明かり/ライターの炎/スマホ画面/自販機の青白い光）",
   },
   {
     id: "feel-so-adj",

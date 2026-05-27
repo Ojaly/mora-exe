@@ -23,7 +23,7 @@ RULES:
   - instruments: 2-4 instruments that exist in this world's texture
   - moodWords: 3-5 emotional/atmospheric adjectives
 - stylePromptDraft: ONE prose paragraph, no bracket tags. Format: "{genreHint} with {atmosphere}, {BPM} BPM. {vocalStyle}. {instruments}. {texture/soundDirection descriptors}. {moodWords}."
-  Example: "Decadent downtempo neo-soul with humid fluorescent loneliness, 72 BPM. Hushed male vocal, close-mic. Sparse piano, low bass drone, brushed percussion. Intimate, ritualistic, obsessive comfort-seeking."
+  Example: "Decadent downtempo neo-soul with humid vending-machine loneliness, 72 BPM. Hushed male vocal, close-mic. Sparse piano, low bass drone, brushed percussion. Intimate, ritualistic, obsessive comfort-seeking."
 - lyricsDirection: JP sentence on how lyrics should approach this world emotionally
 - AVOID generic imagery: "光の海" "starlight" "feel alive" "dance in the rain" "burning soul"
 

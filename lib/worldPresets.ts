@@ -31,9 +31,9 @@ export const WORLD_PRESETS: Record<WorldPresetKey, WorldPreset> = {
     label: "CORP",
     description: "Corporate Dystopia Pop",
     accentColor: "#94a3b8",
-    deepPrompt: "Lens: corporate perfection masking controlled emotion. Luxury dystopia. Fluorescent warmth at 11pm. Performance review as existential dread. Write with polished surface over hollow core.",
+    deepPrompt: "Lens: corporate perfection masking controlled emotion. Luxury dystopia. Pale ceiling-light pallor at 11pm. Performance review as existential dread. Write with polished surface over hollow core.",
     styleOverrides: {
-      texture: "sterile, polished, bright compression, fluorescent warmth",
+      texture: "sterile, polished, bright compression, cold overhead light",
       instruments: "clean electric piano, programmed drums, muted synth bass, acoustic guitar sample",
       note: "Aesthetic: open-plan office at 11pm, performance review dread, forced positivity",
     },

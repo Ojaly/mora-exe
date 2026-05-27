@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SongInput, WorldPresetKey, WorldExpansion, StructureMode, StructurePreset } from "@/types";
+import { SongInput, WorldPresetKey, WorldExpansion, StructureMode, StructurePreset, BuilderSection } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { QUICK_QUESTIONS, DEEP_QUESTIONS } from "@/lib/wizardData";
 import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
@@ -36,8 +36,10 @@ interface Props {
   onStructureModeChange: (m: StructureMode) => void;
   structurePreset: StructurePreset;
   onStructurePresetChange: (p: StructurePreset) => void;
-  customBlueprint: string;
-  onCustomBlueprintChange: (v: string) => void;
+  builderSections: BuilderSection[];
+  onBuilderSectionsChange: (s: BuilderSection[]) => void;
+  /** Builder モードで有効セクションが0件のとき true — Generate ボタンを無効化 */
+  builderIsEmpty?: boolean;
   /**
    * True only after the client has mounted and localStorage has been restored.
    * Dynamic labels that depend on localStorage values must be gated behind this
@@ -134,13 +136,13 @@ function mapWizardToInput(
 // ─── Shared input styles ──────────────────────────────────────────────────────
 
 const inputCls = [
-  "w-full border border-[#d0d7de] rounded px-2.5",
+  "w-full border border-[#E2E8F0] rounded-md px-2.5",
   "text-[13px] font-mono text-zinc-800 placeholder-zinc-400",
-  "focus:outline-none focus:border-blue-400 transition-colors h-8",
+  "focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-colors h-8",
 ].join(" ");
 
 const selectCls = [
-  "w-full border border-[#d0d7de] rounded px-2 h-8 bg-white",
+  "w-full border border-[#E2E8F0] rounded-md px-2 h-8 bg-white",
   "text-[13px] font-mono text-zinc-800",
   "focus:outline-none focus:border-blue-400 transition-colors",
 ].join(" ");
@@ -202,29 +204,39 @@ function Toggle({ checked, onChange, label }: {
 
 function CollapseSection({
   label,
+  sub,
   open,
   onToggle,
   children,
   dim,
 }: {
   label: string;
+  sub?: string;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
   dim?: boolean;
 }) {
   return (
-    <div className="border-t border-[#d0d7de]">
+    <div className="sidebar-card">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 pt-2.5 pb-1.5 px-0 text-left hover:text-zinc-700 transition-colors"
+        className="w-full flex items-start gap-2 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors"
       >
-        <span className={`text-[10px] font-mono tracking-[0.18em] uppercase font-semibold shrink-0 ${dim ? "text-zinc-400" : "text-zinc-500"}`}>
-          {open ? "▾" : "▸"} {label}
-        </span>
-        <div className="flex-1 border-t border-[#d0d7de]" />
+        <div className="flex-1 min-w-0">
+          <span className={`text-[11px] font-mono tracking-[0.12em] uppercase font-bold ${dim ? "text-zinc-400" : "text-zinc-700"}`}>
+            {open ? "▾" : "▸"} {label}
+          </span>
+          {!open && sub && (
+            <p className="text-[11px] font-mono text-zinc-400 mt-0.5 font-normal normal-case tracking-normal leading-tight">{sub}</p>
+          )}
+        </div>
       </button>
-      {open && <div className="pb-2">{children}</div>}
+      {open && (
+        <div className="px-3 pb-3 border-t border-[#E2E8F0]">
+          <div className="pt-2.5">{children}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -272,8 +284,9 @@ export default function Sidebar({
   onStructureModeChange,
   structurePreset,
   onStructurePresetChange,
-  customBlueprint,
-  onCustomBlueprintChange,
+  builderSections,
+  onBuilderSectionsChange,
+  builderIsEmpty = false,
   mounted = false,
 }: Props) {
   const [alchemyOpen,    setAlchemyOpen]    = useState(false);
@@ -353,54 +366,63 @@ export default function Sidebar({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 space-y-0.5">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-3 space-y-2">
+
+        {/* ── COMPOSE CONTROL ヘッダー ────────────────────────────────────── */}
+        <div className="px-1 pb-1">
+          <p className="text-[13px] font-mono font-bold text-zinc-700 tracking-[0.05em]">COMPOSE CONTROL</p>
+          <p className="text-[11px] font-mono text-zinc-400 mt-0.5 leading-snug">Seed → Forge → Structure → Generate</p>
+        </div>
 
         {/* ══ 0. SOURCE ALCHEMY ════════════════════════════════════════════════ */}
-        <div className="pt-2.5">
+        <div className="sidebar-card">
           <button
             onClick={() => setAlchemyOpen((v) => !v)}
-            className="w-full flex items-center gap-2 pb-1 text-left group"
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors"
           >
-            <span className="text-[10px] font-mono tracking-[0.18em] uppercase font-semibold shrink-0 text-violet-500 group-hover:text-violet-700 transition-colors">
+            <span className="text-[11px] font-mono tracking-[0.12em] uppercase font-bold shrink-0 text-violet-600">
               {alchemyOpen ? "▾" : "▸"} ⚗ Source Alchemy
             </span>
-            <div className="flex-1 border-t border-violet-200" />
+            {!alchemyOpen && (
+              <span className="text-[11px] font-mono text-zinc-400 ml-1 font-normal normal-case tracking-normal">
+                現実素材を世界観に変換
+              </span>
+            )}
           </button>
-          {!alchemyOpen && (
-            <p className="text-[10px] font-mono text-zinc-400 pb-1.5 leading-none">
-              現実素材を世界観に変換
-            </p>
-          )}
           {alchemyOpen && (
-            <div className="pb-3 pt-1">
+            <div className="px-3 pb-3 border-t border-[#E2E8F0] pt-3">
               <SourceAlchemy onSetWorldSeed={(seed) => set("theme", seed)} />
             </div>
           )}
         </div>
 
-        {/* Divider before World Forge */}
-        <div className="border-t border-[#d0d7de]" />
-
-        {/* ══ 1. WORLD FORGE (primary) ══════════════════════════════════════════ */}
-        <div className="pt-3">
-          <WorldForge
-            worldSeed={input.theme}
-            onWorldSeedChange={(v) => set("theme", v)}
-            onApplyToPrompt={onApplyExpansion}
-            expansion={expansion}
-            onExpansionChange={onExpansionChange}
-          />
+        {/* ══ 1. WORLD SEED + FORGE ═════════════════════════════════════════════ */}
+        <div className="sidebar-card">
+          <div className="px-3 py-2.5 border-b border-[#E2E8F0]">
+            <p className="text-[11px] font-mono font-bold text-zinc-700 tracking-[0.12em] uppercase">1. WORLD SEED</p>
+            <p className="text-[11px] font-mono text-zinc-400 mt-0.5">作りたい世界観の種を書く</p>
+          </div>
+          <div className="p-3">
+            <WorldForge
+              worldSeed={input.theme}
+              onWorldSeedChange={(v) => set("theme", v)}
+              onApplyToPrompt={onApplyExpansion}
+              expansion={expansion}
+              onExpansionChange={onExpansionChange}
+            />
+          </div>
         </div>
 
         {/* ══ 2. FINE TUNE (collapsible) ════════════════════════════════════════ */}
         <CollapseSection
-          label="Fine Tune"
+          label="2. FINE TUNE"
+          sub="方向性・BPM・言語比率などの詳細設定"
           open={fineTuneOpen}
           onToggle={() => setFineTuneOpen((v) => !v)}
         >
           {/* Direction adjust chips */}
           <div className="space-y-1.5 py-1">
-            <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase font-semibold">
+            <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
               Direction Adjust
             </span>
             <div className="flex flex-wrap gap-1">
@@ -413,7 +435,7 @@ export default function Sidebar({
                     className={`px-2 py-[3px] text-[11px] font-mono rounded border transition-all ${
                       active
                         ? "border-blue-400 text-blue-700 bg-blue-50 font-semibold"
-                        : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                        : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                   >
                     {active ? "· " : ""}{n}
@@ -432,7 +454,7 @@ export default function Sidebar({
           </div>
 
           {/* Output settings */}
-          <div className="space-y-1.5 border-t border-[#d0d7de] pt-2 mt-1">
+          <div className="space-y-1.5 border-t border-[#E2E8F0] pt-2 mt-1">
             <Row label="TITLE">
               <Inp value={input.title} onChange={(v) => set("title", v)} placeholder="曲タイトル" />
             </Row>
@@ -445,7 +467,7 @@ export default function Sidebar({
                     className={`flex-1 h-8 text-[12px] font-mono rounded border transition-colors ${
                       input.songLength === v
                         ? "border-blue-400 text-blue-700 bg-blue-50"
-                        : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                        : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                   >
                     {v}
@@ -462,7 +484,7 @@ export default function Sidebar({
                     className={`flex-1 h-8 text-[12px] font-mono rounded border transition-colors ${
                       input.englishRatio === v
                         ? "border-blue-400 text-blue-700 bg-blue-50"
-                        : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                        : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                   >
                     {v === "low" ? "JP" : v === "mixed" ? "MIX" : "EN"}
@@ -499,8 +521,8 @@ export default function Sidebar({
           </div>
 
           {/* World Presets (secondary) */}
-          <div className="border-t border-[#d0d7de] pt-2 mt-1 space-y-1.5">
-            <span className="text-[9px] font-mono text-zinc-400 tracking-[0.18em] uppercase font-semibold">
+          <div className="border-t border-[#E2E8F0] pt-2 mt-1 space-y-1.5">
+            <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold">
               World Lens
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -513,7 +535,7 @@ export default function Sidebar({
                     onClick={() => onPresetChange(active ? "" : key)}
                     title={p.description}
                     className={`px-2 py-0.5 text-[11px] font-mono font-bold rounded border transition-all ${
-                      active ? "" : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                      active ? "" : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                     style={active ? {
                       borderColor: p.accentColor,
@@ -538,13 +560,14 @@ export default function Sidebar({
         <CollapseSection
           label={
             !mounted
-              ? "Structure"
-              : structureMode === "preset"
-                ? "Structure · preset"
-                : structureMode === "custom" && customBlueprint.trim()
-                  ? "Structure · custom ✎"
-                  : "Structure"
+              ? "3. STRUCTURE"
+              : structureMode === "builder" && builderSections.length > 0
+                ? `3. STRUCTURE · ${builderSections.length}P`
+                : structureMode === "preset"
+                  ? "3. STRUCTURE · preset"
+                  : "3. STRUCTURE"
           }
+          sub="曲の流れ・セクション構成を指定"
           open={structureOpen}
           onToggle={() => setStructureOpen((v) => !v)}
         >
@@ -553,8 +576,8 @@ export default function Sidebar({
             onModeChange={onStructureModeChange}
             preset={structurePreset}
             onPresetChange={onStructurePresetChange}
-            customBlueprint={customBlueprint}
-            onCustomBlueprintChange={onCustomBlueprintChange}
+            builderSections={builderSections}
+            onBuilderSectionsChange={onBuilderSectionsChange}
           />
         </CollapseSection>
 
@@ -562,13 +585,14 @@ export default function Sidebar({
         <CollapseSection
           label={
             !mounted
-              ? "Prompt Library"
+              ? "4. PROMPT LIBRARY"
               : selectedLibraryItems.length > 0
-                ? `Prompt Library · ${selectedLibraryItems.length}`
+                ? `4. PROMPT LIBRARY · ${selectedLibraryItems.length}`
                 : recommendations.length > 0
-                  ? `Prompt Library · ◆${recommendations.length}`
-                  : "Prompt Library"
+                  ? `4. PROMPT LIBRARY · ◆${recommendations.length}`
+                  : "4. PROMPT LIBRARY"
           }
+          sub="音色・質感・構成語彙を追加"
           open={libraryOpen}
           onToggle={() => setLibraryOpen((v) => !v)}
         >
@@ -587,7 +611,7 @@ export default function Sidebar({
                 {selectedLibraryItems.slice(0, 6).map((item) => (
                   <span
                     key={item.id}
-                    className="px-1.5 py-[2px] text-[11px] font-mono rounded border border-[#d0d7de] text-zinc-600 bg-zinc-50 leading-tight"
+                    className="px-1.5 py-[2px] text-[11px] font-mono rounded border border-[#E2E8F0] text-zinc-600 bg-slate-50 leading-tight"
                   >
                     {item.label}
                   </span>
@@ -610,7 +634,7 @@ export default function Sidebar({
             {/* Open library button */}
             <button
               onClick={onOpenLibrary}
-              className="w-full h-7 text-[11px] font-mono border border-[#c8cdd4] rounded text-zinc-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition-all"
+              className="w-full h-8 text-[12px] font-mono border border-[#E2E8F0] rounded-md text-zinc-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition-all"
             >
               OPEN LIBRARY →
             </button>
@@ -619,11 +643,12 @@ export default function Sidebar({
 
         {/* ══ 5. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
         <CollapseSection
-          label="Avoid / Negative"
+          label="5. AVOID / NEGATIVE"
+          sub="避けたい音・表現・AI臭さの指定"
           open={avoidOpen}
           onToggle={() => setAvoidOpen((v) => !v)}
         >
-          <p className="text-[10px] font-mono text-zinc-400 pb-1.5 leading-snug">
+          <p className="text-[12px] font-mono text-zinc-500 pb-2 leading-snug">
             避けたい表現・音像
           </p>
           <div className="space-y-1.5">
@@ -647,11 +672,12 @@ export default function Sidebar({
         {/* ══ 6. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
         <CollapseSection
           label="Guided Mode"
+          sub="Seedが書きにくい場合に。質問に答えて組み立てる"
           open={guidedOpen}
           onToggle={() => setGuidedOpen((v) => !v)}
           dim
         >
-          <p className="text-[10px] font-mono text-zinc-400 pb-2 leading-snug">
+          <p className="text-[12px] font-mono text-zinc-500 pb-2 leading-snug">
             World Seed で語りにくい場合に。質問に答えてWorld Seedを組み立てます。
           </p>
 
@@ -666,7 +692,7 @@ export default function Sidebar({
                     ? m === "quick"
                       ? "border-blue-400 text-blue-700 bg-blue-50"
                       : "border-violet-400 text-violet-700 bg-violet-50"
-                    : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                    : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                 }`}
               >
                 {m === "quick" ? "QUICK  5問" : "DEEP  12問"}
@@ -677,7 +703,7 @@ export default function Sidebar({
           {/* Inline wizard questions */}
           {currentQ && !appliedFlash && (
             <div
-              className="border border-[#d0d7de] rounded-lg p-3 space-y-2.5"
+              className="border border-[#E2E8F0] rounded-lg p-3 space-y-2.5"
               style={{ background: "#fafbfc" }}
             >
               {/* Progress */}
@@ -716,7 +742,7 @@ export default function Sidebar({
                       key={opt.value}
                       onClick={() => handleChip(currentQ.id, opt.value)}
                       className={`px-2 py-0.5 text-[11px] font-mono rounded border transition-all ${
-                        sel ? accentActive : "border-[#d0d7de] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+                        sel ? accentActive : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                       }`}
                     >
                       {opt.label}
@@ -731,7 +757,7 @@ export default function Sidebar({
                 value={wizardAnswers[currentQ.id]?.free ?? ""}
                 onChange={(e) => handleFree(currentQ.id, e.target.value)}
                 placeholder={currentQ.placeholder ?? "自由入力..."}
-                className="w-full h-8 border border-[#d0d7de] rounded px-2.5 text-[12px] font-mono text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-blue-400 transition-colors"
+                className="w-full h-8 border border-[#E2E8F0] rounded-md px-2.5 text-[12px] font-mono text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-blue-400 transition-colors"
                 style={{ background: "white" }}
               />
 
@@ -740,7 +766,7 @@ export default function Sidebar({
                 {wizardStep > 0 && (
                   <button
                     onClick={() => setWizardStep((s) => s - 1)}
-                    className="h-8 px-3 text-[12px] font-mono border border-[#c8cdd4] text-zinc-600 rounded hover:border-zinc-400 hover:text-zinc-900 transition-colors"
+                    className="h-8 px-3 text-[12px] font-mono border border-[#E2E8F0] text-zinc-600 rounded-md hover:border-zinc-400 hover:text-zinc-900 transition-colors"
                   >
                     ←
                   </button>
@@ -766,29 +792,43 @@ export default function Sidebar({
       </div>
 
       {/* ══ GENERATE (sticky footer) ══════════════════════════════════════════ */}
-      <div className="shrink-0 px-3 pb-3 pt-2 border-t border-[#d0d7de]">
+      <div className="shrink-0 px-3 pb-3 pt-2.5 border-t border-[#E2E8F0]">
         {/* Active nudges hint */}
         {activeNudges.length > 0 && (
-          <p className="text-[10px] font-mono text-blue-500 mb-1.5 leading-snug truncate">
+          <p className="text-[11px] font-mono text-blue-500 mb-1.5 leading-snug truncate">
             ↳ {activeNudges.join(" · ")}
           </p>
         )}
-        {expansion && (
-          <p className="text-[10px] font-mono text-emerald-600 mb-1.5 leading-snug">
-            ↳ World Forge active — ▶ GENERATE DRAFT でまとめて生成
+        {expansion && !isGenerating && (
+          <p className="text-[11px] font-mono text-emerald-600 mb-1.5 leading-snug">
+            ↳ World Forge active
+          </p>
+        )}
+        {builderIsEmpty && (
+          <p className="text-[11px] font-mono text-amber-600 mb-1.5 leading-snug">
+            ⚠ Builderに最低1つのセクションを選択してください
           </p>
         )}
         <button
           onClick={onGenerate}
-          disabled={isGenerating}
-          className={`w-full py-2.5 font-mono font-bold text-[13px] tracking-widest rounded transition-colors disabled:cursor-wait ${
+          disabled={isGenerating || builderIsEmpty}
+          className={`w-full py-3 font-mono font-bold text-[14px] tracking-widest rounded-lg transition-colors disabled:cursor-not-allowed ${
             isGenerating
               ? "bg-blue-200 text-blue-500 animate-pulse"
-              : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white"
+              : builderIsEmpty
+                ? "bg-zinc-200 text-zinc-400"
+                : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white"
           }`}
         >
           {isGenerating ? "… GENERATING" : expansion ? "↺ RE-GENERATE" : "▶  GENERATE"}
         </button>
+        <p className="text-[10px] font-mono text-zinc-400 text-center mt-1.5 leading-snug">
+          {isGenerating
+            ? "生成中…しばらくお待ちください"
+            : expansion
+            ? "同じ設定でStyle + Lyricsを再生成"
+            : "現在の設定でStyle + Lyricsを生成"}
+        </p>
       </div>
     </div>
   );
