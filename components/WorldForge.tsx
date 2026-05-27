@@ -5,12 +5,9 @@ import { WorldExpansion } from "@/types";
 import MusicDirectionPanel from "@/components/MusicDirectionPanel";
 import { ruleBasedForge } from "@/lib/ruleBasedForge";
 
-// SAFE SWITCH: Tauri invoke path disabled until forge_world timeout/env is verified.
-// Set to true only after reqwest timeout and ANTHROPIC_API_KEY env wiring are confirmed.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _isTauriEnvReal =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-const isTauriEnv = false; // always use fetch("/api/ai/forge") for now
+// SAFE SWITCH: Tauri invoke path removed until forge_world timeout/env is verified.
+// To re-enable: detect `typeof window !== "undefined" && "__TAURI_INTERNALS__" in window`
+// and add a dynamic import("@tauri-apps/api/core") invoke branch back to handleForge.
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -92,29 +89,18 @@ export default function WorldForge({
     const seed = worldSeed.trim();
 
     try {
-      if (isTauriEnv) {
-        // ── Packaged EXE: invoke Rust command ─────────────────────────────
-        const { invoke } = await import("@tauri-apps/api/core");
-        const result = await invoke<WorldExpansion | null>("forge_world", {
-          worldSeed: seed,
-        });
-        // null = no API key → rule-based fallback
-        onExpansionChange(result ?? ruleBasedForge(seed));
-      } else {
-        // ── Dev / web: use Next.js API route ──────────────────────────────
-        const res = await fetch("/api/ai/forge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ worldSeed: seed }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: WorldExpansion = await res.json();
-        onExpansionChange(data);
-      }
+      // ── Dev / web: use Next.js API route ────────────────────────────────
+      const res = await fetch("/api/ai/forge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ worldSeed: seed }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: WorldExpansion = await res.json();
+      onExpansionChange(data);
     } catch (err) {
       console.error("[WorldForge] forge failed:", err);
-      // Any error in Tauri path → rule-based fallback
-      if (isTauriEnv) onExpansionChange(ruleBasedForge(seed));
+      onExpansionChange(ruleBasedForge(seed));
     } finally {
       setIsForging(false);
     }
