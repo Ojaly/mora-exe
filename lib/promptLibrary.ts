@@ -1006,20 +1006,335 @@ const REC_CAT_MAX: Partial<Record<PromptLibraryCategory, number>> = {
 };
 
 /**
+ * Japanese keyword → item-id bonus mapping.
+ *
+ * Each entry: if ANY keyword in `keywords` appears in the full Japanese corpus
+ * (seed text + expansion fields), apply `bonus` extra score to each listed item id.
+ * Bonus is ADDITIVE on top of the English corpus score — existing EN scoring
+ * is not affected.
+ *
+ * Rules:
+ * - production / metaTag category items are NOT listed (excluded from RECOMMEND_CATS)
+ * - bonus 6 = strong thematic match (core genre/texture of the theme)
+ * - bonus 5 = clear association
+ * - bonus 4 = supporting / secondary association
+ * - bonus 3 = weak / tangential association
+ */
+const JP_KEYWORD_MAP: ReadonlyArray<{
+  keywords: readonly string[];
+  ids: readonly string[];
+  bonus: number;
+}> = [
+  // ── 学校・朝礼・施設系 ────────────────────────────────────────────────────
+  {
+    keywords: [
+      "朝礼", "体育館", "校庭", "出席簿", "チャイム", "教室", "号令", "整列",
+      "朝の会", "学校", "登校", "校舎", "下校", "廊下", "黒板", "先生", "生徒",
+      "上履き", "給食", "運動場",
+    ],
+    ids: [
+      "genre-ceremonial-ambient",
+      "genre-minimal-post-pop",
+      "tex-gymnasium-reverb",
+      "tex-hollow-room-echo",
+      "vocal-spoken",
+      "mood-desolate",
+      "mood-deadpan",
+    ],
+    bonus: 6,
+  },
+  {
+    keywords: ["蛍光灯", "マイク", "スピーカー", "放送室", "拡声器"],
+    ids: [
+      "tex-fluorescent-hum",
+      "vocal-spoken",
+      "mood-deadpan",
+    ],
+    bonus: 6,
+  },
+  // ── 祭り・和風・神社系 ────────────────────────────────────────────────────
+  {
+    keywords: [
+      "祭り", "お祭り", "提灯", "御神輿", "神輿", "みこし", "音頭", "縁日",
+      "祝詞", "屋台", "盆踊り", "祭囃子", "お囃子", "神社", "神楽", "神事",
+      "お盆", "花火", "浴衣",
+    ],
+    ids: [
+      "genre-enka",
+      "genre-techno-enka",
+      "inst-shamisen",
+      "inst-taiko",
+      "vocal-call-and-response",
+      "struct-theatrical-intro",
+      "mood-triumphant",
+      "genre-ceremonial-ambient",
+    ],
+    bonus: 6,
+  },
+  {
+    keywords: ["太鼓", "和太鼓", "大太鼓", "締太鼓", "鼓"],
+    ids: ["inst-taiko", "genre-enka", "mood-triumphant"],
+    bonus: 6,
+  },
+  {
+    keywords: ["三味線", "三絃", "琴", "尺八", "篠笛", "能管"],
+    ids: ["inst-shamisen", "genre-enka", "genre-showa-kayokyoku"],
+    bonus: 6,
+  },
+  // ── 船・海・航海系 ─────────────────────────────────────────────────────────
+  {
+    keywords: [
+      "船", "帆船", "漁船", "港", "航海", "錨", "漁師", "海岸", "岸壁", "大海",
+      "大漁旗", "汽船", "渡し船",
+    ],
+    ids: [
+      "genre-enka",
+      "inst-taiko",
+      "mood-triumphant",
+      "mood-melancholic",
+      "struct-theatrical-intro",
+    ],
+    bonus: 5,
+  },
+  // ── 企業・規約・事務・職場系 ──────────────────────────────────────────────
+  {
+    keywords: [
+      "企業", "規約", "利用規約", "契約", "会議", "ハンコ", "判子", "稟議",
+      "書類", "署名", "承認", "社内", "オフィス", "業務", "部長", "課長",
+      "社員", "社長", "印鑑", "決裁", "上司", "部下", "会社", "同僚",
+      "コンプライアンス", "規定", "マニュアル",
+    ],
+    ids: [
+      "genre-corporate-electro-funk",
+      "mood-deadpan",
+      "mood-ironic",
+      "inst-clavinet",
+      "tex-dry-vocal-booth",
+      "vocal-spoken",
+      "tex-fluorescent-hum",
+    ],
+    bonus: 6,
+  },
+  // ── 夜・都会・ネオン・クラブ系 ───────────────────────────────────────────
+  {
+    keywords: [
+      "夜", "ネオン", "都会", "街灯", "路地", "クラブ", "ダンス", "摩天楼",
+      "深夜", "ミラーボール", "夜景", "繁華街", "バー", "酒場", "ナイトクラブ",
+      "フロア", "DJブース",
+    ],
+    ids: [
+      "genre-nu-disco",
+      "genre-french-house",
+      "tex-neon-shimmer",
+      "tex-glossy-club-mix",
+      "mood-romantic",
+      "mood-melancholic",
+    ],
+    bonus: 5,
+  },
+  // ── 猫・生活・昭和家屋・日常系 ───────────────────────────────────────────
+  {
+    keywords: [
+      "猫", "三毛猫", "子猫", "野良猫", "縁側", "座布団", "茶碗", "畳",
+      "ちゃぶ台", "古い家", "木造", "昼下がり", "窓辺", "障子", "和室",
+      "縁", "日向", "蒸し暑い", "縁側", "庭", "物干し", "雨戸",
+    ],
+    ids: [
+      "tex-lofi-compression",
+      "tex-vinyl-crackle",
+      "tex-tape-saturation",
+      "vocal-spoken",
+      "mood-melancholic",
+      "mood-deadpan",
+      "genre-showa-kayokyoku",
+    ],
+    bonus: 5,
+  },
+  // ── 工場・金属・町工場・製造系 ───────────────────────────────────────────
+  {
+    keywords: [
+      "工場", "町工場", "溶接", "旋盤", "切断", "機械", "作業着", "火花",
+      "油", "ボルト", "製造", "部品", "鉄骨", "鉄板", "炉", "鋳物",
+      "プレス", "ベルトコンベア",
+    ],
+    ids: [
+      "genre-industrial-rock",
+      "genre-breakbeat-rock",
+      "inst-distorted-breakbeats",
+      "tex-dry-vocal-booth",
+      "mood-deadpan",
+      "mood-unsettling",
+    ],
+    bonus: 6,
+  },
+  {
+    keywords: ["鉄", "金属", "スチール", "鋼", "鍛造"],
+    ids: ["genre-industrial-rock", "inst-distorted-breakbeats", "mood-unsettling"],
+    bonus: 4,
+  },
+  // ── 昭和・レトロ・懐古系 ──────────────────────────────────────────────────
+  {
+    keywords: [
+      "昭和", "レトロ", "懐かしい", "昔", "古い", "黒電話", "古写真",
+      "セピア", "白黒", "昭和レトロ", "古びた",
+    ],
+    ids: [
+      "genre-showa-kayokyoku",
+      "tex-vinyl-crackle",
+      "tex-tape-saturation",
+      "mood-melancholic",
+      "genre-enka",
+    ],
+    bonus: 5,
+  },
+  // ── 廃墟・孤独・不在系 ────────────────────────────────────────────────────
+  {
+    keywords: [
+      "廃墟", "廃校", "廃工場", "朽ちた", "荒廃", "孤独", "誰もいない",
+      "空っぽ", "取り残された", "忘れられた", "静寂", "廃れた", "廃村",
+      "廃屋",
+    ],
+    ids: [
+      "mood-desolate",
+      "tex-hollow-room-echo",
+      "genre-ceremonial-ambient",
+      "mood-eerie",
+      "mood-melancholic",
+      "tex-dry-vocal-booth",
+    ],
+    bonus: 6,
+  },
+  // ── 儀式・神聖・荘厳系 ────────────────────────────────────────────────────
+  {
+    keywords: [
+      "儀式", "神聖", "祈り", "礼拝", "聖堂", "荘厳", "厳か", "奉納",
+      "お祓い", "巫女", "神官", "仏", "読経", "葬儀", "冥福",
+    ],
+    ids: [
+      "genre-ceremonial-ambient",
+      "mood-sacred",
+      "vocal-gospel-choir",
+      "struct-theatrical-intro",
+      "struct-spoken-intro",
+    ],
+    bonus: 6,
+  },
+  // ── 映画・叙事詩・英雄系 ──────────────────────────────────────────────────
+  {
+    keywords: [
+      "映画", "叙事詩", "英雄", "冒険", "戦い", "壮大", "宇宙", "銀河",
+      "伝説", "叙情", "史詩", "叙事",
+    ],
+    ids: [
+      "mood-cinematic",
+      "inst-string-section",
+      "tex-cinematic-reverb",
+      "mood-triumphant",
+      "inst-brass-stabs",
+    ],
+    bonus: 5,
+  },
+  // ── ゴシック・暗黒・呪い系 ────────────────────────────────────────────────
+  {
+    keywords: [
+      "呪い", "悪魔", "暗黒", "地獄", "血", "腐敗", "骸骨", "棺",
+      "黒ミサ", "魔女", "幽霊", "妖怪", "鬼", "怨霊",
+    ],
+    ids: [
+      "genre-gothic-waltz",
+      "genre-dark-electro-swing",
+      "mood-eerie",
+      "mood-unsettling",
+      "mood-sacred",
+    ],
+    bonus: 5,
+  },
+  // ── AI・デジタル・開発系（弱め） ─────────────────────────────────────────
+  {
+    keywords: [
+      "AI", "プロンプト", "UI", "ブラウザ", "Claude", "ChatGPT",
+      "タグ", "コード", "プログラム", "デジタル",
+    ],
+    ids: [
+      "genre-minimal-post-pop",
+      "vocal-spoken",
+      "tex-dry-vocal-booth",
+      "mood-deadpan",
+      "mood-ironic",
+    ],
+    bonus: 3,
+  },
+  // ── 子供・夢・無邪気系 ────────────────────────────────────────────────────
+  {
+    keywords: [
+      "子供", "子ども", "幼い", "夢", "メルヘン", "おとぎ話", "おもちゃ",
+      "砂場", "秘密基地", "かくれんぼ",
+    ],
+    ids: [
+      "mood-melancholic",
+      "mood-absurd",
+      "tex-vinyl-crackle",
+      "vocal-whisper",
+    ],
+    bonus: 4,
+  },
+  // ── 恋・愛・親密系 ────────────────────────────────────────────────────────
+  {
+    keywords: [
+      "恋", "愛", "好き", "君", "あなた", "二人", "抱擁", "口づけ",
+      "恋人", "愛しい", "想い", "恋愛",
+    ],
+    ids: [
+      "mood-romantic",
+      "vocal-whisper",
+      "vocal-duet",
+      "mood-melancholic",
+    ],
+    bonus: 4,
+  },
+  // ── 海外・グローバル・移民系 ──────────────────────────────────────────────
+  {
+    keywords: [
+      "ジャズ", "ブルース", "ソウル", "ゴスペル", "ファンク", "ヒップホップ",
+      "レゲエ", "ディスコ",
+    ],
+    ids: [
+      "genre-neo-soul",
+      "genre-digital-motown",
+      "inst-walking-bass",
+      "inst-brass-stabs",
+      "vocal-gospel-choir",
+    ],
+    bonus: 4,
+  },
+] as const;
+
+/**
  * Recommends up to 12 Prompt Library items from a WorldForge expansion result.
  *
- * Scoring: keyword overlap between each item's label / tags / aliases / promptText
- * and the structured English-language music-direction fields from the expansion
- * (genreHint, atmosphere, moodWords, instruments, vocalStyle, soundDirection).
- * A lighter pass over the Japanese texture / emotion / lyricsDirection corpus
- * adds a secondary signal.
+ * Two-layer scoring:
+ *  1. English corpus matching — unchanged from original logic.
+ *     Scans genreHint / atmosphere / moodWords / instruments / vocalStyle /
+ *     soundDirection / stylePromptDraft against each item's label, tags,
+ *     aliases and promptText tokens.
+ *  2. Japanese keyword mapping — additive bonus.
+ *     JP_KEYWORD_MAP entries are checked against the full Japanese corpus
+ *     (seed text + emotion + texture + scene + objects + contradiction +
+ *     lyricsDirection). Any matched entry adds its bonus score directly
+ *     to the listed item IDs.
  *
  * Results are category-balanced (≤ REC_CAT_MAX per category) and capped at 12.
+ *
+ * @param expansion WorldForge expansion result
+ * @param seed      Optional raw world seed text (input.theme) for direct JP matching
  */
-export function recommendFromExpansion(expansion: WorldExpansion): PromptLibraryItem[] {
+export function recommendFromExpansion(
+  expansion: WorldExpansion,
+  seed?: string,
+): PromptLibraryItem[] {
   const md = expansion.musicDirection;
 
-  // ── High-signal English corpus ────────────────────────────────────────────
+  // ── 1. English corpus (high-signal) ──────────────────────────────────────
   const corpusEN = [
     md.genreHint,
     md.atmosphere,
@@ -1034,37 +1349,50 @@ export function recommendFromExpansion(expansion: WorldExpansion): PromptLibrary
     .join(" ")
     .toLowerCase();
 
-  // ── Lower-signal Japanese corpus ──────────────────────────────────────────
+  // ── 2. Japanese corpus (full — seed + all JP expansion fields) ────────────
   const corpusJP = [
+    seed ?? "",
     ...expansion.emotion,
     ...expansion.texture,
+    ...expansion.scene,
+    ...expansion.objects,
+    ...(expansion.contradiction ?? []),
     expansion.lyricsDirection ?? "",
   ].join(" ");
 
-  // ── Score every eligible item ─────────────────────────────────────────────
+  // ── 3. Build JP bonus map: item-id → cumulative bonus score ──────────────
+  const bonusMap = new Map<string, number>();
+  for (const { keywords, ids, bonus } of JP_KEYWORD_MAP) {
+    const matched = keywords.some((kw) => corpusJP.includes(kw));
+    if (matched) {
+      for (const id of ids) {
+        bonusMap.set(id, (bonusMap.get(id) ?? 0) + bonus);
+      }
+    }
+  }
+
+  // ── 4. Score every eligible item ─────────────────────────────────────────
   const scored = PROMPT_LIBRARY
     .filter((item) => RECOMMEND_CATS.includes(item.category))
     .map((item) => {
       let score = 0;
 
-      // Collect terms to match against English corpus
+      // EN corpus: check item terms (label / tags / aliases / promptText tokens)
       const itemTerms = [
         item.label,
         ...item.tags,
         ...item.aliases,
         ...item.promptText.split(/[\s,/]+/).filter((w) => w.length > 2),
       ];
-
       for (const term of itemTerms) {
         const t = term.toLowerCase().trim();
         if (t.length < 3) continue;
         if (corpusEN.includes(t)) {
-          // Longer, more specific matches earn more
           score += t.length >= 6 ? 4 : 2;
         }
       }
 
-      // Japanese description overlap (weak positive signal)
+      // JP description overlap (weak, general signal)
       if (corpusJP) {
         const jpTokens = corpusJP
           .split(/[\s、。「」\n]+/)
@@ -1074,15 +1402,18 @@ export function recommendFromExpansion(expansion: WorldExpansion): PromptLibrary
         }
       }
 
+      // JP keyword map bonus (strong, thematic signal)
+      score += bonusMap.get(item.id) ?? 0;
+
       return { item, score };
     });
 
-  // ── Keep only positive matches, sort descending ───────────────────────────
+  // ── 5. Keep only positive matches, sort descending ───────────────────────
   const ranked = scored
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score);
 
-  // ── Category-balanced selection (≤ REC_CAT_MAX, total ≤ 12) ──────────────
+  // ── 6. Category-balanced selection (≤ REC_CAT_MAX, total ≤ 12) ───────────
   const catCount: Partial<Record<PromptLibraryCategory, number>> = {};
   const results: PromptLibraryItem[] = [];
 

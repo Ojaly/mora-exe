@@ -378,8 +378,8 @@ export default function Home() {
 
   // Forge-driven recommendations (recomputed only when expansion changes)
   const recommendations = useMemo(
-    () => (expansion ? recommendFromExpansion(expansion) : []),
-    [expansion]
+    () => (expansion ? recommendFromExpansion(expansion, input.theme) : []),
+    [expansion, input.theme]
   );
 
   // Auto-switch CENTER to Library tab when a new Forge result arrives
