@@ -80,7 +80,11 @@ function modeInstruction(mode: RewriteMode, moraWarnings: number[]): string {
     catchy:
       "Make it catchier. Cut long lines to their sharpest fragment. Hooks must be punchy, one-breath singable, and impossible to forget.",
     "remove-ai":
-      "Strip all generic AI poetry. Replace with specific, concrete, surprising imagery. If it sounds like a writing prompt response, rewrite it. Make it feel written by a human who lived it.",
+      "Strip all generic AI poetry — both English and Japanese clichés. " +
+      "English: remove 'feel alive', 'lose control', 'rise above', 'break free', 'in my veins', 'warrior', 'burning inside'. " +
+      "Japanese: remove 大丈夫・輝いてる・信じて・翼を広げて・明日へ・夢を追って・共に歩こう・諦めないで・走り続ける・心に響く・希望の光・未来へ向かって・一緒に歩こう. " +
+      "Replace ALL clichés with specific, concrete, world-specific imagery drawn from the style context. " +
+      "If a line sounds like a writing-prompt output, rewrite it entirely. Make it feel written by a human who lived it.",
     "shorten-mora":
       `Shorten every line over 14 mora. Cut to the essential meaning. Preserve emotional temperature, tension, and rhythmic feel. No flat reductions — make shorter lines hit harder.${warnStr}`,
     "strengthen-chorus":

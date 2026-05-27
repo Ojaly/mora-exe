@@ -443,7 +443,7 @@ export default function Home() {
       setRewriteSource("claude");
       setChangedLines(result.changedLines ?? []);
     } else {
-      const v = applyRewriteMode(lyrics, mode);
+      const v = applyRewriteMode(lyrics, mode, sectionTarget);
       setLyricsRaw(v);
       analyse(v);
       setRewriteNotes("");

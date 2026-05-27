@@ -1,4 +1,4 @@
-import { RewriteMode } from "@/types";
+import { RewriteMode, SectionTarget } from "@/types";
 import { AI_CLICHE_PHRASES } from "@/lib/phraseDetector";
 import { estimateMora } from "@/lib/moraAnalyzer";
 
@@ -29,7 +29,10 @@ function processSection(
       const tagMatch = section.match(/^\[([^\]]+)\]/);
       if (!tagMatch) return section;
       const tag = tagMatch[1].toLowerCase();
-      if (!tag.includes(targetTag.toLowerCase())) return section;
+      const t = targetTag.toLowerCase();
+      // Exact match or numbered sub-tag (e.g. "verse 1", "verse 2").
+      // Prevents "chorus" from matching "pre-chorus" via substring.
+      if (tag !== t && !tag.startsWith(t + " ")) return section;
       const lines = section.split("\n");
       const header = lines[0];
       const body = fn(lines.slice(1));
@@ -231,14 +234,47 @@ const OJALY_TRANSFORMS: [RegExp, string][] = [
 
 function ojalyStyle(lyrics: string): string {
   let result = lyrics;
-  let transformCount = 0;
+  let patternsApplied = 0;
   for (const [pattern, replacement] of OJALY_TRANSFORMS) {
-    result = result.replace(pattern, (match) => {
-      if (transformCount++ < 4) return replacement;
-      return match;
-    });
+    if (patternsApplied >= 4) break;
+    const before = result;
+    result = result.replace(pattern, replacement); // replace all occurrences of this pattern
+    if (result !== before) patternsApplied++;       // count only if something changed
   }
   return result;
+}
+
+// ─── Section-scoped fallback helper ──────────────────────────────────────────
+
+function sectionTagForTarget(target: SectionTarget): string {
+  const map: Record<SectionTarget, string> = {
+    all: "", chorus: "chorus", verse: "verse",
+    "pre-chorus": "pre-chorus", bridge: "bridge",
+  };
+  return map[target];
+}
+
+/**
+ * Applies `fn` only to sections matching `target`.
+ * Uses the same exact-match rule as processSection to prevent chorus/pre-chorus confusion.
+ */
+function applyToSection(
+  lyrics: string,
+  target: SectionTarget,
+  fn: (text: string) => string
+): string {
+  if (target === "all") return fn(lyrics);
+  const t = sectionTagForTarget(target).toLowerCase();
+  const sections = lyrics.split(/(?=\[)/);
+  return sections
+    .map((section) => {
+      const tagMatch = section.match(/^\[([^\]]+)\]/);
+      if (!tagMatch) return section;
+      const tag = tagMatch[1].toLowerCase();
+      if (tag !== t && !tag.startsWith(t + " ")) return section;
+      return fn(section);
+    })
+    .join("");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -257,19 +293,28 @@ export const REWRITE_MODE_LABELS: Record<RewriteMode, string> = {
   ojaly:              "ojaly.化",
 };
 
-export function applyRewriteMode(lyrics: string, mode: RewriteMode): string {
-  switch (mode) {
-    case "catchy":            return makeCatchy(lyrics);
-    case "remove-ai":         return removeAiCliches(lyrics);
-    case "shorten-mora":      return shortenMora(lyrics);
-    case "strengthen-chorus": return strengthenChorus(lyrics);
-    case "more-japanese":     return moreJapanese(lyrics);
-    case "more-english":      return moreEnglish(lyrics);
-    case "darker":            return makeDarker(lyrics);
-    case "danceable":         return makeDanceable(lyrics);
-    case "poetic":            return makePoetic(lyrics);
-    case "ironic":            return makeIronic(lyrics);
-    case "ojaly":             return ojalyStyle(lyrics);
-    default:                  return lyrics;
-  }
+export function applyRewriteMode(
+  lyrics: string,
+  mode: RewriteMode,
+  sectionTarget: SectionTarget = "all"
+): string {
+  // strengthen-chorus always targets [Chorus] internally via processSection
+  if (mode === "strengthen-chorus") return strengthenChorus(lyrics);
+
+  const core = (text: string): string => {
+    switch (mode) {
+      case "catchy":        return makeCatchy(text);
+      case "remove-ai":     return removeAiCliches(text);
+      case "shorten-mora":  return shortenMora(text);
+      case "more-japanese": return moreJapanese(text);
+      case "more-english":  return moreEnglish(text);
+      case "darker":        return makeDarker(text);
+      case "danceable":     return makeDanceable(text);
+      case "poetic":        return makePoetic(text);
+      case "ironic":        return makeIronic(text);
+      case "ojaly":         return ojalyStyle(text);
+      default:              return text;
+    }
+  };
+  return applyToSection(lyrics, sectionTarget, core);
 }
