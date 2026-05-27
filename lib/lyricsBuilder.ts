@@ -1,4 +1,4 @@
-import { SongInput, LyricsDraft, LyricsSection } from "@/types";
+import { SongInput, WorldExpansion, LyricsDraft, LyricsSection } from "@/types";
 import {
   extractThemeMotifsForLyrics,
   buildThemeLines,
@@ -1014,4 +1014,116 @@ export function draftToRaw(draft: LyricsDraft): string {
   return draft.sections
     .map((s) => `[${s.tag}]\n${s.lines.join("\n")}`)
     .join("\n\n");
+}
+
+// ─── Expansion-first lyrics fallback ─────────────────────────────────────────
+//
+// Used when WorldExpansion is present but the Claude API is unavailable (503).
+// Builds a world-specific lyrics scaffold from expansion data — NOT from generic
+// mood pools. Guarantees that expansion-path generate always uses expansion data.
+
+type SectionTag =
+  | "Intro" | "Verse 1" | "Verse 2"
+  | "Pre-Chorus" | "Chorus" | "Bridge" | "Outro";
+
+function expansionSectionList(input: SongInput): SectionTag[] {
+  if (input.songLength === "30s") return ["Chorus"];
+  if (input.startWithChorus) {
+    return input.songLength === "90s"
+      ? ["Chorus", "Verse 1", "Pre-Chorus", "Chorus"]
+      : ["Chorus", "Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus", "Bridge", "Outro"];
+  }
+  return input.songLength === "90s"
+    ? ["Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus"]
+    : ["Intro", "Verse 1", "Pre-Chorus", "Chorus", "Verse 2", "Chorus", "Bridge", "Outro"];
+}
+
+/**
+ * Builds a basic but world-specific lyrics scaffold from WorldExpansion data.
+ * Called when expansion is present but Claude API is unavailable.
+ * Unlike buildLyricsDraft, this never falls back to generic mood pools.
+ */
+export function buildExpansionLyricsFallback(
+  expansion: WorldExpansion,
+  input: SongInput
+): string {
+  const obj   = expansion.objects;
+  const scene = expansion.scene;
+  const contr = expansion.contradiction;
+
+  // Safely index into arrays that may be short
+  const o = (i: number) => obj[i % Math.max(obj.length, 1)] ?? "";
+  const s = (i: number) => scene[i % Math.max(scene.length, 1)] ?? "";
+
+  const c0 = contr[0] ?? "";
+  const c1 = contr[1] ?? c0;
+
+  // Chorus: built from contradiction (emotional core) + key motifs
+  const chorusLines = [
+    c0 || (o(0) ? `${o(0)}の中に全てがある` : "それだけが残る"),
+    o(0) ? `${o(0)}を見つめる`            : s(0) || "目が離せない",
+    o(1) ? `${o(1)}が答えだ`              : "ここにいる",
+  ];
+
+  const sections: string[] = [];
+  const push = (tag: string, lines: string[]) => {
+    sections.push(`[${tag}]\n${lines.filter(Boolean).join("\n")}`);
+  };
+
+  for (const tag of expansionSectionList(input)) {
+    switch (tag) {
+      case "Intro":
+        push(tag, [
+          s(0) || (o(0) ? `${o(0)}が静かに光る`    : "薄暗い空間に入る"),
+          o(0) ? `${o(0)}の匂いが漂う`              : "息を詰める静寂",
+        ]);
+        break;
+
+      case "Verse 1":
+        push(tag, [
+          s(1) || (o(0) ? `${o(0)}に向かって座る`  : "一人で佇んでいる"),
+          o(1) ? `${o(1)}が揺れる`                  : "何かが揺れている",
+          o(0) ? `${o(0)}だけがここにある`           : "それだけがある",
+          s(2) || "静かに時間が過ぎる",
+        ]);
+        break;
+
+      case "Verse 2":
+        push(tag, [
+          o(2) ? `${o(2)}に触れながら`              : "手を伸ばして",
+          o(0) ? `${o(0)}が冷めていく`              : "時間が流れる",
+          o(1) ? `${o(1)}の音がする`                : "何かが鳴る",
+          s(0) || "終わりを待つ",
+        ]);
+        break;
+
+      case "Pre-Chorus":
+        push(tag, [
+          c0 || "それでも離れられない",
+          o(0) ? `${o(0)}の前で`                    : "ここにいる",
+        ]);
+        break;
+
+      case "Chorus":
+        push(tag, chorusLines);
+        break;
+
+      case "Bridge":
+        push(tag, [
+          s(2) || c1 || "光と影が交差する",
+          o(0) ? `${o(0)}は消えない`                : "それは永遠だ",
+          c1 !== c0 ? c1 : (o(1) ? `${o(1)}が問いかける` : "答えはどこだ"),
+        ]);
+        break;
+
+      case "Outro":
+        push(tag, [
+          o(0) ? `${o(0)}が消えていく`              : "静かに消えていく",
+          "また待つ",
+        ]);
+        break;
+    }
+  }
+
+  return sections.join("\n\n");
 }

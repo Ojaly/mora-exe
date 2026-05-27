@@ -14,7 +14,7 @@ import {
   buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt,
   buildStylePromptFromExpansion, buildNegativePromptFromExpansion,
 } from "@/lib/promptBuilder";
-import { buildLyricsDraft, draftToRaw } from "@/lib/lyricsBuilder";
+import { buildLyricsDraft, draftToRaw, buildExpansionLyricsFallback } from "@/lib/lyricsBuilder";
 import { analyzeLyrics, calcSongStats } from "@/lib/moraAnalyzer";
 import { detectAiPhrases, detectSyntaxPatterns } from "@/lib/phraseDetector";
 import { predictCollapse } from "@/lib/collapsePredictor";
@@ -335,15 +335,8 @@ export default function Home() {
   }, []);
 
   const handleGenerate = async () => {
-    // Expansion-first: use World Forge inference if available, fall back to legacy
-    const sp = expansion
-      ? buildStylePromptFromExpansion(expansion, input, input.theme)
-      : buildStylePrompt(input, preset);
-    const np = expansion
-      ? buildNegativePromptFromExpansion(expansion, input)
-      : buildNegativePrompt(input);
     const rp = buildRegeneratePrompt(input);
-    setStyle(sp); setNeg(np); setRegen(rp);
+    setRegen(rp);
     setIsSample(false);
     setMobile("prompt"); setRight("lyrics");
     setChangedLines([]);
@@ -353,11 +346,53 @@ export default function Home() {
     setLyricsRaw("");   // 前回lyrics即クリア — 同じWorldから引きずらないように
     setIsGenerating(true);
 
+    // ── PATH A: Expansion-first (World Forge was used) ──────────────────────
+    // When expansion is present EVERY stage uses expansion data.
+    // This path always returns — the legacy path below can never run.
+    if (expansion) {
+      const sp = buildStylePromptFromExpansion(expansion, input, input.theme);
+      const np = buildNegativePromptFromExpansion(expansion, input);
+      setStyle(sp);
+      setNeg(np);
+
+      try {
+        const res = await fetch("/api/ai/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ songInput: input, expansion }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.lyrics) {
+            setLyricsRaw(data.lyrics);
+            analyse(data.lyrics);
+            if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("claude"); }
+            setIsGenerating(false);
+            return;
+          }
+        }
+      } catch { /* fallthrough to expansion fallback */ }
+
+      // Expansion fallback: Claude unavailable — build lyrics from expansion data,
+      // NOT from generic mood pools. Style prompt is already expansion-based above.
+      const ly = buildExpansionLyricsFallback(expansion, input);
+      setLyricsRaw(ly);
+      analyse(ly);
+      setIsGenerating(false);
+      return; // ← hard return: expansion path never falls through to legacy
+    }
+
+    // ── PATH B: Legacy (no expansion — form input / manual settings) ────────
+    const sp = buildStylePrompt(input, preset);
+    const np = buildNegativePrompt(input);
+    setStyle(sp);
+    setNeg(np);
+
     try {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songInput: input, expansion }),
+        body: JSON.stringify({ songInput: input, expansion: null }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -372,7 +407,8 @@ export default function Home() {
     } catch { /* fallthrough */ }
 
     const ly = draftToRaw(buildLyricsDraft(input));
-    setLyricsRaw(ly); analyse(ly);
+    setLyricsRaw(ly);
+    analyse(ly);
     setIsGenerating(false);
   };
 
