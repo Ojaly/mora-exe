@@ -177,7 +177,7 @@ function buildLegacyUserPrompt(
   }Generate lyrics with these parameters:
 
 TITLE: ${input.title || "(未設定)"}
-GENRE: ${input.genre}
+GENRE: ${input.genreLock?.trim() || input.genre}
 MOOD: ${input.mood}
 VOCAL: ${input.vocalType}
 BPM: ${input.bpm || "120"}
