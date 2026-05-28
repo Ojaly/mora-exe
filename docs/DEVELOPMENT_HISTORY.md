@@ -289,7 +289,93 @@ Guided Mode         ← レガシー（dim表示、深く折りたたみ）
 
 ---
 
-## 9. 現在の到達点（2026-05）
+## 9. GENRE / STYLE 制御レイヤー整備（2026-05）
+
+### 9-1. Genre Lock Phase 1
+
+**問題意識：**
+World Forge が世界観を展開しても、Generate 時のジャンル制御が弱く、
+「J-Pop として作りたい」「Jazz に固定したい」という明示的な骨格指定ができなかった。
+
+**実装内容：**
+
+- GENRE / STYLE Controller を Sidebar に追加
+- `genreLock` フィールドを `SongInput` に追加（`""` = AI 任せ、値あり = ロック）
+- `[GENRE LOCK: X]` タグを Style Prompt の先頭に挿入（`buildStylePrompt` / `buildStylePromptFromExpansion`）
+- instruments / negative も genreLock に応じて切り替え（`GENRE_INSTRUMENTS` / `GENRE_NEGATIVES`）
+- `regenerateLyrics` でも genreLock を引き渡し
+- structure variation（`structureVariation.ts`）でも genreLock を考慮
+- Legacy lyrics AI（`/api/ai/generate`）のプロンプトに genreLock を反映
+- Forge 由来の `md.genreHint` は genreLock があっても上書きせず保持（世界観の個性を守る）
+
+**Forge lyrics（`/api/ai/generate` forged path）への追加：**
+- `GENRE LOCK` 行を system prompt に追加（Forge 経由でも骨格が固定される）
+
+**関連コミット：**
+`0d95f0c feat: add genre lock controller` /
+`4895c4f fix: respect genre lock in structure variation` /
+`a71c630 fix: pass genre lock to legacy lyrics prompt` /
+`07e78be fix: pass genre lock to forged lyrics prompt`
+
+---
+
+### 9-2. Style Modifiers Phase 2 MVP
+
+**問題意識：**
+Genre Lock で音楽骨格は固定できるようになったが、
+「bedroom っぽさ」「lo-fi 感」など音像の質感を積み重ねる手段がなかった。
+
+**実装内容：**
+
+- `subStyles` フィールドを `SongInput` に追加（`string[]`）
+- Sidebar に SUB STYLE チップを追加（複数選択可）
+- 初期チップ一覧：`bedroom` / `acoustic` / `lo-fi` / `analog` / `retro` / `minimal` / `lush` / `cinematic` / `distorted` / `danceable`
+- `buildStylePrompt` / `buildStylePromptFromExpansion` に `[Style Modifiers:]` タグとして反映
+- nudge チップ・API route は今回は触らず（既存 nudge との重複整理は次フェーズ）
+
+**関連コミット：**
+`e23e871 feat: add style modifiers`
+
+---
+
+### 9-3. Genre / Style localStorage 永続化
+
+**問題意識：**
+`genreLock` / `subStyles` は制作セッションをまたいで保持したい「制作環境設定」だが、
+React state のみで管理されていたためリロードで消えていた。
+
+**実装内容：**
+
+- `app/page.tsx` の既存 mounted パターンを踏襲し、2キーを永続化
+  - `mora-genre-lock`（string）
+  - `mora-sub-styles`（JSON string[]）
+- 読み込み：マウント時の単一 `useEffect` 内で `getItem` → 型ガード → `setInput` パッチ
+- 書き込み：`input.genreLock` / `input.subStyles` の変化を監視する write `useEffect`（mounted 後のみ）
+- `SongInput` 全体は保存しない（`title` / `theme` / `lyrics` などはセッション単位の揮発）
+- SAMPLE ボタンは `genreLock` / `subStyles` に触れない設計を維持
+- Clear / 全解除 → `setInput` 更新 → write `useEffect` が拾って localStorage も更新される
+
+**耐性設計：**
+- `mora-sub-styles` の `JSON.parse` は `try/catch` で保護
+- 配列でない場合は `[]` にフォールバック
+- `string` 以外の要素は `filter` で除外
+
+**関連コミット：**
+`d83c82b feat: persist genre style settings`
+
+---
+
+### 9-4. 追加された検収 docs
+
+| ファイル | 対象 |
+|----------|------|
+| `docs/genre-lock-phase1-checklist.md` | Genre Lock Phase 1 の検収チェックリスト |
+| `docs/style-modifiers-phase2-checklist.md` | Style Modifiers Phase 2 MVP の検収チェックリスト |
+| `docs/genre-style-persistence-checklist.md` | localStorage 永続化の検収チェックリスト（耐性テスト含む） |
+
+---
+
+## 10. 現在の到達点（2026-05）
 
 ### 実装済み
 
@@ -308,16 +394,54 @@ Guided Mode         ← レガシー（dim表示、深く折りたたみ）
 - [x] Prompt Memory（保存・復元）
 - [x] Tauri デスクトップアプリ対応
 - [x] expansion-first / legacy の完全二分岐
+- [x] Genre Lock（genreLock — Style Prompt / instruments / negative / structure variation に反映）
+- [x] Style Modifiers（subStyles チップ複数選択 — Style Prompt に反映）
+- [x] genreLock / subStyles の localStorage 永続化
+
+### 現在の制作レイヤー構造
+
+```
+WORLD SEED      = 世界観・素材（Source Alchemy → World Forge の出発点）
+GENRE LOCK      = 音楽骨格（J-Pop / Jazz / Rock など、外側の枠）
+STYLE MODIFIERS = 質感・音像タグ（bedroom / lo-fi / cinematic など、内側の色）
+FINE TUNE       = 微調整（nudge チップ / BPM / Key / 英語比率など）
+STRUCTURE       = 曲構成（preset / builder）
+NEGATIVE        = AI 悪癖封じ（Avoid / avoidAiCliche）
+```
 
 ### アーキテクチャの安定性
 
 - `expansion` がある場合の全ルートが expansion データのみを使うことを保証
 - Claude API 未設定でも Source Alchemy 以外はすべて rule-based で動作
 - フォーム地獄への退行を防ぐ原則が README・コメントに明文化
+- genreLock / subStyles は「環境設定」として localStorage で保持、曲ごとの入力とは分離
 
 ---
 
-## 10. 次回以降の改善候補
+## 11. 次回以降の改善候補
+
+### GENRE / STYLE 周り
+
+- **[ ] nudge 整理**  
+  既存の nudge チップと subStyles の役割が一部重複している。
+  どちらが Style Prompt に載るか・どちらを優先するかのルールを整理。
+
+- **[ ] GENRE_NEGATIVES 未定義ジャンル補完**  
+  `GENRE_NEGATIVES` に登録されていないジャンルが genreLock に選ばれると
+  negative が空になる。登録漏れの補完または汎用 fallback の追加。
+
+- **[ ] mood / vocalType 固定値問題の整理**  
+  `defaultInput` の `mood: "melancholic"` / `vocalType: "female"` が
+  World Forge の推定を上書きするケースがある。
+  固定 UI と Forge 推定の優先ルールを明文化。
+
+- **[ ] subStyles の有効値フィルタ**  
+  将来 subStyles 選択肢を変更した際、localStorage に旧キーが残る可能性がある。
+  読み込み時に現在の有効リストと照合してフィルタリングする実装を追加。
+
+- **[ ] Style Modifiers と nudge の重複整理**  
+  `bedroom` / `lo-fi` などは nudge と意味が近い。
+  Phase 3 でレイヤーの役割を再定義し、UI を整理する。
 
 ### Output Quality
 
