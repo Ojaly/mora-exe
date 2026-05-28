@@ -1,25 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background:    #F9FAFB;
-  --foreground:    #0d1117;
+  /* UI sans-serif — headings / tabs / buttons */
+  --ui-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
 
-  --bg-app:        #F1F5F9;
-  --bg-titlebar:   #ffffff;
-  --bg-sidebar:    #F1F5F9;
-  --bg-panel-hdr:  #EEF2F6;
-  --bg-center:     #ffffff;
-  --bg-right:      #ffffff;
-  --bg-editor:     #ffffff;
-  --bg-rewrite:    #ffffff;
-  --bg-neg:        #F8FAFC;
+  --background:    #F3F6FA;
+  --foreground:    #1E293B;
+
+  --bg-app:        #F3F6FA;
+  --bg-titlebar:   #FFFFFF;
+  --bg-sidebar:    #EEF3F8;
+  --bg-panel-hdr:  #E2EAF4;
+  --bg-center:     #F3F6FA;
+  --bg-right:      #F3F6FA;
+  --bg-editor:     #FFFFFF;
+  --bg-rewrite:    #FFFFFF;
+  --bg-neg:        #FFFFFF;
   --border:        #E2E8F0;
-  --border-strong: #CBD5E1;
+  --border-strong: #94A3B8;
 
-  /* Card primitives */
-  --card-bg:       #ffffff;
-  --card-border:   #E2E8F0;
-  --card-radius:   8px;
+  /* Card */
+  --card-bg:       #FFFFFF;
+  --card-border:   #CBD5E1;
+  --card-radius:   12px;
+  --card-shadow:   0 1px 3px rgba(15, 23, 42, 0.08);
+
+  /* Typography */
+  --heading:       #0F172A;
+  --body:          #1E293B;
+  --muted:         #64748B;
+  --placeholder:   #94A3B8;
+
+  /* Brand */
+  --blue:          #2563EB;
+  --blue-hover:    #1D4ED8;
+  --blue-bg:       #EFF6FF;
+  --blue-text:     #1D4ED8;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -42,53 +58,75 @@ body {
 .hide-scrollbar { scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ── Sidebar card primitive ─────────────────────────────────────────────────── */
+/* ── Card primitives ────────────────────────────────────────────────────────── */
 .sidebar-card {
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--card-radius);
   overflow: hidden;
+  box-shadow: var(--card-shadow);
 }
 
+/* Main content cards (CENTER / RIGHT panels) */
+.mora-card {
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+/* Card header row — shared across STYLE PROMPT / LYRICS / REWRITE TOOLS / NEGATIVE */
+.mora-card-hdr {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #CBD5E1;
+  background: var(--bg-panel-hdr);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #0F172A;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+/* ── UI sans-serif utility ── headings / tabs / buttons ── */
+.ui-sans { font-family: var(--ui-font); }
+
 .panel {
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--card-radius);
   padding: 14px;
+  box-shadow: var(--card-shadow);
 }
 
 /* Scanlines — off on light theme */
 .scanlines { display: none; }
 
-/* No glow on light */
 .neon-cyan { }
 .neon-pink { }
 
 /* ── Textarea caret ───────────────────────────────────────────────────────── */
-textarea { caret-color: #3B82F6; }
+textarea { caret-color: #2563EB; }
 
 /* ── PromptEditor token colors ────────────────────────────────────────────── */
-
-/* [Tag:] — blue */
-.pe-tag  { color: #2563EB; font-weight: 700; }
-/* tag value — near black */
-.pe-val  { color: #1e293b; }
-/* bare [Section] lines — purple */
+.pe-tag     { color: #2563EB; font-weight: 700; }
+.pe-val     { color: #1E293B; }
 .pe-section { color: #7C3AED; font-weight: 600; }
-/* plain/comment — muted slate */
-.pe-plain { color: #475569; }
+.pe-plain   { color: #475569; }
 
 /* ── LyricsEditor token colors ────────────────────────────────────────────── */
-
-/* [Chorus] etc. — deep violet */
-.le-tag  {
+.le-tag {
   color: #7C3AED;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
-/* Regular lyric lines — near black */
-.le-line { color: #1e293b; }
-/* Claude-changed lines — teal */
+.le-line { color: #1E293B; }
 .le-changed {
   color: #0a7c6e;
   background: #d3f5ef;

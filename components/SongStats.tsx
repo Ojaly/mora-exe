@@ -9,7 +9,7 @@ function ScoreBar({ score }: { score: number }) {
     score >= 80 ? "bg-emerald-500" : score >= 50 ? "bg-amber-400" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
-      <div className="w-20 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${color}`}
           style={{ width: `${score}%` }}
@@ -18,10 +18,10 @@ function ScoreBar({ score }: { score: number }) {
       <span
         className={`font-mono text-xs font-bold ${
           score >= 80
-            ? "text-emerald-400"
+            ? "text-emerald-600"
             : score >= 50
-            ? "text-amber-400"
-            : "text-red-400"
+            ? "text-amber-600"
+            : "text-red-600"
         }`}
       >
         {score}
@@ -60,7 +60,7 @@ function StatItem({
       <span className="text-[10px] font-mono text-zinc-600">{label}</span>
       <span
         className={`text-xs font-mono font-bold ${
-          warn ? "text-amber-400" : "text-zinc-300"
+          warn ? "text-amber-600" : "text-zinc-800"
         }`}
       >
         {value}

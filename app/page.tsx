@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
+import HeaderIcon from "@/components/HeaderIcon";
 import PromptEditor from "@/components/PromptEditor";
 import PromptLibraryPanel from "@/components/PromptLibraryPanel";
 import LyricsEditor from "@/components/LyricsEditor";
@@ -156,10 +157,10 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className={`px-4 h-full text-[13px] font-mono tracking-wider border-b-2 transition-colors ${
+      className={`px-4 h-full text-[13px] ui-sans border-b-2 transition-colors ${
         active
-          ? "border-blue-500 text-zinc-900 font-semibold bg-black/[0.04]"
-          : "border-transparent text-zinc-600 hover:text-zinc-900 hover:bg-black/[0.04]"
+          ? "border-[#2563EB] text-[#1D4ED8] font-bold bg-[#EFF6FF]"
+          : "border-transparent text-[#64748B] font-semibold hover:text-[#1E293B] hover:bg-white/60"
       }`}
     >
       {children}
@@ -177,7 +178,7 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
 
 function SampleBadge() {
   return (
-    <span className="self-center ml-auto mr-2 text-[12px] font-mono text-zinc-500 border border-[#E2E8F0] px-2 py-0.5 rounded tracking-wider">
+    <span className="self-center ml-auto mr-2 text-[12px] font-mono text-amber-600 border border-amber-300 bg-amber-50 px-2 py-0.5 rounded tracking-wider">
       SAMPLE
     </span>
   );
@@ -198,8 +199,10 @@ function CopyAllBtn({ onCopy, hasContent }: { onCopy: () => void; hasContent: bo
     <button
       onClick={() => { if (!hasContent) return; onCopy(); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
       disabled={!hasContent}
-      className={`text-[13px] font-mono px-3 py-1.5 rounded border font-bold transition-all disabled:opacity-20 disabled:cursor-default ${
-        copied ? "border-emerald-500 text-emerald-700 bg-emerald-50" : "border-[#c4cdd6] text-zinc-700 hover:border-blue-400 hover:text-blue-700"
+      className={`text-[13px] ui-sans px-4 py-1.5 font-bold transition-all disabled:opacity-30 disabled:cursor-default ${
+        copied
+          ? "rounded-[10px] border border-emerald-500 text-emerald-700 bg-emerald-50"
+          : "rounded-[10px] bg-[#2563EB] text-white hover:bg-[#1D4ED8] shadow-sm"
       }`}
     >
       {copied ? "COPIED ✓" : "COPY ALL"}
@@ -766,16 +769,17 @@ export default function Home() {
   // ─── Rewrite bar ──────────────────────────────────────────────────────────
 
   const rewriteBar = (
-    <div className="shrink-0 border-t border-[#E2E8F0]" style={{ background: "#ffffff" }}>
+    <div className="mora-card shrink-0">
 
       {/* REWRITE TOOLS header */}
-      <div className="flex items-center px-4 pt-2 pb-1.5 border-b border-[#E2E8F0]">
-        <span className="text-[11px] font-mono font-bold text-zinc-500 tracking-[0.15em] uppercase">REWRITE TOOLS</span>
+      <div className="mora-card-hdr">
+        <HeaderIcon name="refresh-cw" />
+        <span>REWRITE TOOLS</span>
       </div>
 
       {/* Row 1: SECTION + INTENSITY (compact combined row) */}
       <div className="flex items-center flex-wrap gap-x-3 gap-y-1 px-4 pt-2 pb-2 border-b border-[#E2E8F0]">
-        <span className="text-[11px] font-mono text-zinc-600 tracking-widest uppercase shrink-0">SECTION</span>
+        <span className="text-[11px] ui-sans text-zinc-600 tracking-widest uppercase font-bold shrink-0">SECTION</span>
         <div className="flex gap-1">
           {SECTION_OPTS.map(([val, lbl]) => (
             <button
@@ -792,7 +796,7 @@ export default function Home() {
           ))}
         </div>
         <div className="w-px h-3 bg-[#c4cdd6] shrink-0 mx-0.5" />
-        <span className="text-[11px] font-mono text-zinc-600 tracking-widest uppercase shrink-0">INTENSITY</span>
+        <span className="text-[11px] ui-sans text-zinc-600 tracking-widest uppercase font-bold shrink-0">INTENSITY</span>
         <div className="flex gap-1">
           {INTENSITY_OPTS.map(([lv, lbl]) => (
             <button
@@ -814,7 +818,7 @@ export default function Home() {
       <div className="px-4 pt-2 pb-1.5 space-y-1.5">
         {REWRITE_CATS.map(({ label, modes }) => (
           <div key={label} className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-mono text-zinc-500 tracking-[0.18em] uppercase w-12 shrink-0">
+            <span className="text-[11px] ui-sans font-bold text-zinc-500 tracking-[0.08em] uppercase w-12 shrink-0">
               {label}
             </span>
             {modes.map(([mode, display, tooltip]) => {
@@ -879,7 +883,7 @@ export default function Home() {
 
       {/* Row 4: Claude変更理由コメント (bordered box, only when present) */}
       {rewriteNotes && (
-        <div className="px-4 pb-2.5">
+        <div className="px-4 pb-3">
           <div className="border border-[#E2E8F0] rounded-lg px-3 py-2" style={{ background: "#F8FAFC" }}>
             <span className="text-[10px] font-mono text-zinc-500 tracking-widest uppercase font-semibold block mb-0.5">
               {sectionTarget !== "all" ? `${sectionTarget.toUpperCase()} · ` : ""}変更メモ
@@ -1014,58 +1018,97 @@ export default function Home() {
           />
         </aside>
 
-        {/* CENTER: Style Prompt / Library — flex 8 (≈40% of remaining) */}
+        {/* CENTER: Style Workspace */}
         <section
-          className="flex flex-col border-r border-[#E2E8F0] min-w-0"
+          className="flex flex-col border-r border-[#E2E8F0] min-w-0 overflow-hidden"
           style={{ flex: "8 1 0%", background: "var(--bg-center)" }}
         >
-          <PanelHeader>
-            <TabBtn active={centerTab === "prompt"} onClick={() => setCenterTab("prompt")}>
+          {/* Mini tab pills */}
+          <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2">
+            <button
+              onClick={() => setCenterTab("prompt")}
+              className={`text-[12px] ui-sans px-3 py-1 rounded-md border transition-colors ${
+                centerTab === "prompt"
+                  ? "bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
+                  : "border-[#CBD5E1] text-[#64748B] font-semibold hover:border-[#94A3B8] hover:text-[#1E293B]"
+              }`}
+            >
               STYLE PROMPT
-            </TabBtn>
-            <TabBtn active={centerTab === "library"} onClick={() => setCenterTab("library")}>
+            </button>
+            <button
+              onClick={() => setCenterTab("library")}
+              className={`text-[12px] ui-sans px-3 py-1 rounded-md border transition-colors ${
+                centerTab === "library"
+                  ? "bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
+                  : "border-[#CBD5E1] text-[#64748B] font-semibold hover:border-[#94A3B8] hover:text-[#1E293B]"
+              }`}
+            >
               {libraryIds.length > 0
                 ? `LIBRARY · ${libraryIds.length}`
                 : recommendations.length > 0
                   ? `LIBRARY ◆${recommendations.length}`
                   : "LIBRARY"}
-            </TabBtn>
+            </button>
             {centerTab === "prompt" && isSample && <SampleBadge />}
-            <div className="flex items-center gap-1.5 px-2 ml-auto">
-              {centerTab === "prompt" && <CopyBtn text={stylePrompt} label="COPY" />}
-            </div>
-          </PanelHeader>
+          </div>
 
           {centerTab === "prompt" ? (
-            <>
-              <PromptEditor
-                value={stylePrompt}
-                onChange={handleStyleEdit}
-                isSample={isSample}
-                placeholder="Generate後にStyle Promptがここに表示されます"
-              />
-              <div className="shrink-0 border-t border-[#E2E8F0]" style={{ background: "var(--bg-neg)" }}>
-                <div className="flex items-center px-5 pt-2.5 pb-1 gap-2">
-                  <span className="text-[12px] font-mono text-zinc-600 font-bold tracking-[0.15em]">NEGATIVE</span>
+            <div className="flex-1 min-h-0 flex flex-col gap-3 px-4 pb-4 overflow-hidden">
+              {/* STYLE PROMPT card */}
+              <div className="mora-card flex-1 min-h-0">
+                <div className="mora-card-hdr">
+                  <HeaderIcon name="file-text" />
+                  <span>STYLE PROMPT</span>
+                  <div className="ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
+                </div>
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                  <PromptEditor
+                    value={stylePrompt}
+                    onChange={handleStyleEdit}
+                    isSample={isSample}
+                    placeholder="Generate後にStyle Promptがここに表示されます"
+                  />
+                </div>
+              </div>
+
+              {/* NEGATIVE card */}
+              <div className="mora-card shrink-0">
+                <div className="mora-card-hdr">
+                  <HeaderIcon name="ban" />
+                  <span>NEGATIVE</span>
                   <div className="ml-auto"><CopyBtn text={negPrompt} label="COPY NEG" dim /></div>
                 </div>
                 <textarea
                   value={negPrompt}
                   onChange={(e) => setNeg(e.target.value)}
-                  rows={2}
-                  className="w-full bg-transparent resize-none px-5 pb-3 font-mono leading-relaxed focus:outline-none"
+                  rows={3}
+                  className="w-full bg-white resize-none px-4 py-3 font-mono leading-relaxed focus:outline-none"
                   style={{ color: "#44505c", fontSize: "14px" }}
                   spellCheck={false}
                 />
               </div>
-            </>
+            </div>
           ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto p-4">
-              <PromptLibraryPanel
-                selectedIds={libraryIds}
-                onSelectionChange={setLibraryIds}
-                recommendedItems={recommendations}
-              />
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-1">
+              <div className="mora-card">
+                <div className="mora-card-hdr">
+                  <HeaderIcon name="library" />
+                  <span>
+                    {libraryIds.length > 0
+                      ? `LIBRARY · ${libraryIds.length}`
+                      : recommendations.length > 0
+                        ? `LIBRARY ◆${recommendations.length}`
+                        : "LIBRARY"}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <PromptLibraryPanel
+                    selectedIds={libraryIds}
+                    onSelectionChange={setLibraryIds}
+                    recommendedItems={recommendations}
+                  />
+                </div>
+              </div>
             </div>
           )}
         </section>
@@ -1082,29 +1125,58 @@ export default function Home() {
             />
           )}
 
-          <PanelHeader>
-            <TabBtn active={rightView === "lyrics"} onClick={() => setRight("lyrics")}>LYRICS</TabBtn>
-            <TabBtn active={rightView === "tuner"}  onClick={() => setRight("tuner")}>
-              TUNER{dangers > 0 ? ` ▲${dangers}` : issues > 0 ? ` (${issues})` : ""}
-            </TabBtn>
-            {isSample && rightView === "lyrics" && <SampleBadge />}
-            <div className="flex items-center gap-1.5 px-2 ml-auto">
-              <CopyBtn text={lyrics} label="COPY" />
-            </div>
-          </PanelHeader>
-
-          {rightView === "lyrics" ? (
-            <>
-              <LyricsEditor
-                value={lyrics}
-                onChange={handleLyricsEdit}
-                isSample={isSample}
-                changedLines={changedLines}
-                placeholder="Generate後に歌詞がここに表示されます"
-              />
-              {rewriteBar}
-            </>
-          ) : tunerPanel}
+          <div className="flex-1 min-h-0 flex flex-col gap-3 px-4 pt-3 pb-4 overflow-hidden">
+            {rightView === "lyrics" ? (
+              <>
+                {/* LYRICS card */}
+                <div className="mora-card flex-1 min-h-0">
+                  <div className="mora-card-hdr">
+                    <HeaderIcon name="music" />
+                    <button
+                      onClick={() => setRight("lyrics")}
+                      className="text-[12px] ui-sans px-3 py-1 rounded-md border bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
+                    >LYRICS</button>
+                    <button
+                      onClick={() => setRight("tuner")}
+                      className="text-[12px] ui-sans font-semibold px-3 py-1 rounded-md border border-[#CBD5E1] text-[#64748B] hover:border-[#94A3B8] hover:text-[#1E293B] transition-colors"
+                    >
+                      TUNER{dangers > 0 ? ` ▲${dangers}` : issues > 0 ? ` (${issues})` : ""}
+                    </button>
+                    {isSample && <SampleBadge />}
+                    <div className="ml-auto"><CopyBtn text={lyrics} label="COPY" /></div>
+                  </div>
+                  <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <LyricsEditor
+                      value={lyrics}
+                      onChange={handleLyricsEdit}
+                      isSample={isSample}
+                      changedLines={changedLines}
+                      placeholder="Generate後に歌詞がここに表示されます"
+                    />
+                  </div>
+                </div>
+                {rewriteBar}
+              </>
+            ) : (
+              /* TUNER card */
+              <div className="mora-card flex-1 min-h-0">
+                <div className="mora-card-hdr">
+                  <HeaderIcon name="music" />
+                  <button
+                    onClick={() => setRight("lyrics")}
+                    className="text-[12px] ui-sans font-semibold px-3 py-1 rounded-md border border-[#CBD5E1] text-[#64748B] hover:border-[#94A3B8] hover:text-[#1E293B] transition-colors"
+                  >LYRICS</button>
+                  <button
+                    onClick={() => setRight("tuner")}
+                    className="text-[12px] ui-sans px-3 py-1 rounded-md border bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
+                  >
+                    TUNER{dangers > 0 ? ` ▲${dangers}` : issues > 0 ? ` (${issues})` : ""}
+                  </button>
+                </div>
+                {tunerPanel}
+              </div>
+            )}
+          </div>
         </section>
       </div>
 
@@ -1150,17 +1222,21 @@ export default function Home() {
         {mobileTab === "prompt" && (
           <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--bg-center)" }}>
             <PanelHeader>
-              <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-widest">STYLE PROMPT</span>
+              <span className="flex items-center px-3 text-[14px] font-mono font-bold text-[#0F172A] tracking-[0.10em]">STYLE PROMPT</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
             </PanelHeader>
-            <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
+            <div className="flex-1 min-h-0 px-4 pt-4 pb-4 flex flex-col overflow-hidden">
+              <div className="flex-1 min-h-0 rounded-xl border border-[#CBD5E1] bg-white overflow-hidden flex flex-col" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}>
+                <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
+              </div>
+            </div>
           </div>
         )}
         {mobileTab === "library" && (
           <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--bg-center)" }}>
             <PanelHeader>
-              <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-widest">
+              <span className="flex items-center px-3 text-[14px] font-mono font-bold text-[#0F172A] tracking-[0.10em]">
                 {libraryIds.length > 0 ? `LIBRARY · ${libraryIds.length}` : "LIBRARY"}
               </span>
             </PanelHeader>
@@ -1179,11 +1255,15 @@ export default function Home() {
               <MemoryPanel onClose={() => setShowMemory(false)} onRestore={handleRestoreMemory} />
             )}
             <PanelHeader>
-              <span className="flex items-center px-3 text-[13px] font-mono text-zinc-700 tracking-widest">LYRICS</span>
+              <span className="flex items-center px-3 text-[14px] font-mono font-bold text-[#0F172A] tracking-[0.10em]">LYRICS</span>
               {isSample && <SampleBadge />}
               <div className="flex items-center px-2 ml-auto"><CopyBtn text={lyrics} label="COPY" /></div>
             </PanelHeader>
-            <LyricsEditor value={lyrics} onChange={handleLyricsEdit} isSample={isSample} changedLines={changedLines} placeholder="Generate後に歌詞がここに表示されます" />
+            <div className="flex-1 min-h-0 px-4 pt-4 pb-3 flex flex-col overflow-hidden">
+              <div className="flex-1 min-h-0 rounded-xl border border-[#CBD5E1] bg-white overflow-hidden flex flex-col" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}>
+                <LyricsEditor value={lyrics} onChange={handleLyricsEdit} isSample={isSample} changedLines={changedLines} placeholder="Generate後に歌詞がここに表示されます" />
+              </div>
+            </div>
             {rewriteBar}
           </div>
         )}

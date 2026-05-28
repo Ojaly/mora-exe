@@ -23,7 +23,7 @@ function MoraBar({ count }: { count: number }) {
   const color =
     count > 14 ? "bg-red-500" : count <= 3 && count > 0 ? "bg-amber-400" : "bg-emerald-500";
   return (
-    <div className="w-12 h-1 bg-zinc-800 rounded-full overflow-hidden">
+    <div className="w-12 h-1 bg-slate-200 rounded-full overflow-hidden">
       <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
     </div>
   );
@@ -47,8 +47,11 @@ export default function MoraTunerPanel({
 
   if (!lyrics || moraLines.length === 0) {
     return (
-      <div className="text-center text-zinc-700 text-xs font-mono py-12">
-        LYRICSタブで歌詞を編集後、「MORA TUNER で分析する」を押してください
+      <div className="flex flex-col items-center justify-center py-12 gap-2">
+        <span className="text-zinc-400 text-2xl">♩</span>
+        <p className="text-[13px] font-mono text-zinc-500 text-center">
+          歌詞を入力すると<br />モーラ分析が表示されます
+        </p>
       </div>
     );
   }
@@ -73,7 +76,7 @@ export default function MoraTunerPanel({
     <div className="space-y-3">
       {/* Stats */}
       {songStats && (
-        <div className="pb-2 border-b border-zinc-800">
+        <div className="pb-2 border-b border-[#E2E8F0]">
           <SongStatsBar stats={songStats} />
         </div>
       )}
@@ -84,10 +87,10 @@ export default function MoraTunerPanel({
           <button
             key={key}
             onClick={() => setSubTab(key)}
-            className={`px-3 py-1 text-[10px] font-mono rounded transition-colors ${
+            className={`px-3 py-1 text-[11px] font-mono rounded border transition-colors ${
               subTab === key
-                ? "bg-zinc-700 text-zinc-200"
-                : "text-zinc-600 hover:text-zinc-400"
+                ? "bg-white border-[#CBD5E1] text-zinc-900 font-semibold shadow-sm"
+                : "border-transparent text-zinc-500 hover:text-zinc-800"
             }`}
           >
             {label}
@@ -96,9 +99,9 @@ export default function MoraTunerPanel({
         {dangerCount > 0 && (
           <button
             onClick={onApplyAll}
-            className="ml-auto px-2 py-1 text-[10px] font-mono border border-amber-800 text-amber-500 rounded hover:bg-amber-950 transition-colors"
+            className="ml-auto px-2 py-1 text-[11px] font-mono border border-amber-300 text-amber-700 bg-amber-50 rounded hover:bg-amber-100 transition-colors"
           >
-            [AUTO FIX ALL]
+            AUTO FIX ALL
           </button>
         )}
       </div>
@@ -112,7 +115,7 @@ export default function MoraTunerPanel({
             if (isTag) {
               return (
                 <div key={line.lineNumber} className="py-0.5">
-                  <span className="text-[10px] font-mono text-zinc-600">{line.text}</span>
+                  <span className="text-[11px] font-mono text-violet-600 font-semibold">{line.text}</span>
                 </div>
               );
             }
@@ -120,36 +123,36 @@ export default function MoraTunerPanel({
             const isExpanded = expandedSuggestions.has(line.lineNumber);
             const dangerColor =
               line.danger === "long"
-                ? "text-red-400"
+                ? "text-red-600"
                 : line.danger === "short"
-                ? "text-amber-400"
-                : "text-zinc-300";
+                ? "text-amber-600"
+                : "text-zinc-700";
 
             return (
               <div
                 key={line.lineNumber}
                 className={`rounded ${
-                  suggestion ? "bg-zinc-900/60 border border-zinc-800" : ""
+                  suggestion ? "bg-amber-50 border border-amber-200" : ""
                 }`}
               >
                 <div
                   className={`flex items-center gap-2 px-2 py-1 ${
-                    suggestion ? "cursor-pointer hover:bg-zinc-800/40" : ""
+                    suggestion ? "cursor-pointer hover:bg-amber-100/60" : ""
                   }`}
                   onClick={() => suggestion && toggleSuggestion(line.lineNumber)}
                 >
-                  <span className="text-[10px] font-mono text-zinc-700 w-6 text-right shrink-0">
+                  <span className="text-[10px] font-mono text-zinc-400 w-6 text-right shrink-0">
                     {line.lineNumber}
                   </span>
                   <MoraBar count={line.moraCount} />
-                  <span className={`text-[10px] font-mono w-5 shrink-0 ${dangerColor}`}>
+                  <span className={`text-[11px] font-mono w-5 shrink-0 font-bold ${dangerColor}`}>
                     {line.moraCount}
                   </span>
-                  <span className={`text-xs font-mono flex-1 truncate ${dangerColor}`}>
+                  <span className={`text-[12px] font-mono flex-1 truncate ${dangerColor}`}>
                     {line.text}
                   </span>
                   {suggestion && (
-                    <span className="text-[10px] font-mono text-zinc-600 shrink-0">
+                    <span className="text-[10px] font-mono text-zinc-400 shrink-0">
                       {isExpanded ? "▲" : "▼"} fix
                     </span>
                   )}
@@ -158,7 +161,7 @@ export default function MoraTunerPanel({
                 {/* Inline suggestions */}
                 {suggestion && isExpanded && (
                   <div className="px-3 pb-2 space-y-1">
-                    <p className="text-[10px] font-mono text-zinc-600 mb-1">
+                    <p className="text-[11px] font-mono text-zinc-500 mb-1">
                       {suggestion.danger === "long"
                         ? `▲ ${suggestion.moraCount}モーラ — 以下から選択または分割:`
                         : `▼ ${suggestion.moraCount}モーラ — 行を延長:`}
@@ -174,7 +177,7 @@ export default function MoraTunerPanel({
                               : alt
                           )
                         }
-                        className="block w-full text-left px-2 py-1 text-xs font-mono text-zinc-300 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700 hover:border-cyan-800 transition-colors"
+                        className="block w-full text-left px-2 py-1 text-[12px] font-mono text-zinc-700 bg-white hover:bg-slate-50 rounded border border-[#E2E8F0] hover:border-slate-400 transition-colors"
                       >
                         {Array.isArray(suggestion.alternatives) &&
                         suggestion.danger === "long" &&

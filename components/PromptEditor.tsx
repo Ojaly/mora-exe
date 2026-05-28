@@ -74,10 +74,13 @@ export default function PromptEditor({ value, onChange, isSample, placeholder }:
       {!value && placeholder && (
         <div
           aria-hidden="true"
-          className={`absolute inset-0 ${PAD} ${MONO} whitespace-pre-wrap pointer-events-none select-none`}
-          style={{ color: "#CBD5E1" }}
+          className="absolute inset-0 flex items-center justify-center pointer-events-none select-none px-8 py-12"
         >
-          {placeholder}
+          <div className="border border-dashed border-[#94A3B8] rounded-2xl bg-[#F8FAFC] px-8 py-10 text-center max-w-sm w-full" style={{ boxShadow: "inset 0 1px 4px rgba(15,23,42,0.04)" }}>
+            <div className="text-[28px] mb-3 text-[#94A3B8]">✦</div>
+            <p className="font-mono text-[13px] font-semibold text-[#475569] leading-relaxed">{placeholder}</p>
+            <p className="font-mono text-[12px] text-[#94A3B8] mt-2 leading-relaxed">Seed を書いて Generate してください</p>
+          </div>
         </div>
       )}
 

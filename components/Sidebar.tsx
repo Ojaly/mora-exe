@@ -9,6 +9,7 @@ import WorldForge from "@/components/WorldForge";
 import SourceAlchemy from "@/components/SourceAlchemy";
 import StructureBlueprint from "@/components/StructureBlueprint";
 import { getPromptItemById, PromptLibraryItem } from "@/lib/promptLibrary";
+import HeaderIcon from "@/components/HeaderIcon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -204,13 +205,15 @@ function Toggle({ checked, onChange, label }: {
 
 function CollapseSection({
   label,
+  icon,
   sub,
   open,
   onToggle,
   children,
   dim,
 }: {
-  label: string;
+  label: React.ReactNode;
+  icon?: string;
   sub?: string;
   open: boolean;
   onToggle: () => void;
@@ -221,15 +224,22 @@ function CollapseSection({
     <div className="sidebar-card">
       <button
         onClick={onToggle}
-        className="w-full flex items-start gap-2 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors"
+        className="w-full flex items-start gap-2 px-3 py-3 text-left hover:bg-[#EEF3F8] transition-colors"
       >
-        <div className="flex-1 min-w-0">
-          <span className={`text-[11px] font-mono tracking-[0.12em] uppercase font-bold ${dim ? "text-zinc-400" : "text-zinc-700"}`}>
-            {open ? "▾" : "▸"} {label}
-          </span>
-          {!open && sub && (
-            <p className="text-[11px] font-mono text-zinc-400 mt-0.5 font-normal normal-case tracking-normal leading-tight">{sub}</p>
+        <div className="flex-1 min-w-0 flex items-start gap-2">
+          {icon && (
+            <span className={`mt-[1px] shrink-0 ${dim ? "opacity-40" : "opacity-70"}`}>
+              <HeaderIcon name={icon} />
+            </span>
           )}
+          <div className="flex-1 min-w-0">
+            <span className={`text-[13px] ui-sans tracking-[0.02em] uppercase font-extrabold leading-tight ${dim ? "text-zinc-400" : "text-[#0F172A]"}`}>
+              {open ? "▾" : "▸"} {label}
+            </span>
+            {!open && sub && (
+              <p className="text-[11px] font-mono text-zinc-400 mt-0.5 font-normal normal-case tracking-normal leading-tight">{sub}</p>
+            )}
+          </div>
         </div>
       </button>
       {open && (
@@ -255,6 +265,25 @@ const NUDGE_OPTIONS = [
   // Vocal
   "male vocal", "female vocal",
 ] as const;
+
+const NUDGE_LABELS: Record<string, string> = {
+  "more aggressive":  "もっと攻撃的に",
+  "more intimate":    "もっと親密に",
+  "more epic":        "もっと壮大に",
+  "darker":           "暗めに",
+  "brighter":         "明るめに",
+  "slower":           "遅めに",
+  "faster":           "速めに",
+  "more analog":      "アナログ感を強める",
+  "drier mix":        "ドライなミックス",
+  "more reverb":      "リバーブ多め",
+  "noisier":          "ノイズ感を足す",
+  "lo-fi":            "ローファイ寄り",
+  "less cinematic":   "映画っぽさを抑える",
+  "minimal production": "最小限の編成",
+  "male vocal":       "男性ボーカル",
+  "female vocal":     "女性ボーカル",
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -366,22 +395,24 @@ export default function Sidebar({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-3 space-y-2">
 
-        {/* ── COMPOSE CONTROL ヘッダー ────────────────────────────────────── */}
-        <div className="px-1 pb-1">
-          <p className="text-[13px] font-mono font-bold text-zinc-700 tracking-[0.05em]">COMPOSE CONTROL</p>
-          <p className="text-[11px] font-mono text-zinc-400 mt-0.5 leading-snug">Seed → Forge → Structure → Generate</p>
-        </div>
+      {/* ── COMPOSE CONTROL 固定ヘッダー ──────────────────────────────────── */}
+      <div className="shrink-0 h-11 border-b border-[#E2E8F0] flex items-center px-4 gap-2.5 select-none" style={{ background: "var(--bg-panel-hdr)" }}>
+        <HeaderIcon name="sliders" className="opacity-80" />
+        <span className="text-[15px] ui-sans font-extrabold text-[#0F172A] tracking-[0.02em] uppercase">COMPOSE CONTROL</span>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-3 space-y-2">
 
         {/* ══ 0. SOURCE ALCHEMY ════════════════════════════════════════════════ */}
         <div className="sidebar-card">
           <button
             onClick={() => setAlchemyOpen((v) => !v)}
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-3 text-left hover:bg-slate-50 transition-colors"
           >
-            <span className="text-[11px] font-mono tracking-[0.12em] uppercase font-bold shrink-0 text-violet-600">
-              {alchemyOpen ? "▾" : "▸"} ⚗ Source Alchemy
+            <span className="text-[13px] ui-sans tracking-[0.02em] uppercase font-extrabold shrink-0 text-violet-600 flex items-center gap-2">
+              <HeaderIcon name="sparkles" className="opacity-80" />
+              {alchemyOpen ? "▾" : "▸"} Source Alchemy
             </span>
             {!alchemyOpen && (
               <span className="text-[11px] font-mono text-zinc-400 ml-1 font-normal normal-case tracking-normal">
@@ -416,15 +447,21 @@ export default function Sidebar({
         {/* ══ 2. FINE TUNE (collapsible) ════════════════════════════════════════ */}
         <CollapseSection
           label="2. FINE TUNE"
+          icon="sliders-horizontal"
           sub="方向性・BPM・言語比率などの詳細設定"
           open={fineTuneOpen}
           onToggle={() => setFineTuneOpen((v) => !v)}
         >
           {/* Direction adjust chips */}
           <div className="space-y-1.5 py-1">
-            <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
-              Direction Adjust
-            </span>
+            <div>
+              <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
+                方向性を微調整
+              </span>
+              <span className="text-[10px] font-mono text-zinc-400 leading-snug">
+                生成前に曲の方向性を少しだけ寄せる
+              </span>
+            </div>
             <div className="flex flex-wrap gap-1">
               {NUDGE_OPTIONS.map((n) => {
                 const active = activeNudges.includes(n);
@@ -438,7 +475,7 @@ export default function Sidebar({
                         : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                   >
-                    {active ? "· " : ""}{n}
+                    {active ? "· " : ""}{NUDGE_LABELS[n] ?? n}
                   </button>
                 );
               })}
@@ -448,7 +485,7 @@ export default function Sidebar({
                 onClick={() => set("nudges", [])}
                 className="text-[10px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
               >
-                ✕ clear all
+                ✕ クリア
               </button>
             )}
           </div>
@@ -567,6 +604,7 @@ export default function Sidebar({
                   ? "3. STRUCTURE · preset"
                   : "3. STRUCTURE"
           }
+          icon="list-tree"
           sub="曲の流れ・セクション構成を指定"
           open={structureOpen}
           onToggle={() => setStructureOpen((v) => !v)}
@@ -592,6 +630,7 @@ export default function Sidebar({
                   ? `4. PROMPT LIBRARY · ◆${recommendations.length}`
                   : "4. PROMPT LIBRARY"
           }
+          icon="library"
           sub="音色・質感・構成語彙を追加"
           open={libraryOpen}
           onToggle={() => setLibraryOpen((v) => !v)}
@@ -796,7 +835,7 @@ export default function Sidebar({
         {/* Active nudges hint */}
         {activeNudges.length > 0 && (
           <p className="text-[11px] font-mono text-blue-500 mb-1.5 leading-snug truncate">
-            ↳ {activeNudges.join(" · ")}
+            ↳ {activeNudges.map((n) => NUDGE_LABELS[n] ?? n).join(" · ")}
           </p>
         )}
         {expansion && !isGenerating && (
@@ -812,12 +851,12 @@ export default function Sidebar({
         <button
           onClick={onGenerate}
           disabled={isGenerating || builderIsEmpty}
-          className={`w-full py-3 font-mono font-bold text-[14px] tracking-widest rounded-lg transition-colors disabled:cursor-not-allowed ${
+          className={`w-full py-3 ui-sans font-extrabold text-[15px] rounded-[10px] transition-colors disabled:cursor-not-allowed shadow-sm ${
             isGenerating
-              ? "bg-blue-200 text-blue-500 animate-pulse"
+              ? "bg-blue-300 text-white animate-pulse"
               : builderIsEmpty
-                ? "bg-zinc-200 text-zinc-400"
-                : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white"
+                ? "bg-slate-200 text-slate-400"
+                : "bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white"
           }`}
         >
           {isGenerating ? "… GENERATING" : expansion ? "↺ RE-GENERATE" : "▶  GENERATE"}

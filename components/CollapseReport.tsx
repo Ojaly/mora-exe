@@ -5,9 +5,9 @@ interface Props {
 }
 
 const SEV = {
-  high:   { label: "HIGH", cls: "text-red-400 border-red-800 bg-red-950/50" },
-  medium: { label: "MED",  cls: "text-amber-400 border-amber-800 bg-amber-950/40" },
-  low:    { label: "LOW",  cls: "text-zinc-400 border-zinc-700 bg-zinc-900/60" },
+  high:   { label: "HIGH", cls: "text-red-700 border-red-200 bg-red-50" },
+  medium: { label: "MED",  cls: "text-amber-700 border-amber-200 bg-amber-50" },
+  low:    { label: "LOW",  cls: "text-zinc-600 border-[#E2E8F0] bg-slate-50" },
 };
 
 const TYPE_ICON: Record<string, string> = {
@@ -29,17 +29,17 @@ export default function CollapseReport({ risks }: Props) {
       <div className="flex items-center justify-between">
         <p className="text-xs text-zinc-500 font-mono tracking-widest">// COLLAPSE PREDICTION</p>
         <div className="flex items-center gap-2 font-mono text-xs">
-          {high   > 0 && <span className="text-red-400">{high}H</span>}
-          {medium > 0 && <span className="text-amber-400">{medium}M</span>}
+          {high   > 0 && <span className="text-red-600">{high}H</span>}
+          {medium > 0 && <span className="text-amber-600">{medium}M</span>}
           {low    > 0 && <span className="text-zinc-500">{low}L</span>}
-          {risks.length === 0 && <span className="text-emerald-500">CLEAN</span>}
+          {risks.length === 0 && <span className="text-emerald-600">CLEAN</span>}
         </div>
       </div>
 
       {risks.length === 0 ? (
-        <div className="flex items-center gap-2 px-3 py-2 rounded border border-emerald-900 bg-emerald-950/30">
-          <span className="text-emerald-400 font-mono text-xs">✓</span>
-          <span className="text-xs text-emerald-400 font-mono">崩壊リスクなし</span>
+        <div className="flex items-center gap-2 px-3 py-2 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-mono text-xs">✓</span>
+          <span className="text-xs text-emerald-700 font-mono">崩壊リスクなし</span>
         </div>
       ) : (
         <div className="space-y-1 max-h-56 overflow-y-auto">
