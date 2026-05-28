@@ -271,6 +271,11 @@ const GENRE_OPTIONS: Array<[string, string]> = [
   ["cinematic",  "Cinematic"],
   ["funk",       "Funk/Soul"],
   ["kpop",       "K-Pop"],
+  // Micro genres — Phase 2 (batch 1)
+  ["electro-funk",           "Electro Funk"],
+  ["corporate-electro-funk", "Corp.E.Funk"],
+  ["digital-motown",         "Dig. Motown"],
+  ["nu-disco-soul",          "Nu Disco Soul"],
 ];
 
 // ─── Nudge chips ──────────────────────────────────────────────────────────────

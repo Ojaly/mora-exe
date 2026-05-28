@@ -24,6 +24,11 @@ export const GENRE_MAP: Record<string, string> = {
   metal: "Metal / Hard Rock", jazz: "Jazz / Neo-Soul", ambient: "Ambient / Atmospheric",
   // Phase 1 additions (Genre Controller)
   cinematic: "Cinematic / Orchestral", funk: "Funk / Soul", kpop: "K-Pop",
+  // Micro genres — Phase 2 (batch 1)
+  "electro-funk":           "Electro Funk",
+  "corporate-electro-funk": "Corporate Electro Funk",
+  "digital-motown":         "Digital Motown",
+  "nu-disco-soul":          "Nu Disco Soul",
 };
 const MOOD_MAP: Record<string, string> = {
   melancholic: "melancholic, introspective, bittersweet",
@@ -59,6 +64,11 @@ const INSTRUMENTS_MAP: Record<string, string> = {
   metal: "distorted guitar, double kick drums, power bass, shredding leads",
   jazz: "upright bass, jazz piano, brushed snare, muted trumpet",
   ambient: "sustained pads, field recordings, slow evolving textures",
+  // Micro genres — Phase 2 (batch 1)
+  "electro-funk":           "Roland Juno-106, LinnDrum, synth slap bass, filtered chord stabs, drum machine",
+  "corporate-electro-funk": "Roland Juno-106, LinnDrum, vocoder, rhythm synth guitar, sterile bass synth",
+  "digital-motown":         "electric bass, Fender Rhodes, programmed strings, subtle drum machine, soul vocals",
+  "nu-disco-soul":          "four-on-the-floor kick, synth strings, bass guitar, disco pads, warm vocals",
 };
 const TEXTURE_MAP: Record<string, string> = {
   melancholic: "sparse, intimate, wide reverb",
@@ -189,6 +199,11 @@ export function buildNegativePrompt(input: SongInput): string {
     cinematic:  "generic trailer music swell, four-chord epic loop, action-brass stinger",
     funk:       "over-quantized sterile groove, generic wah-wah cliché, lifeless programmed funk bass",
     kpop:       "generic idol-group production formula, overprocessed vocal effect, formulaic energy-drop prechorus",
+    // Micro genres — Phase 2 (batch 1)
+    "electro-funk":           "acoustic blues guitar, orchestral soul, upright piano ballad, organic folk instrumentation",
+    "corporate-electro-funk": "organic R&B warmth, acoustic instrumentation, blues improvisation, live drum feel",
+    "digital-motown":         "heavy synth leads, aggressive EDM drop, distorted guitar, trap hi-hat spam",
+    "nu-disco-soul":          "acoustic folk strumming, heavy metal riff, pure ambient drone, lo-fi crackle",
   };
 
   // Use genreLock key when set, otherwise fall back to input.genre
@@ -259,17 +274,23 @@ export function buildStylePromptFromExpansion(
   }
 
   // ── S1: Genre / subStyles / atmosphere / BPM ──────────────────────────────
+  // When genreLock is set, use GENRE_MAP[genreLock] as the genre root (not Forge's md.genreHint).
+  // Forge atmosphere is kept — it carries the mood/texture interpretation, not the genre identity.
   const bpmNum = input.bpm ? parseInt(input.bpm, 10) : md.bpmEstimate;
   const bpmStr = bpmNum && !isNaN(bpmNum) ? `, ${bpmNum} BPM` : "";
   const tempoStr = !bpmStr && md.tempoFeel ? `, ${md.tempoFeel}` : "";
   const keyStr = input.key ? `, key of ${input.key}` : "";
   const subStyleStrExp = (input.subStyles ?? []).join(", ");
 
+  const genreRoot = lockedGenreExp
+    ? (GENRE_MAP[lockedGenreExp] ?? lockedGenreExp)
+    : md.genreHint;
+
   let s1 = "";
-  if (md.genreHint && md.atmosphere) {
-    s1 = `${md.genreHint}${subStyleStrExp ? `, ${subStyleStrExp}` : ""} with ${md.atmosphere}`;
+  if (genreRoot && md.atmosphere) {
+    s1 = `${genreRoot}${subStyleStrExp ? `, ${subStyleStrExp}` : ""} with ${md.atmosphere}`;
   } else {
-    s1 = md.genreHint || md.atmosphere || "";
+    s1 = genreRoot || md.atmosphere || "";
     if (s1 && subStyleStrExp) s1 = `${s1}, ${subStyleStrExp}`;
     else if (!s1) s1 = subStyleStrExp;
   }
@@ -282,7 +303,12 @@ export function buildStylePromptFromExpansion(
   }
 
   // ── S3: Instruments ────────────────────────────────────────────────────────
-  if (md.instruments.length > 0) {
+  // When genreLock is set and INSTRUMENTS_MAP has an entry for it, use that — it prevents
+  // Forge from injecting incompatible instruments (e.g. upright bass + brushed snare into Electro Funk).
+  const lockedInstruments = lockedGenreExp ? INSTRUMENTS_MAP[lockedGenreExp] : undefined;
+  if (lockedInstruments) {
+    sentences.push(cap(naturalList(lockedInstruments.split(/,\s*/))) + ".");
+  } else if (md.instruments.length > 0) {
     sentences.push(cap(naturalList(md.instruments)) + ".");
   }
 
