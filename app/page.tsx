@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import HeaderIcon from "@/components/HeaderIcon";
 import PromptEditor from "@/components/PromptEditor";
 import PromptLibraryPanel from "@/components/PromptLibraryPanel";
+import PromptBuilder12Panel from "@/components/PromptBuilder12Panel";
 import LyricsEditor from "@/components/LyricsEditor";
 import MoraTunerPanel from "@/components/MoraTunerPanel";
 import {
@@ -81,8 +82,8 @@ const SAMPLE_LYRICS = `[Intro]
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type RightView = "lyrics" | "tuner";
-type CenterTab = "prompt" | "library";
-type MobileTab = "concept" | "prompt" | "lyrics" | "tuner" | "library";
+type CenterTab = "prompt" | "library" | "builder";
+type MobileTab = "concept" | "prompt" | "lyrics" | "tuner" | "library" | "builder";
 
 const defaultInput: SongInput = {
   title: "", theme: "", genre: "jpop", bpm: "", key: "", mood: "",
@@ -996,11 +997,12 @@ export default function Home() {
         className="relative z-10 shrink-0 flex h-9 border-b border-[#E2E8F0] lg:hidden"
         style={{ background: "var(--bg-panel-hdr)" }}
       >
-        {(["concept", "prompt", "library", "lyrics", "tuner"] as MobileTab[]).map((t) => (
+        {(["concept", "prompt", "library", "lyrics", "tuner", "builder"] as MobileTab[]).map((t) => (
           <TabBtn key={t} active={mobileTab === t} onClick={() => setMobile(t)}>
-            {t === "tuner"   && dangers > 0       ? `TUNER ▲${dangers}` :
+            {t === "tuner"   && dangers > 0          ? `TUNER ▲${dangers}` :
              t === "library" && libraryIds.length > 0 ? `LIB·${libraryIds.length}` :
              t === "library" && recommendations.length > 0 ? `LIB◆${recommendations.length}` :
+             t === "builder"                           ? "BLDR" :
              t.toUpperCase()}
           </TabBtn>
         ))}
@@ -1045,7 +1047,6 @@ export default function Home() {
             onBuilderSectionsChange={setBuilderSections}
             builderIsEmpty={builderIsEmpty}
             mounted={mounted}
-            onBuilderApply={setStylePromptOverride}
             stylePromptOverride={stylePromptOverride}
             onClearStylePromptOverride={() => setStylePromptOverride("")}
           />
@@ -1082,10 +1083,20 @@ export default function Home() {
                   ? `LIBRARY ◆${recommendations.length}`
                   : "LIBRARY"}
             </button>
+            <button
+              onClick={() => setCenterTab("builder")}
+              className={`text-[12px] ui-sans px-3 py-1 rounded-md border transition-colors ${
+                centerTab === "builder"
+                  ? "bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
+                  : "border-[#CBD5E1] text-[#64748B] font-semibold hover:border-[#94A3B8] hover:text-[#1E293B]"
+              }`}
+            >
+              {stylePromptOverride ? "BUILDER · active" : "BUILDER"}
+            </button>
             {centerTab === "prompt" && isSample && <SampleBadge />}
           </div>
 
-          {centerTab === "prompt" ? (
+          {centerTab === "prompt" && (
             <div className="flex-1 min-h-0 flex flex-col gap-3.5 px-4 pb-4 overflow-hidden">
               {/* STYLE PROMPT card */}
               <div className="mora-card flex-1 min-h-0">
@@ -1121,7 +1132,9 @@ export default function Home() {
                 />
               </div>
             </div>
-          ) : (
+          )}
+
+          {centerTab === "library" && (
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-1">
               <div className="mora-card">
                 <div className="mora-card-hdr">
@@ -1141,6 +1154,19 @@ export default function Home() {
                     recommendedItems={recommendations}
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {centerTab === "builder" && (
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-2">
+              <div className="max-w-2xl mx-auto">
+                <PromptBuilder12Panel
+                  onApply={(p) => {
+                    setStylePromptOverride(p);
+                    setCenterTab("prompt");
+                  }}
+                />
               </div>
             </div>
           )}
@@ -1253,7 +1279,6 @@ export default function Home() {
               onBuilderSectionsChange={setBuilderSections}
               builderIsEmpty={builderIsEmpty}
               mounted={mounted}
-              onBuilderApply={(p) => { setStylePromptOverride(p); setMobile("prompt"); }}
               stylePromptOverride={stylePromptOverride}
               onClearStylePromptOverride={() => setStylePromptOverride("")}
             />
@@ -1308,6 +1333,21 @@ export default function Home() {
           </div>
         )}
         {mobileTab === "tuner" && tunerPanel}
+        {mobileTab === "builder" && (
+          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--bg-center)" }}>
+            <PanelHeader>
+              <span className="flex items-center px-3 text-[14px] font-mono font-bold text-[#0F172A] tracking-[0.10em]">BUILDER</span>
+            </PanelHeader>
+            <div className="flex-1 overflow-y-auto p-4">
+              <PromptBuilder12Panel
+                onApply={(p) => {
+                  setStylePromptOverride(p);
+                  setMobile("prompt");
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Final output footer ─────────────────────────────────────────────── */}

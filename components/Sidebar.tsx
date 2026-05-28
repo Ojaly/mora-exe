@@ -8,7 +8,6 @@ import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
 import WorldForge from "@/components/WorldForge";
 import SourceAlchemy from "@/components/SourceAlchemy";
 import StructureBlueprint from "@/components/StructureBlueprint";
-import PromptBuilder12Panel from "@/components/PromptBuilder12Panel";
 import { getPromptItemById, PromptLibraryItem } from "@/lib/promptLibrary";
 import HeaderIcon from "@/components/HeaderIcon";
 
@@ -49,8 +48,6 @@ interface Props {
    */
   mounted?: boolean;
   // ── 12-Step Prompt Builder ─────────────────────────────────────────────────
-  /** Called when user clicks "Use as Style Prompt" in the 12-Step Builder. */
-  onBuilderApply: (prompt: string) => void;
   /** Non-empty when the 12-Step override is active — shown in Generate footer. */
   stylePromptOverride?: string;
   /** Clears the 12-Step override and restores normal Style Prompt generation. */
@@ -367,13 +364,11 @@ export default function Sidebar({
   onBuilderSectionsChange,
   builderIsEmpty = false,
   mounted = false,
-  onBuilderApply,
   stylePromptOverride = "",
   onClearStylePromptOverride,
 }: Props) {
   const [alchemyOpen,        setAlchemyOpen]        = useState(false);
   const [genreLockOpen,      setGenreLockOpen]      = useState(false);
-  const [promptBuilderOpen,  setPromptBuilderOpen]  = useState(false);
   const [fineTuneOpen,       setFineTuneOpen]       = useState(false);
   const [structureOpen,  setStructureOpen]  = useState(false);
   const [libraryOpen,    setLibraryOpen]    = useState(false);
@@ -614,24 +609,9 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 3. PROMPT BUILDER ════════════════════════════════════════════════ */}
+        {/* ══ 3. FINE TUNE (collapsible) ════════════════════════════════════════ */}
         <CollapseSection
-          label={
-            stylePromptOverride
-              ? "3. PROMPT BUILDER · active"
-              : "3. PROMPT BUILDER"
-          }
-          icon="layers"
-          sub="12項目でStyle Promptを設計（旧Guided Modeの代替）"
-          open={promptBuilderOpen}
-          onToggle={() => setPromptBuilderOpen((v) => !v)}
-        >
-          <PromptBuilder12Panel onApply={onBuilderApply} />
-        </CollapseSection>
-
-        {/* ══ 4. FINE TUNE (collapsible) ════════════════════════════════════════ */}
-        <CollapseSection
-          label="4. FINE TUNE"
+          label="3. FINE TUNE"
           icon="sliders-horizontal"
           sub="方向性・BPM・言語比率などの詳細設定"
           open={fineTuneOpen}
@@ -778,16 +758,16 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 5. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
+        {/* ══ 4. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
         <CollapseSection
           label={
             !mounted
-              ? "5. STRUCTURE"
+              ? "4. STRUCTURE"
               : structureMode === "builder" && builderSections.length > 0
-                ? `5. STRUCTURE · ${builderSections.length}P`
+                ? `4. STRUCTURE · ${builderSections.length}P`
                 : structureMode === "preset"
-                  ? "5. STRUCTURE · preset"
-                  : "5. STRUCTURE"
+                  ? "4. STRUCTURE · preset"
+                  : "4. STRUCTURE"
           }
           icon="list-tree"
           sub="曲の流れ・セクション構成を指定"
@@ -804,16 +784,16 @@ export default function Sidebar({
           />
         </CollapseSection>
 
-        {/* ══ 6. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
+        {/* ══ 5. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
         <CollapseSection
           label={
             !mounted
-              ? "6. PROMPT LIBRARY"
+              ? "5. PROMPT LIBRARY"
               : selectedLibraryItems.length > 0
-                ? `6. PROMPT LIBRARY · ${selectedLibraryItems.length}`
+                ? `5. PROMPT LIBRARY · ${selectedLibraryItems.length}`
                 : recommendations.length > 0
-                  ? `6. PROMPT LIBRARY · ◆${recommendations.length}`
-                  : "6. PROMPT LIBRARY"
+                  ? `5. PROMPT LIBRARY · ◆${recommendations.length}`
+                  : "5. PROMPT LIBRARY"
           }
           icon="library"
           sub="音色・質感・構成語彙を追加"
@@ -865,9 +845,9 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 7. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
+        {/* ══ 6. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
         <CollapseSection
-          label="7. AVOID / NEGATIVE"
+          label="6. AVOID / NEGATIVE"
           sub="避けたい音・表現・AI臭さの指定"
           open={avoidOpen}
           onToggle={() => setAvoidOpen((v) => !v)}
