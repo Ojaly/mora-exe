@@ -21,7 +21,7 @@ interface Props {
 function MoraBar({ count }: { count: number }) {
   const pct = Math.min(100, (count / 20) * 100);
   const color =
-    count > 14 ? "bg-red-500" : count <= 3 && count > 0 ? "bg-amber-400" : "bg-emerald-500";
+    count > 14 ? "bg-[var(--accent-danger)]" : count <= 3 && count > 0 ? "bg-[var(--accent-warning)]" : "bg-emerald-500";
   return (
     <div className="w-12 h-1 bg-slate-200 rounded-full overflow-hidden">
       <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
@@ -99,7 +99,7 @@ export default function MoraTunerPanel({
         {dangerCount > 0 && (
           <button
             onClick={onApplyAll}
-            className="ml-auto px-2 py-1 text-[11px] font-mono border border-amber-300 text-amber-700 bg-amber-50 rounded hover:bg-amber-100 transition-colors"
+            className="ml-auto px-2 py-1 text-[11px] font-mono rounded transition-colors" style={{ border: "1px solid var(--accent-warning-border)", color: "var(--accent-warning-strong)", background: "var(--accent-warning-bg)" }}
           >
             AUTO FIX ALL
           </button>
@@ -123,21 +123,20 @@ export default function MoraTunerPanel({
             const isExpanded = expandedSuggestions.has(line.lineNumber);
             const dangerColor =
               line.danger === "long"
-                ? "text-red-600"
+                ? "text-[var(--accent-danger)]"
                 : line.danger === "short"
-                ? "text-amber-600"
+                ? "text-[var(--accent-warning)]"
                 : "text-zinc-700";
 
             return (
               <div
                 key={line.lineNumber}
-                className={`rounded ${
-                  suggestion ? "bg-amber-50 border border-amber-200" : ""
-                }`}
+                className={`rounded ${suggestion ? "border" : ""}`}
+                style={suggestion ? { borderColor: "var(--accent-warning-border)", background: "var(--accent-warning-bg)" } : {}}
               >
                 <div
                   className={`flex items-center gap-2 px-2 py-1 ${
-                    suggestion ? "cursor-pointer hover:bg-amber-100/60" : ""
+                    suggestion ? "cursor-pointer hover:bg-[var(--accent-warning-bg)]" : ""
                   }`}
                   onClick={() => suggestion && toggleSuggestion(line.lineNumber)}
                 >

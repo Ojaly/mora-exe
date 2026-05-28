@@ -233,7 +233,10 @@ function CollapseSection({
             </span>
           )}
           <div className="flex-1 min-w-0">
-            <span className={`text-[13px] ui-sans tracking-[0.02em] uppercase font-extrabold leading-tight ${dim ? "text-zinc-400" : "text-[#0F172A]"}`}>
+            <span
+              className={`text-[14px] ui-sans tracking-[0.01em] uppercase font-bold leading-tight ${dim ? "text-zinc-400" : "text-[#0F172A]"}`}
+              style={dim ? {} : { textShadow: "0 0 0.4px #0F172A" }}
+            >
               {open ? "▾" : "▸"} {label}
             </span>
             {!open && sub && (
@@ -399,7 +402,7 @@ export default function Sidebar({
       {/* ── COMPOSE CONTROL 固定ヘッダー ──────────────────────────────────── */}
       <div className="shrink-0 h-11 border-b border-[#E2E8F0] flex items-center px-4 gap-2.5 select-none" style={{ background: "var(--bg-panel-hdr)" }}>
         <HeaderIcon name="sliders" className="opacity-80" />
-        <span className="text-[15px] ui-sans font-extrabold text-[#0F172A] tracking-[0.02em] uppercase">COMPOSE CONTROL</span>
+        <span className="text-[16px] ui-sans font-bold text-[#0F172A] tracking-[0.01em] uppercase" style={{ textShadow: "0 0 0.4px #0F172A" }}>COMPOSE CONTROL</span>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-3 space-y-2">
@@ -410,15 +413,17 @@ export default function Sidebar({
             onClick={() => setAlchemyOpen((v) => !v)}
             className="w-full flex items-center gap-2 px-3 py-3 text-left hover:bg-slate-50 transition-colors"
           >
-            <span className="text-[13px] ui-sans tracking-[0.02em] uppercase font-extrabold shrink-0 text-violet-600 flex items-center gap-2">
-              <HeaderIcon name="sparkles" className="opacity-80" />
-              {alchemyOpen ? "▾" : "▸"} Source Alchemy
-            </span>
-            {!alchemyOpen && (
-              <span className="text-[11px] font-mono text-zinc-400 ml-1 font-normal normal-case tracking-normal">
-                現実素材を世界観に変換
+            <div className="flex-1 min-w-0">
+              <span className="text-[14px] ui-sans tracking-[0.01em] uppercase font-bold text-violet-600 flex items-center gap-2" style={{ textShadow: "0 0 0.4px currentColor" }}>
+                <HeaderIcon name="sparkles" className="opacity-80" />
+                {alchemyOpen ? "▾" : "▸"} Source Alchemy
               </span>
-            )}
+              {!alchemyOpen && (
+                <p className="text-[11px] font-mono text-zinc-400 mt-0.5 font-normal normal-case tracking-normal leading-tight pl-1">
+                  現実素材を世界観に変換
+                </p>
+              )}
+            </div>
           </button>
           {alchemyOpen && (
             <div className="px-3 pb-3 border-t border-[#E2E8F0] pt-3">
@@ -639,7 +644,7 @@ export default function Sidebar({
 
             {/* Recommendation hint */}
             {recommendations.length > 0 && selectedLibraryItems.length === 0 && (
-              <p className="text-[10px] font-mono text-amber-600 leading-snug">
+              <p className="text-[10px] font-mono leading-snug" style={{ color: "var(--accent-warning)" }}>
                 ◆ {recommendations.length}件のおすすめ候補あり
               </p>
             )}
@@ -831,7 +836,7 @@ export default function Sidebar({
       </div>
 
       {/* ══ GENERATE (sticky footer) ══════════════════════════════════════════ */}
-      <div className="shrink-0 px-3 pb-3 pt-2.5 border-t border-[#E2E8F0]">
+      <div className="shrink-0 px-3 pb-3 pt-3.5 border-t border-[#E2E8F0]">
         {/* Active nudges hint */}
         {activeNudges.length > 0 && (
           <p className="text-[11px] font-mono text-blue-500 mb-1.5 leading-snug truncate">
@@ -844,7 +849,7 @@ export default function Sidebar({
           </p>
         )}
         {builderIsEmpty && (
-          <p className="text-[11px] font-mono text-amber-600 mb-1.5 leading-snug">
+          <p className="text-[11px] font-mono mb-1.5 leading-snug font-semibold" style={{ color: "var(--accent-warning-strong)" }}>
             ⚠ Builderに最低1つのセクションを選択してください
           </p>
         )}
@@ -861,7 +866,7 @@ export default function Sidebar({
         >
           {isGenerating ? "… GENERATING" : expansion ? "↺ RE-GENERATE" : "▶  GENERATE"}
         </button>
-        <p className="text-[10px] font-mono text-zinc-400 text-center mt-1.5 leading-snug">
+        <p className="text-[10px] font-mono text-zinc-400 text-center mt-2 leading-snug">
           {isGenerating
             ? "生成中…しばらくお待ちください"
             : expansion

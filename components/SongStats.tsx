@@ -6,7 +6,7 @@ interface Props {
 
 function ScoreBar({ score }: { score: number }) {
   const color =
-    score >= 80 ? "bg-emerald-500" : score >= 50 ? "bg-amber-400" : "bg-red-500";
+    score >= 80 ? "bg-emerald-500" : score >= 50 ? "bg-[var(--accent-warning)]" : "bg-[var(--accent-danger)]";
   return (
     <div className="flex items-center gap-2">
       <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
@@ -20,8 +20,8 @@ function ScoreBar({ score }: { score: number }) {
           score >= 80
             ? "text-emerald-600"
             : score >= 50
-            ? "text-amber-600"
-            : "text-red-600"
+            ? "text-[var(--accent-warning)]"
+            : "text-[var(--accent-danger)]"
         }`}
       >
         {score}
@@ -60,7 +60,7 @@ function StatItem({
       <span className="text-[10px] font-mono text-zinc-600">{label}</span>
       <span
         className={`text-xs font-mono font-bold ${
-          warn ? "text-amber-600" : "text-zinc-800"
+          warn ? "text-[var(--accent-warning-strong)]" : "text-zinc-800"
         }`}
       >
         {value}

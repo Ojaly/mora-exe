@@ -36,6 +36,16 @@
   --blue-hover:    #1D4ED8;
   --blue-bg:       #EFF6FF;
   --blue-text:     #1D4ED8;
+
+  /* Warning / Danger accent — 警告・危険状態の差し色 */
+  --accent-warning:        #F97316;
+  --accent-warning-strong: #EA580C;
+  --accent-warning-bg:     #FFF7ED;
+  --accent-warning-border: #FDBA74;
+  --accent-danger:         #DC2626;
+  --accent-danger-strong:  #B91C1C;
+  --accent-danger-bg:      #FEF2F2;
+  --accent-danger-border:  #FCA5A5;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -86,10 +96,12 @@ body {
   border-bottom: 1px solid #CBD5E1;
   background: var(--bg-panel-hdr);
   font-family: var(--ui-font);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   color: #0F172A;
+  /* 標準フォントでも太く見せる（Windows Segoe UI / Yu Gothic 対応） */
+  text-shadow: 0 0 0.4px #0F172A;
   flex-shrink: 0;
   gap: 8px;
 }

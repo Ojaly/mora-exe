@@ -5,9 +5,9 @@ interface Props {
 }
 
 const SEV = {
-  high:   { label: "HIGH", cls: "text-red-700 border-red-200 bg-red-50" },
-  medium: { label: "MED",  cls: "text-amber-700 border-amber-200 bg-amber-50" },
-  low:    { label: "LOW",  cls: "text-zinc-600 border-[#E2E8F0] bg-slate-50" },
+  high:   { label: "HIGH", cls: "", style: { color: "var(--accent-danger-strong)", borderColor: "var(--accent-danger-border)", background: "var(--accent-danger-bg)" } },
+  medium: { label: "MED",  cls: "", style: { color: "var(--accent-warning-strong)", borderColor: "var(--accent-warning-border)", background: "var(--accent-warning-bg)" } },
+  low:    { label: "LOW",  cls: "text-zinc-600 border-[#E2E8F0] bg-slate-50", style: {} },
 };
 
 const TYPE_ICON: Record<string, string> = {
@@ -29,8 +29,8 @@ export default function CollapseReport({ risks }: Props) {
       <div className="flex items-center justify-between">
         <p className="text-xs text-zinc-500 font-mono tracking-widest">// COLLAPSE PREDICTION</p>
         <div className="flex items-center gap-2 font-mono text-xs">
-          {high   > 0 && <span className="text-red-600">{high}H</span>}
-          {medium > 0 && <span className="text-amber-600">{medium}M</span>}
+          {high   > 0 && <span style={{ color: "var(--accent-danger)" }}>{high}H</span>}
+          {medium > 0 && <span style={{ color: "var(--accent-warning)" }}>{medium}M</span>}
           {low    > 0 && <span className="text-zinc-500">{low}L</span>}
           {risks.length === 0 && <span className="text-emerald-600">CLEAN</span>}
         </div>
@@ -49,6 +49,7 @@ export default function CollapseReport({ risks }: Props) {
               <div
                 key={r.id}
                 className={`flex items-start gap-2 px-2 py-1.5 rounded border text-xs font-mono ${s.cls}`}
+                style={s.style}
               >
                 <span className="shrink-0 opacity-60 w-14 text-center border border-current/30 rounded px-1">
                   {TYPE_ICON[r.type] ?? r.type}

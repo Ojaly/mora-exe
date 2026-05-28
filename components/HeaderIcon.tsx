@@ -17,7 +17,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* COMPOSE CONTROL */
   sliders: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="4"  y1="21" x2="4"  y2="14" />
       <line x1="4"  y1="10" x2="4"  y2="3"  />
       <line x1="12" y1="21" x2="12" y2="12" />
@@ -32,7 +32,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* STYLE PROMPT */
   "file-text": (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
       <line x1="16" y1="13" x2="8" y2="13" />
@@ -43,7 +43,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* LYRICS */
   music: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 18V5l12-2v13" />
       <circle cx="6"  cy="18" r="3" />
       <circle cx="18" cy="16" r="3" />
@@ -52,7 +52,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* REWRITE TOOLS */
   "refresh-cw": (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="23 4 23 10 17 10" />
       <polyline points="1 20 1 14 7 14" />
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
@@ -61,7 +61,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* NEGATIVE */
   ban: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
     </svg>
@@ -69,7 +69,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* STRUCTURE */
   "list-tree": (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 12H11" />
       <path d="M21 6H8" />
       <path d="M21 18H11" />
@@ -80,7 +80,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* PROMPT LIBRARY */
   library: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
     </svg>
@@ -88,7 +88,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* FINE TUNE */
   "sliders-horizontal": (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="21" y1="4"  x2="14" y2="4"  />
       <line x1="10" y1="4"  x2="3"  y2="4"  />
       <line x1="21" y1="12" x2="12" y2="12" />
@@ -103,7 +103,7 @@ const ICONS: Record<string, React.ReactElement> = {
 
   /* SOURCE ALCHEMY */
   sparkles: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
       <path d="M5 3v4" /><path d="M19 17v4" />
       <path d="M3 5h4" /><path d="M17 19h4" />

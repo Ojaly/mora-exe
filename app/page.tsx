@@ -144,8 +144,8 @@ function CopyBtn({ text, label, dim }: { text: string; label: string; dim?: bool
         copied
           ? "border-emerald-500 text-emerald-700 bg-emerald-50"
           : dim
-          ? "border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700"
-          : "border-[#c4cdd6] text-zinc-700 hover:border-zinc-600 hover:text-zinc-900"
+          ? "border-[#94A3B8] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 hover:bg-slate-50"
+          : "border-[#94A3B8] text-zinc-700 hover:border-zinc-600 hover:text-zinc-900 hover:bg-slate-50"
       }`}
     >
       {copied ? `✓ ${label}` : label}
@@ -178,7 +178,7 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
 
 function SampleBadge() {
   return (
-    <span className="self-center ml-auto mr-2 text-[12px] font-mono text-amber-600 border border-amber-300 bg-amber-50 px-2 py-0.5 rounded tracking-wider">
+    <span className="self-center ml-auto mr-2 text-[12px] font-mono border px-2 py-0.5 rounded tracking-wider" style={{ color: "var(--accent-warning-strong)", borderColor: "var(--accent-warning-border)", background: "var(--accent-warning-bg)" }}>
       SAMPLE
     </span>
   );
@@ -188,7 +188,7 @@ function Pill({ label, value, warn }: { label: string; value: string; warn?: boo
   return (
     <span className="flex items-center gap-1">
       <span className="text-[13px] font-mono text-zinc-500">{label}</span>
-      <span className={`text-[13px] font-mono font-bold tabular-nums ${warn ? "text-amber-600" : "text-zinc-800"}`}>{value}</span>
+      <span className={`text-[13px] font-mono font-bold tabular-nums ${warn ? "text-[var(--accent-warning-strong)]" : "text-zinc-800"}`}>{value}</span>
     </span>
   );
 }
@@ -259,7 +259,7 @@ function MemoryPanel({
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[13px] font-mono font-bold text-zinc-800 truncate">{m.title || "(untitled)"}</span>
                     {m.score !== null && (
-                      <span className={`text-[12px] font-mono font-bold tabular-nums ${m.score >= 80 ? "text-emerald-600" : m.score >= 50 ? "text-amber-600" : "text-red-600"}`}>
+                      <span className={`text-[12px] font-mono font-bold tabular-nums ${m.score >= 80 ? "text-emerald-600" : m.score >= 50 ? "text-[var(--accent-warning)]" : "text-[var(--accent-danger)]"}`}>
                         {m.score}
                       </span>
                     )}
@@ -762,7 +762,7 @@ export default function Home() {
   // ─── Derived ─────────────────────────────────────────────────────────────
 
   const score   = songStats?.riskScore ?? null;
-  const sColor  = score === null ? "text-zinc-700" : score >= 80 ? "text-emerald-400" : score >= 50 ? "text-amber-400" : "text-red-400";
+  const sColor  = score === null ? "text-zinc-700" : score >= 80 ? "text-emerald-500" : score >= 50 ? "text-[var(--accent-warning)]" : "text-[var(--accent-danger)]";
   const dangers = suggestions.length;
   const issues  = phraseMatches.length + syntaxMatches.length + collapseRisks.length;
 
@@ -864,8 +864,8 @@ export default function Home() {
           disabled={isGenerating || !!loadingMode || builderIsEmpty}
           className={`shrink-0 text-[12px] font-mono px-2.5 py-0.5 rounded border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
             isGenerating
-              ? "border-amber-300 text-amber-500 bg-amber-50 animate-pulse"
-              : "border-[#c4cdd6] text-zinc-700 hover:border-amber-400 hover:text-amber-700"
+              ? "border-[var(--accent-warning-border)] text-[var(--accent-warning)] bg-[var(--accent-warning-bg)] animate-pulse"
+              : "border-[#c4cdd6] text-zinc-700 hover:border-[var(--accent-warning-border)] hover:text-[var(--accent-warning-strong)]"
           }`}
         >
           {isGenerating ? "…" : "↺ REGEN LYRICS"}
@@ -951,7 +951,7 @@ export default function Home() {
             title="サンプルのStyle / Lyrics / Negativeを読み込む"
             className={`text-[12px] font-mono px-2.5 py-1 rounded border transition-colors ${
               isSample
-                ? "border-amber-300 text-amber-600 bg-amber-50"
+                ? "border-[var(--accent-warning-border)] text-[var(--accent-warning-strong)] bg-[var(--accent-warning-bg)]"
                 : "border-[#E2E8F0] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
             }`}
           >
@@ -981,7 +981,7 @@ export default function Home() {
 
         {/* LEFT: Sidebar */}
         <aside
-          className="w-[260px] shrink-0 flex flex-col border-r border-[#E2E8F0]"
+          className="w-[300px] shrink-0 flex flex-col border-r border-[#E2E8F0]"
           style={{ background: "var(--bg-sidebar)" }}
         >
           <Sidebar
@@ -1053,7 +1053,7 @@ export default function Home() {
           </div>
 
           {centerTab === "prompt" ? (
-            <div className="flex-1 min-h-0 flex flex-col gap-3 px-4 pb-4 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col gap-3.5 px-4 pb-4 overflow-hidden">
               {/* STYLE PROMPT card */}
               <div className="mora-card flex-1 min-h-0">
                 <div className="mora-card-hdr">
@@ -1113,10 +1113,10 @@ export default function Home() {
           )}
         </section>
 
-        {/* RIGHT: Lyrics / Tuner — flex 12 (≈60% of remaining) */}
+        {/* RIGHT: Lyrics / Tuner — flex 10 (≈44% of total) */}
         <section
           className="flex flex-col min-w-0 relative"
-          style={{ flex: "12 1 0%", background: "var(--bg-right)" }}
+          style={{ flex: "10 1 0%", background: "var(--bg-right)" }}
         >
           {showMemory && (
             <MemoryPanel
@@ -1125,7 +1125,7 @@ export default function Home() {
             />
           )}
 
-          <div className="flex-1 min-h-0 flex flex-col gap-3 px-4 pt-3 pb-4 overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col gap-3.5 px-4 pt-3 pb-4 overflow-hidden">
             {rightView === "lyrics" ? (
               <>
                 {/* LYRICS card */}
@@ -1138,7 +1138,11 @@ export default function Home() {
                     >LYRICS</button>
                     <button
                       onClick={() => setRight("tuner")}
-                      className="text-[12px] ui-sans font-semibold px-3 py-1 rounded-md border border-[#CBD5E1] text-[#64748B] hover:border-[#94A3B8] hover:text-[#1E293B] transition-colors"
+                      className={`text-[12px] ui-sans font-semibold px-3 py-1 rounded-md border transition-colors ${
+                        dangers > 0
+                          ? "border-[var(--accent-warning-border)] text-[var(--accent-warning-strong)]"
+                          : "border-[#CBD5E1] text-[#64748B] hover:border-[#94A3B8] hover:text-[#1E293B]"
+                      }`}
                     >
                       TUNER{dangers > 0 ? ` ▲${dangers}` : issues > 0 ? ` (${issues})` : ""}
                     </button>
