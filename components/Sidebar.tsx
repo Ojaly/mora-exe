@@ -782,12 +782,12 @@ export default function Sidebar({
         <CollapseSection
           label={
             !mounted
-              ? "4. STRUCTURE"
+              ? "5. STRUCTURE"
               : structureMode === "builder" && builderSections.length > 0
-                ? `4. STRUCTURE · ${builderSections.length}P`
+                ? `5. STRUCTURE · ${builderSections.length}P`
                 : structureMode === "preset"
-                  ? "4. STRUCTURE · preset"
-                  : "4. STRUCTURE"
+                  ? "5. STRUCTURE · preset"
+                  : "5. STRUCTURE"
           }
           icon="list-tree"
           sub="曲の流れ・セクション構成を指定"
@@ -808,12 +808,12 @@ export default function Sidebar({
         <CollapseSection
           label={
             !mounted
-              ? "5. PROMPT LIBRARY"
+              ? "6. PROMPT LIBRARY"
               : selectedLibraryItems.length > 0
-                ? `5. PROMPT LIBRARY · ${selectedLibraryItems.length}`
+                ? `6. PROMPT LIBRARY · ${selectedLibraryItems.length}`
                 : recommendations.length > 0
-                  ? `5. PROMPT LIBRARY · ◆${recommendations.length}`
-                  : "5. PROMPT LIBRARY"
+                  ? `6. PROMPT LIBRARY · ◆${recommendations.length}`
+                  : "6. PROMPT LIBRARY"
           }
           icon="library"
           sub="音色・質感・構成語彙を追加"
