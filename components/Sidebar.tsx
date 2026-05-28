@@ -298,10 +298,10 @@ const NUDGE_OPTIONS = [
   "more aggressive", "more intimate", "more epic", "darker", "brighter",
   // Tempo / energy
   "slower", "faster",
-  // Texture
-  "more analog", "drier mix", "more reverb", "noisier", "lo-fi",
+  // Texture (lo-fi / analog / minimal は Sub Style で指定)
+  "drier mix", "more reverb", "noisier",
   // Cinematic
-  "less cinematic", "minimal production",
+  "less cinematic",
   // Vocal
   "male vocal", "female vocal",
 ] as const;
@@ -314,13 +314,10 @@ const NUDGE_LABELS: Record<string, string> = {
   "brighter":         "明るめに",
   "slower":           "遅めに",
   "faster":           "速めに",
-  "more analog":      "アナログ感を強める",
   "drier mix":        "ドライなミックス",
   "more reverb":      "リバーブ多め",
   "noisier":          "ノイズ感を足す",
-  "lo-fi":            "ローファイ寄り",
   "less cinematic":   "映画っぽさを抑える",
-  "minimal production": "最小限の編成",
   "male vocal":       "男性ボーカル",
   "female vocal":     "女性ボーカル",
 };
@@ -610,10 +607,10 @@ export default function Sidebar({
           <div className="space-y-1">
             <div>
               <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
-                方向性を微調整
+                Direction Adjust
               </span>
               <span className="text-[10px] font-mono text-zinc-400 leading-snug">
-                生成前に曲の方向性を少しだけ寄せる
+                音像タグではなく、曲の方向性・強度を微調整する
               </span>
             </div>
             <div className="flex flex-wrap gap-1">
