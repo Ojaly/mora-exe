@@ -275,6 +275,24 @@ const GENRE_OPTIONS: Array<[string, string]> = [
 
 // ─── Nudge chips ──────────────────────────────────────────────────────────────
 
+const SUB_STYLE_OPTIONS = [
+  "bedroom", "acoustic", "lo-fi", "analog", "retro",
+  "minimal", "lush", "cinematic", "distorted", "danceable",
+] as const;
+
+const SUB_STYLE_LABELS: Record<string, string> = {
+  bedroom:    "bedroom",
+  acoustic:   "acoustic",
+  "lo-fi":    "lo-fi",
+  analog:     "analog",
+  retro:      "retro",
+  minimal:    "minimal",
+  lush:       "lush",
+  cinematic:  "cinematic",
+  distorted:  "distorted",
+  danceable:  "danceable",
+};
+
 const NUDGE_OPTIONS = [
   // Vibe direction
   "more aggressive", "more intimate", "more epic", "darker", "brighter",
@@ -372,6 +390,18 @@ export default function Sidebar({
       : [...current, n];
     set("nudges", next);
   };
+
+  // ─── SubStyle toggle ─────────────────────────────────────────────────────────
+
+  const toggleSubStyle = (s: string) => {
+    const current = input.subStyles ?? [];
+    const next = current.includes(s)
+      ? current.filter((x) => x !== s)
+      : [...current, s];
+    set("subStyles", next);
+  };
+
+  const activeSubStyles = input.subStyles ?? [];
 
   // ─── Wizard helpers ─────────────────────────────────────────────────────────
 
@@ -473,7 +503,9 @@ export default function Sidebar({
         <CollapseSection
           label={
             input.genreLock
-              ? `2. GENRE / STYLE · ${GENRE_OPTIONS.find(([v]) => v === input.genreLock)?.[1] ?? input.genreLock}`
+              ? `2. GENRE / STYLE · ${GENRE_OPTIONS.find(([v]) => v === input.genreLock)?.[1] ?? input.genreLock}${activeSubStyles.length > 0 ? ` +${activeSubStyles.length}` : ""}`
+              : activeSubStyles.length > 0
+              ? `2. GENRE / STYLE · +${activeSubStyles.length} style`
               : "2. GENRE / STYLE"
           }
           icon="music"
@@ -525,6 +557,44 @@ export default function Sidebar({
                 未選択 — AIがSeedからジャンルを推測
               </p>
             )}
+
+            {/* SUB STYLE chips */}
+            <div className="border-t border-[#E2E8F0] pt-2 mt-0.5">
+              <div className="mb-1.5">
+                <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
+                  SUB STYLE
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400 leading-snug">
+                  質感・サブスタイルを複数選択（Style Promptの先頭付近に挿入）
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {SUB_STYLE_OPTIONS.map((s) => {
+                  const active = activeSubStyles.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => toggleSubStyle(s)}
+                      className={`px-2 py-[3px] text-[11px] font-mono rounded border transition-all ${
+                        active
+                          ? "border-violet-400 text-violet-700 bg-violet-50 font-semibold"
+                          : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                      }`}
+                    >
+                      {active ? "· " : ""}{SUB_STYLE_LABELS[s] ?? s}
+                    </button>
+                  );
+                })}
+              </div>
+              {activeSubStyles.length > 0 && (
+                <button
+                  onClick={() => set("subStyles", [])}
+                  className="text-[10px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors mt-1"
+                >
+                  ✕ クリア
+                </button>
+              )}
+            </div>
           </div>
         </CollapseSection>
 

@@ -116,13 +116,14 @@ export function buildStylePrompt(
     sentences.push(`[GENRE LOCK: ${genre}]`);
   }
 
-  // S1: genre + mood + BPM / tempo
+  // S1: genre + subStyles + mood + BPM / tempo
   // `genre` is already derived from effectiveGenreKey (genreLock || input.genre)
   const bpmPart = input.bpm ? `${input.bpm} BPM` : groove;
   const keyPart = input.key ? `, key of ${input.key}` : "";
   const extraStyle = themeDesc?.styleWords.slice(0, 2) ?? [];
   const moodFull = [mood, ...extraStyle].join(", ");
-  sentences.push(`${genre}, ${moodFull}, ${bpmPart}${keyPart}.`);
+  const subStyleStr = (input.subStyles ?? []).join(", ");
+  sentences.push(`${genre}${subStyleStr ? `, ${subStyleStr}` : ""}, ${moodFull}, ${bpmPart}${keyPart}.`);
 
   // S2: vocal
   sentences.push(`${cap(vocal)}.`);
@@ -249,17 +250,20 @@ export function buildStylePromptFromExpansion(
     sentences.push(`[GENRE LOCK: ${lockLabel}]`);
   }
 
-  // ── S1: Genre / atmosphere / BPM ───────────────────────────────────────────
+  // ── S1: Genre / subStyles / atmosphere / BPM ──────────────────────────────
   const bpmNum = input.bpm ? parseInt(input.bpm, 10) : md.bpmEstimate;
   const bpmStr = bpmNum && !isNaN(bpmNum) ? `, ${bpmNum} BPM` : "";
   const tempoStr = !bpmStr && md.tempoFeel ? `, ${md.tempoFeel}` : "";
   const keyStr = input.key ? `, key of ${input.key}` : "";
+  const subStyleStrExp = (input.subStyles ?? []).join(", ");
 
   let s1 = "";
   if (md.genreHint && md.atmosphere) {
-    s1 = `${md.genreHint} with ${md.atmosphere}`;
+    s1 = `${md.genreHint}${subStyleStrExp ? `, ${subStyleStrExp}` : ""} with ${md.atmosphere}`;
   } else {
     s1 = md.genreHint || md.atmosphere || "";
+    if (s1 && subStyleStrExp) s1 = `${s1}, ${subStyleStrExp}`;
+    else if (!s1) s1 = subStyleStrExp;
   }
   s1 += `${bpmStr || tempoStr}${keyStr}`;
   if (s1) sentences.push(cap(s1) + ".");
