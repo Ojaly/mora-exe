@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { SongInput, WorldPresetKey, WorldExpansion } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 import { pickStructureForClaude } from "@/lib/structureVariation";
+import { GENRE_MAP } from "@/lib/promptBuilder";
 
 /** Claude レスポンスから JSON オブジェクトを堅牢に抽出する */
 function extractJson(text: string): Record<string, unknown> {
@@ -150,7 +151,7 @@ PARAMETERS:
 TITLE: ${input.title || "(未設定)"}
 LANGUAGE: ${langInstruction(input.englishRatio)}
 STRUCTURE: ${resolveStructure(input, lib, structureOverride, isCustomBlueprint)}
-STYLE TAGS: ${[md.genreHint, md.atmosphere, md.vocalStyle, lib.styleAddition].filter(Boolean).join(", ")}
+STYLE TAGS: ${[md.genreHint, md.atmosphere, md.vocalStyle, lib.styleAddition].filter(Boolean).join(", ")}${input.genreLock?.trim() ? `\nGENRE LOCK: ${GENRE_MAP[input.genreLock.trim()] ?? input.genreLock.trim()}` : ""}
 AVOID: ${input.avoidExpressions || "(none)"}${(input.nudges ?? []).length > 0 ? `\nFINE TUNE (directional corrections): ${input.nudges.join(", ")}` : ""}
 
 INSTRUCTION:

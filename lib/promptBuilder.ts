@@ -17,7 +17,7 @@ function naturalList(items: string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
-const GENRE_MAP: Record<string, string> = {
+export const GENRE_MAP: Record<string, string> = {
   jpop: "J-Pop", jrock: "J-Rock", city: "City Pop", anime: "Anime OST",
   vocaloid: "Vocaloid-style", electronic: "Electronic / Synth-pop",
   rnb: "R&B / Soul", hiphop: "Hip-Hop / Trap", folk: "Folk / Acoustic",
