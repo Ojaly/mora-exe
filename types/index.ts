@@ -240,6 +240,40 @@ export interface WorldExpansion {
   lyricsDirection:  string;
 }
 
+// ─── 12-Step Prompt Builder ──────────────────────────────────────────────────
+
+export interface PromptBuilderStepOption {
+  /** Chip value: "a" | "b" | "c" */
+  value: string;
+  /** Display label (Japanese OK) */
+  label: string;
+  /** English fragment contributed to Style Prompt */
+  promptFrag: string;
+}
+
+export interface PromptBuilderStep {
+  id: string;
+  label: string;
+  labelJa: string;
+  options: PromptBuilderStepOption[];
+  /** Currently selected option value, or null if none */
+  selected: string | null;
+  /** Free-text custom input (may be JP or EN in Phase 1) */
+  custom: string;
+  weight: "heavy" | "medium" | "light";
+}
+
+export interface PromptBuilder12State {
+  steps: PromptBuilderStep[];
+}
+
+export interface PromptBuildResult {
+  prompt: string;
+  charCount: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface PromptMemory {
   id: string;
   ts: number;

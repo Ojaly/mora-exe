@@ -1,0 +1,545 @@
+/**
+ * lib/promptBuilder12.ts
+ * Phase 1A — 12-Step Prompt Builder: core generation logic.
+ *
+ * No UI, no localStorage, no ambiguous-word translation.
+ * Input:  PromptBuilder12State (12 steps, each with selected option + custom text)
+ * Output: English Style Prompt ≤800 chars + charCount
+ */
+
+import type {
+  PromptBuilderStep,
+  PromptBuilder12State,
+  PromptBuildResult,
+} from "@/types";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CHAR_LIMIT = 800;
+
+/**
+ * Natural prose order for the final Style Prompt.
+ * Genre always leads; instruments cluster before vocal; atmosphere closes.
+ */
+const OUTPUT_ORDER: readonly string[] = [
+  "genre-foundation",     // 1  heavy — always first
+  "genre-density",        // 3  light
+  "tempo-feel",           // 2  medium
+  "lead-instrument",      // 7  heavy
+  "drum-direction",       // 8  heavy
+  "bass-direction",       // 9  medium
+  "electronic-treatment", // 6  light
+  "vocal-texture",        // 4  heavy
+  "vocal-processing",     // 5  medium
+  "space-treatment",      // 10 medium
+  "world-atmosphere",     // 11 heavy
+  "final-impression",     // 12 medium
+];
+
+/**
+ * Steps removed first when over budget.
+ * Light steps → medium steps. Heavy steps are never trimmed automatically.
+ */
+const TRIM_PRIORITY: readonly string[] = [
+  "genre-density",        // light
+  "electronic-treatment", // light
+  "final-impression",     // medium
+  "space-treatment",      // medium
+  "vocal-processing",     // medium
+  "tempo-feel",           // medium
+  "bass-direction",       // medium
+];
+
+// ─── Step Definitions ─────────────────────────────────────────────────────────
+
+/**
+ * Canonical 12-step definitions with default (empty) state.
+ * Clone with createInitialState() before use — do not mutate this array.
+ */
+export const DEFAULT_STEPS: PromptBuilderStep[] = [
+  // ── 1. Genre Foundation ────────────────────────────────────────────────────
+  // Options describe genre approach/density.
+  // Custom carries the actual genre name (micro-genre, free text, etc.).
+  {
+    id: "genre-foundation",
+    label: "Genre Foundation",
+    labelJa: "ジャンルの核",
+    weight: "heavy",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "ジャンルど真ん中",
+        promptFrag: "genre-definitive, style-consistent production",
+      },
+      {
+        value: "b",
+        label: "ジャンルベース+混合",
+        promptFrag: "genre-rooted, cross-genre hybrid production",
+      },
+      {
+        value: "c",
+        label: "ジャンル参照・独自解釈",
+        promptFrag: "genre-inspired, idiosyncratic interpretation",
+      },
+    ],
+  },
+
+  // ── 2. Tempo Feel ──────────────────────────────────────────────────────────
+  {
+    id: "tempo-feel",
+    label: "Tempo Feel",
+    labelJa: "テンポ感",
+    weight: "medium",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "スロー・重い",
+        promptFrag: "slow, heavy pulse, deliberate pace",
+      },
+      {
+        value: "b",
+        label: "ミッドテンポ",
+        promptFrag: "mid-tempo, steady groove",
+      },
+      {
+        value: "c",
+        label: "アップテンポ・疾走感",
+        promptFrag: "upbeat, driving energy, kinetic pulse",
+      },
+    ],
+  },
+
+  // ── 3. Genre Density ───────────────────────────────────────────────────────
+  {
+    id: "genre-density",
+    label: "Genre Density",
+    labelJa: "ジャンル密度",
+    weight: "light",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "純粋・ジャンル色強め",
+        promptFrag: "pure genre focus, no dilution",
+      },
+      {
+        value: "b",
+        label: "バランス型",
+        promptFrag: "balanced genre and texture blend",
+      },
+      {
+        value: "c",
+        label: "ジャンル色薄め・質感重視",
+        promptFrag: "texture-first, genre as backdrop",
+      },
+    ],
+  },
+
+  // ── 4. Vocal Texture ───────────────────────────────────────────────────────
+  {
+    id: "vocal-texture",
+    label: "Vocal Texture",
+    labelJa: "声の質感",
+    weight: "heavy",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "クリア・芯あり",
+        promptFrag: "clear, forward vocal presence",
+      },
+      {
+        value: "b",
+        label: "ブレシー・柔らかい",
+        promptFrag: "breathy, intimate, soft-edged vocal",
+      },
+      {
+        value: "c",
+        label: "ロー・粗い",
+        promptFrag: "raw, gritty, unpolished vocal delivery",
+      },
+    ],
+  },
+
+  // ── 5. Vocal Processing ────────────────────────────────────────────────────
+  {
+    id: "vocal-processing",
+    label: "Vocal Processing",
+    labelJa: "ボーカルエフェクト",
+    weight: "medium",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "ドライ・ナチュラル",
+        promptFrag: "dry vocal, minimal processing",
+      },
+      {
+        value: "b",
+        label: "軽いリバーブ・空間感",
+        promptFrag: "light reverb, subtle room ambience",
+      },
+      {
+        value: "c",
+        label: "エフェクト強め",
+        promptFrag: "heavy vocal processing, effect-forward",
+      },
+    ],
+  },
+
+  // ── 6. Electronic Treatment ────────────────────────────────────────────────
+  {
+    id: "electronic-treatment",
+    label: "Electronic Treatment",
+    labelJa: "電子処理の量",
+    weight: "light",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "オーガニック・アナログ重視",
+        promptFrag: "organic, analog-forward production",
+      },
+      {
+        value: "b",
+        label: "電子処理・中程度",
+        promptFrag: "moderate synthesis, controlled electronic fx",
+      },
+      {
+        value: "c",
+        label: "フルデジタル・合成主体",
+        promptFrag: "fully electronic, synthesis-dominant",
+      },
+    ],
+  },
+
+  // ── 7. Lead Instrument ─────────────────────────────────────────────────────
+  {
+    id: "lead-instrument",
+    label: "Lead Instrument",
+    labelJa: "メイン楽器",
+    weight: "heavy",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "鍵盤系",
+        promptFrag: "keys-led: piano, Rhodes, or synth lead",
+      },
+      {
+        value: "b",
+        label: "ギター系",
+        promptFrag: "guitar-led: electric or rhythm guitar",
+      },
+      {
+        value: "c",
+        label: "管楽器・弦楽器系",
+        promptFrag: "horn or string-led: sax, brass, or strings",
+      },
+    ],
+  },
+
+  // ── 8. Drum Direction ──────────────────────────────────────────────────────
+  {
+    id: "drum-direction",
+    label: "Drum Direction",
+    labelJa: "ドラムの性格",
+    weight: "heavy",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "ライブ感・有機的",
+        promptFrag: "live drum feel, natural swing and dynamics",
+      },
+      {
+        value: "b",
+        label: "ドラムマシン・タイト",
+        promptFrag: "drum machine, tight and quantized",
+      },
+      {
+        value: "c",
+        label: "重い・スローグルーヴ",
+        promptFrag: "heavy groove, pushed-back pocket feel",
+      },
+    ],
+  },
+
+  // ── 9. Bass Direction ──────────────────────────────────────────────────────
+  {
+    id: "bass-direction",
+    label: "Bass Direction",
+    labelJa: "ベースの性格",
+    weight: "medium",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "メロディアス・フィル多め",
+        promptFrag: "melodic bass with active fills",
+      },
+      {
+        value: "b",
+        label: "リズム重視・グルーヴ感",
+        promptFrag: "rhythmic bass, groove-anchoring pulse",
+      },
+      {
+        value: "c",
+        label: "ディープ・サブベース",
+        promptFrag: "deep sub bass, low-end dominant",
+      },
+    ],
+  },
+
+  // ── 10. Space Treatment ────────────────────────────────────────────────────
+  {
+    id: "space-treatment",
+    label: "Space Treatment",
+    labelJa: "空間処理・残響",
+    weight: "medium",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "ドライ・クローズ",
+        promptFrag: "dry, intimate, close-mic feel",
+      },
+      {
+        value: "b",
+        label: "中程度の残響",
+        promptFrag: "moderate reverb, balanced spatial depth",
+      },
+      {
+        value: "c",
+        label: "ワイド・ホール感",
+        promptFrag: "wide stereo, expansive hall reverb",
+      },
+    ],
+  },
+
+  // ── 11. World / Atmosphere ─────────────────────────────────────────────────
+  {
+    id: "world-atmosphere",
+    label: "World / Atmosphere",
+    labelJa: "世界観・情緒",
+    weight: "heavy",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "明るい・開放的",
+        promptFrag: "bright, open, uplifting atmosphere",
+      },
+      {
+        value: "b",
+        label: "暗い・緊張感",
+        promptFrag: "dark, brooding, tense atmosphere",
+      },
+      {
+        value: "c",
+        label: "夢幻・浮遊感",
+        promptFrag: "dreamy, hazy, floating atmosphere",
+      },
+    ],
+  },
+
+  // ── 12. Final Impression ───────────────────────────────────────────────────
+  {
+    id: "final-impression",
+    label: "Final Impression",
+    labelJa: "最終印象",
+    weight: "medium",
+    selected: null,
+    custom: "",
+    options: [
+      {
+        value: "a",
+        label: "スムーズ・洗練",
+        promptFrag: "smooth, polished, sophisticated finish",
+      },
+      {
+        value: "b",
+        label: "エッジ・生々しさ",
+        promptFrag: "edgy, raw, visceral energy",
+      },
+      {
+        value: "c",
+        label: "シネマティック・壮大",
+        promptFrag: "cinematic, dramatic, grand",
+      },
+    ],
+  },
+];
+
+// ─── Fragment Resolvers ───────────────────────────────────────────────────────
+
+/**
+ * Step 1 special resolver.
+ * Custom = the actual genre name (e.g. "Corporate Electro Funk").
+ * Option = approach/density modifier (e.g. "genre-definitive production").
+ * When both are present: "Corporate Electro Funk, genre-definitive production"
+ */
+export function resolveGenreFoundation(step: PromptBuilderStep): string {
+  const option = step.options.find((o) => o.value === step.selected);
+
+  if (step.custom && option) {
+    return `${step.custom}, ${option.promptFrag}`;
+  }
+  if (step.custom) {
+    return step.custom;
+  }
+  if (option) {
+    return option.promptFrag;
+  }
+  return "";
+}
+
+/**
+ * General resolver for Steps 2–12.
+ * When both custom and option are present: custom leads, option supplements.
+ * e.g. custom="LinnDrum" + option B → "LinnDrum, drum machine, tight and quantized"
+ */
+export function resolveStepFragment(step: PromptBuilderStep): string {
+  if (step.id === "genre-foundation") {
+    return resolveGenreFoundation(step);
+  }
+
+  const option = step.options.find((o) => o.value === step.selected);
+
+  if (step.custom && option) {
+    return `${step.custom}, ${option.promptFrag}`;
+  }
+  if (step.custom) {
+    return step.custom;
+  }
+  if (option) {
+    return option.promptFrag;
+  }
+  return "";
+}
+
+// ─── Main Builder ─────────────────────────────────────────────────────────────
+
+/**
+ * Builds a Suno-ready English Style Prompt from a PromptBuilder12State.
+ * - Output order follows OUTPUT_ORDER (genre → tempo → instruments → vocal → space → atmosphere).
+ * - If over 800 chars, light steps are trimmed first, then medium steps.
+ * - Heavy steps (genre, lead instrument, drums, vocal texture, atmosphere) are never auto-trimmed.
+ * - Returns { prompt, charCount }.
+ */
+export function buildStylePromptFrom12Steps(
+  state: PromptBuilder12State
+): PromptBuildResult {
+  // 1. Resolve each step to a fragment string (skip empty/unanswered steps)
+  const fragMap = new Map<string, string>();
+  for (const step of state.steps) {
+    const frag = resolveStepFragment(step);
+    if (frag) fragMap.set(step.id, frag);
+  }
+
+  if (fragMap.size === 0) {
+    return { prompt: "", charCount: 0 };
+  }
+
+  // 2. Build in natural output order, keeping only resolved steps
+  const ordered = OUTPUT_ORDER.filter((id) => fragMap.has(id));
+
+  const join = (ids: readonly string[]): string =>
+    ids.map((id) => fragMap.get(id)!).join(", ");
+
+  const candidate = join(ordered);
+  if (candidate.length <= CHAR_LIMIT) {
+    return { prompt: candidate, charCount: candidate.length };
+  }
+
+  // 3. Over budget — trim by priority (light first, then medium)
+  const remaining = new Set(ordered);
+  for (const trimId of TRIM_PRIORITY) {
+    if (remaining.size <= 1) break; // always keep at least one fragment
+    if (!remaining.has(trimId)) continue;
+    remaining.delete(trimId);
+    const attempt = join(OUTPUT_ORDER.filter((id) => remaining.has(id)));
+    if (attempt.length <= CHAR_LIMIT) {
+      return { prompt: attempt, charCount: attempt.length };
+    }
+  }
+
+  // 4. Last resort: hard-cut remaining at CHAR_LIMIT
+  const best = join(OUTPUT_ORDER.filter((id) => remaining.has(id)));
+  const cut = best.slice(0, CHAR_LIMIT - 3) + "...";
+  return { prompt: cut, charCount: cut.length };
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Returns the character count of the generated prompt. */
+export function countStylePromptChars(state: PromptBuilder12State): number {
+  return buildStylePromptFrom12Steps(state).charCount;
+}
+
+/**
+ * Returns a fresh PromptBuilder12State with all steps at default (empty) values.
+ * Always clone DEFAULT_STEPS — never mutate the exported constant.
+ */
+export function createInitialState(): PromptBuilder12State {
+  return { steps: DEFAULT_STEPS.map((s) => ({ ...s, options: s.options })) };
+}
+
+// ─── Sample State (Corporate Electro Funk) ───────────────────────────────────
+
+/**
+ * A fully-filled sample state for manual verification and unit tests.
+ * Represents: Corporate Electro Funk, mid-tempo, LinnDrum, Roland Juno-106,
+ *             synth slap bass, obsessive corporate atmosphere.
+ */
+export function makeSampleState(): PromptBuilder12State {
+  const state = createInitialState();
+
+  const set = (id: string, selected: string | null, custom: string) => {
+    const step = state.steps.find((s) => s.id === id);
+    if (step) {
+      step.selected = selected;
+      step.custom = custom;
+    }
+  };
+
+  // 1  Genre Foundation: "Corporate Electro Funk" + genre-definitive approach
+  set("genre-foundation",     "a",  "Corporate Electro Funk");
+  // 2  Tempo: mid-tempo
+  set("tempo-feel",           "b",  "");
+  // 3  Genre Density: pure genre focus
+  set("genre-density",        "a",  "");
+  // 4  Vocal Texture: clear, forward
+  set("vocal-texture",        "a",  "");
+  // 5  Vocal Processing: light reverb
+  set("vocal-processing",     "b",  "");
+  // 6  Electronic Treatment: moderate synthesis
+  set("electronic-treatment", "b",  "");
+  // 7  Lead Instrument: Roland Juno-106 (custom only)
+  set("lead-instrument",      null, "Roland Juno-106");
+  // 8  Drum Direction: LinnDrum (custom) + drum machine option
+  set("drum-direction",       "b",  "LinnDrum");
+  // 9  Bass Direction: synth slap bass (custom only)
+  set("bass-direction",       null, "synth slap bass");
+  // 10 Space Treatment: dry and intimate
+  set("space-treatment",      "a",  "");
+  // 11 World / Atmosphere: obsessive precision (custom) + dark/tense option
+  set("world-atmosphere",     "b",  "obsessive corporate precision");
+  // 12 Final Impression: custom feel
+  set("final-impression",     null, "feels like a boardroom dance floor");
+
+  return state;
+}
