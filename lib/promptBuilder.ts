@@ -174,13 +174,21 @@ export function buildNegativePrompt(input: SongInput): string {
   }
 
   const GENRE_NEGATIVES: Record<string, string> = {
-    jpop: "excessive auto-tune, generic idol sound",
-    jrock: "over-compressed guitars, nu-metal clichés",
-    city: "lo-fi clichés, bedroom pop muddiness",
-    vocaloid: "robotic phrasing without intention",
-    metal: "triggered drum samples, djent clipping",
-    ambient: "new-age blandness, generic pad washes",
-    hiphop: "mumble rap aesthetics, trap hi-hat spam",
+    jpop:       "excessive auto-tune, generic idol sound",
+    jrock:      "over-compressed guitars, nu-metal clichés",
+    city:       "lo-fi clichés, bedroom pop muddiness",
+    vocaloid:   "robotic phrasing without intention",
+    metal:      "triggered drum samples, djent clipping",
+    ambient:    "new-age blandness, generic pad washes",
+    hiphop:     "mumble rap aesthetics, trap hi-hat spam",
+    anime:      "generic battle-music ostinato, saccharine synth choir, thin MIDI orchestration",
+    electronic: "generic EDM drop, preset lead synth, gratuitous sidechain pump",
+    rnb:        "gratuitous melisma runs, trap-influenced hi-hat spam, static chord-loop without groove development",
+    folk:       "over-polished acoustic gloss, coffee-shop background music feel, generic three-chord campfire loop",
+    jazz:       "smooth jazz blandness, elevator music feel, predictable ii-V-I without harmonic color",
+    cinematic:  "generic trailer music swell, four-chord epic loop, action-brass stinger",
+    funk:       "over-quantized sterile groove, generic wah-wah cliché, lifeless programmed funk bass",
+    kpop:       "generic idol-group production formula, overprocessed vocal effect, formulaic energy-drop prechorus",
   };
 
   // Use genreLock key when set, otherwise fall back to input.genre
