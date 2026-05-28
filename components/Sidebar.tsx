@@ -1010,7 +1010,7 @@ export default function Sidebar({
             ↳ World Forge active
           </p>
         )}
-        {stylePromptOverride && (
+        {stylePromptOverride.trim().length > 0 && (
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[11px] font-mono text-blue-600 leading-snug">
               ↳ 12-Step Prompt Builder active

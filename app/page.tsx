@@ -438,6 +438,11 @@ export default function Home() {
       }));
     }
 
+    try {
+      const storedOverride = localStorage.getItem("mora-style-override");
+      if (storedOverride && storedOverride.trim().length > 0) setStylePromptOverride(storedOverride);
+    } catch { /* ignore */ }
+
     setMounted(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -450,6 +455,21 @@ export default function Home() {
   useEffect(() => { if (mounted) localStorage.setItem("mora-genre-lock",       input.genreLock ?? "");                }, [input.genreLock,  mounted]);
   useEffect(() => { if (mounted) localStorage.setItem("mora-sub-styles",       JSON.stringify(input.subStyles ?? [])); }, [input.subStyles,  mounted]);
   useEffect(() => { if (mounted) localStorage.setItem("mora-center-tab",       centerTab);                             }, [centerTab,         mounted]);
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      if (stylePromptOverride.trim().length > 0) {
+        localStorage.setItem("mora-style-override", stylePromptOverride);
+      } else {
+        localStorage.removeItem("mora-style-override");
+      }
+    } catch { /* ignore */ }
+  }, [stylePromptOverride, mounted]);
+
+  // Derived: whether the 12-Step Builder override is currently active
+  const hasOverride = stylePromptOverride.trim().length > 0;
+  // Display-time effective style prompt — override takes priority over generated value
+  const effectiveStylePrompt = hasOverride ? stylePromptOverride : stylePrompt;
 
   /**
    * Returns the structure string to send to the API.
@@ -533,7 +553,7 @@ export default function Home() {
     if (expansion) {
       const lib = buildLibraryContext();
       // 12-Step Prompt Builder override takes priority when set
-      const sp = stylePromptOverride || buildStylePromptFromExpansion(expansion, input, input.theme);
+      const sp = hasOverride ? stylePromptOverride : buildStylePromptFromExpansion(expansion, input, input.theme);
       const np = buildNegativePromptFromExpansion(expansion, input);
       // Append library style additions to displayed style prompt
       setStyle(lib.styleAddition ? `${sp}, ${lib.styleAddition}` : sp);
@@ -581,7 +601,7 @@ export default function Home() {
     // ── PATH B: Legacy (no expansion — form input / manual settings) ────────
     const lib = buildLibraryContext();
     // 12-Step Prompt Builder override takes priority when set
-    const sp  = stylePromptOverride || buildStylePrompt(input, preset);
+    const sp  = hasOverride ? stylePromptOverride : buildStylePrompt(input, preset);
     const np  = buildNegativePrompt(input);
     setStyle(lib.styleAddition ? `${sp}, ${lib.styleAddition}` : sp);
     setNeg(np);
@@ -643,7 +663,7 @@ export default function Home() {
     setLoadingMode(mode);
     setRewriteNotes("");
 
-    const result = await callClaudeRewrite(mode, lyrics, stylePrompt, input, moraLines, intensity, sectionTarget);
+    const result = await callClaudeRewrite(mode, lyrics, effectiveStylePrompt, input, moraLines, intensity, sectionTarget);
 
     if (result) {
       // Enforce section target: only accept Claude's edits for the target section.
@@ -750,7 +770,7 @@ export default function Home() {
       memo: saveMemo,
       title: input.title || input.theme || "(untitled)",
       songInput: input,
-      stylePrompt,
+      stylePrompt: effectiveStylePrompt,
       lyrics,
       worldPreset: preset,
       score: songStats?.riskScore ?? null,
@@ -789,7 +809,7 @@ export default function Home() {
 
   const copyAll = () => {
     const p = [
-      stylePrompt  && `=== STYLE PROMPT ===\n${stylePrompt}`,
+      effectiveStylePrompt && `=== STYLE PROMPT ===\n${effectiveStylePrompt}`,
       negPrompt    && `=== NEGATIVE PROMPT ===\n${negPrompt}`,
       lyrics       && `=== LYRICS ===\n${lyrics}`,
       regenPrompt  && `=== REGENERATE PROMPT ===\n${regenPrompt}`,
@@ -1098,7 +1118,7 @@ export default function Home() {
                   : "border-[#CBD5E1] text-[#64748B] font-semibold hover:border-[#94A3B8] hover:text-[#1E293B]"
               }`}
             >
-              {stylePromptOverride ? "BUILDER · active" : "BUILDER"}
+              {hasOverride ? "BUILDER · active" : "BUILDER"}
             </button>
             {centerTab === "prompt" && isSample && <SampleBadge />}
           </div>
@@ -1110,11 +1130,24 @@ export default function Home() {
                 <div className="mora-card-hdr">
                   <HeaderIcon name="file-text" />
                   <span>STYLE PROMPT</span>
-                  <div className="ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
+                  {hasOverride && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <span className="text-[10px] font-mono text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-[1px] leading-none">
+                        Builder override active
+                      </span>
+                      <button
+                        onClick={() => setStylePromptOverride("")}
+                        className="text-[10px] font-mono text-amber-600 hover:text-amber-800 border border-amber-200 hover:border-amber-400 rounded px-1.5 py-[1px] bg-amber-50 hover:bg-amber-100 transition-colors leading-none"
+                      >
+                        ✕ Clear
+                      </button>
+                    </div>
+                  )}
+                  <div className="ml-auto"><CopyBtn text={effectiveStylePrompt} label="COPY" /></div>
                 </div>
                 <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                   <PromptEditor
-                    value={stylePrompt}
+                    value={effectiveStylePrompt}
                     onChange={handleStyleEdit}
                     isSample={isSample}
                     placeholder="Generate後にStyle Promptがここに表示されます"
@@ -1296,11 +1329,24 @@ export default function Home() {
             <PanelHeader>
               <span className="flex items-center px-3 text-[14px] font-mono font-bold text-[#0F172A] tracking-[0.10em]">STYLE PROMPT</span>
               {isSample && <SampleBadge />}
-              <div className="flex items-center px-2 ml-auto"><CopyBtn text={stylePrompt} label="COPY" /></div>
+              {hasOverride && (
+                <div className="flex items-center gap-1 px-2">
+                  <span className="text-[10px] font-mono text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-[1px] leading-none">
+                    Builder override
+                  </span>
+                  <button
+                    onClick={() => setStylePromptOverride("")}
+                    className="text-[10px] font-mono text-amber-600 hover:text-amber-800 border border-amber-200 hover:border-amber-400 rounded px-1.5 py-[1px] bg-amber-50 hover:bg-amber-100 transition-colors leading-none"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center px-2 ml-auto"><CopyBtn text={effectiveStylePrompt} label="COPY" /></div>
             </PanelHeader>
             <div className="flex-1 min-h-0 px-4 pt-4 pb-4 flex flex-col overflow-hidden">
               <div className="flex-1 min-h-0 rounded-xl border border-[#CBD5E1] bg-white overflow-hidden flex flex-col" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}>
-                <PromptEditor value={stylePrompt} onChange={handleStyleEdit} isSample={isSample} />
+                <PromptEditor value={effectiveStylePrompt} onChange={handleStyleEdit} isSample={isSample} />
               </div>
             </div>
           </div>
@@ -1400,13 +1446,13 @@ export default function Home() {
           <span className="text-[13px] font-mono text-zinc-500 tracking-[0.2em] shrink-0">OUTPUT</span>
           <div className="w-px h-3 bg-[#d0d7de] mx-1 shrink-0" />
           <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
-            <CopyBtn text={stylePrompt} label="STYLE" />
+            <CopyBtn text={effectiveStylePrompt} label="STYLE" />
             <CopyBtn text={lyrics}      label="LYRICS" />
             <CopyBtn text={negPrompt}   label="NEG" />
             {regenPrompt && <CopyBtn text={regenPrompt} label="REGEN" />}
           </div>
           <div className="ml-auto shrink-0">
-            <CopyAllBtn onCopy={copyAll} hasContent={!!(stylePrompt || lyrics)} />
+            <CopyAllBtn onCopy={copyAll} hasContent={!!(effectiveStylePrompt || lyrics)} />
           </div>
         </div>
       </footer>
