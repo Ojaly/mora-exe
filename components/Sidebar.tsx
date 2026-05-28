@@ -8,6 +8,7 @@ import { buildWizardPrompt, WizardAnswers } from "@/lib/wizardBuilder";
 import WorldForge from "@/components/WorldForge";
 import SourceAlchemy from "@/components/SourceAlchemy";
 import StructureBlueprint from "@/components/StructureBlueprint";
+import PromptBuilder12Panel from "@/components/PromptBuilder12Panel";
 import { getPromptItemById, PromptLibraryItem } from "@/lib/promptLibrary";
 import HeaderIcon from "@/components/HeaderIcon";
 
@@ -47,6 +48,13 @@ interface Props {
    * to prevent SSR/client hydration mismatches.
    */
   mounted?: boolean;
+  // ── 12-Step Prompt Builder ─────────────────────────────────────────────────
+  /** Called when user clicks "Use as Style Prompt" in the 12-Step Builder. */
+  onBuilderApply: (prompt: string) => void;
+  /** Non-empty when the 12-Step override is active — shown in Generate footer. */
+  stylePromptOverride?: string;
+  /** Clears the 12-Step override and restores normal Style Prompt generation. */
+  onClearStylePromptOverride?: () => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -359,10 +367,14 @@ export default function Sidebar({
   onBuilderSectionsChange,
   builderIsEmpty = false,
   mounted = false,
+  onBuilderApply,
+  stylePromptOverride = "",
+  onClearStylePromptOverride,
 }: Props) {
-  const [alchemyOpen,    setAlchemyOpen]    = useState(false);
-  const [genreLockOpen,  setGenreLockOpen]  = useState(false);
-  const [fineTuneOpen,   setFineTuneOpen]   = useState(false);
+  const [alchemyOpen,        setAlchemyOpen]        = useState(false);
+  const [genreLockOpen,      setGenreLockOpen]      = useState(false);
+  const [promptBuilderOpen,  setPromptBuilderOpen]  = useState(false);
+  const [fineTuneOpen,       setFineTuneOpen]       = useState(false);
   const [structureOpen,  setStructureOpen]  = useState(false);
   const [libraryOpen,    setLibraryOpen]    = useState(false);
   const [avoidOpen,      setAvoidOpen]      = useState(false);
@@ -602,9 +614,24 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 3. FINE TUNE (collapsible) ════════════════════════════════════════ */}
+        {/* ══ 3. PROMPT BUILDER ════════════════════════════════════════════════ */}
         <CollapseSection
-          label="3. FINE TUNE"
+          label={
+            stylePromptOverride
+              ? "3. PROMPT BUILDER · active"
+              : "3. PROMPT BUILDER"
+          }
+          icon="layers"
+          sub="12項目でStyle Promptを設計（旧Guided Modeの代替）"
+          open={promptBuilderOpen}
+          onToggle={() => setPromptBuilderOpen((v) => !v)}
+        >
+          <PromptBuilder12Panel onApply={onBuilderApply} />
+        </CollapseSection>
+
+        {/* ══ 4. FINE TUNE (collapsible) ════════════════════════════════════════ */}
+        <CollapseSection
+          label="4. FINE TUNE"
           icon="sliders-horizontal"
           sub="方向性・BPM・言語比率などの詳細設定"
           open={fineTuneOpen}
@@ -751,7 +778,7 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 4. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
+        {/* ══ 5. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
         <CollapseSection
           label={
             !mounted
@@ -777,7 +804,7 @@ export default function Sidebar({
           />
         </CollapseSection>
 
-        {/* ══ 5. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
+        {/* ══ 6. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
         <CollapseSection
           label={
             !mounted
@@ -838,9 +865,9 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 6. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
+        {/* ══ 7. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
         <CollapseSection
-          label="6. AVOID / NEGATIVE"
+          label="7. AVOID / NEGATIVE"
           sub="避けたい音・表現・AI臭さの指定"
           open={avoidOpen}
           onToggle={() => setAvoidOpen((v) => !v)}
@@ -1002,6 +1029,19 @@ export default function Sidebar({
           <p className="text-[11px] font-mono text-emerald-600 mb-1.5 leading-snug">
             ↳ World Forge active
           </p>
+        )}
+        {stylePromptOverride && (
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] font-mono text-blue-600 leading-snug">
+              ↳ 12-Step Prompt Builder active
+            </p>
+            <button
+              onClick={onClearStylePromptOverride}
+              className="text-[10px] font-mono text-zinc-400 hover:text-zinc-600 ml-2 shrink-0 transition-colors"
+            >
+              ✕ クリア
+            </button>
+          </div>
         )}
         {builderIsEmpty && (
           <p className="text-[11px] font-mono mb-1.5 leading-snug font-semibold" style={{ color: "var(--accent-warning-strong)" }}>

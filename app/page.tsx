@@ -366,6 +366,10 @@ export default function Home() {
   // History
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
+  // 12-Step Prompt Builder override
+  // When set, this prompt replaces buildStylePrompt / buildStylePromptFromExpansion in generate.
+  const [stylePromptOverride, setStylePromptOverride] = useState("");
+
   // Memory panel
   const [showMemory, setShowMemory] = useState(false);
   const [saveMemo, setSaveMemo] = useState("");
@@ -520,7 +524,8 @@ export default function Home() {
     // This path always returns — the legacy path below can never run.
     if (expansion) {
       const lib = buildLibraryContext();
-      const sp = buildStylePromptFromExpansion(expansion, input, input.theme);
+      // 12-Step Prompt Builder override takes priority when set
+      const sp = stylePromptOverride || buildStylePromptFromExpansion(expansion, input, input.theme);
       const np = buildNegativePromptFromExpansion(expansion, input);
       // Append library style additions to displayed style prompt
       setStyle(lib.styleAddition ? `${sp}, ${lib.styleAddition}` : sp);
@@ -567,7 +572,8 @@ export default function Home() {
 
     // ── PATH B: Legacy (no expansion — form input / manual settings) ────────
     const lib = buildLibraryContext();
-    const sp  = buildStylePrompt(input, preset);
+    // 12-Step Prompt Builder override takes priority when set
+    const sp  = stylePromptOverride || buildStylePrompt(input, preset);
     const np  = buildNegativePrompt(input);
     setStyle(lib.styleAddition ? `${sp}, ${lib.styleAddition}` : sp);
     setNeg(np);
@@ -1039,6 +1045,9 @@ export default function Home() {
             onBuilderSectionsChange={setBuilderSections}
             builderIsEmpty={builderIsEmpty}
             mounted={mounted}
+            onBuilderApply={setStylePromptOverride}
+            stylePromptOverride={stylePromptOverride}
+            onClearStylePromptOverride={() => setStylePromptOverride("")}
           />
         </aside>
 
@@ -1244,6 +1253,9 @@ export default function Home() {
               onBuilderSectionsChange={setBuilderSections}
               builderIsEmpty={builderIsEmpty}
               mounted={mounted}
+              onBuilderApply={(p) => { setStylePromptOverride(p); setMobile("prompt"); }}
+              stylePromptOverride={stylePromptOverride}
+              onClearStylePromptOverride={() => setStylePromptOverride("")}
             />
           </div>
         )}
