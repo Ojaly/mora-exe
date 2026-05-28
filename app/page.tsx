@@ -85,8 +85,8 @@ type CenterTab = "prompt" | "library";
 type MobileTab = "concept" | "prompt" | "lyrics" | "tuner" | "library";
 
 const defaultInput: SongInput = {
-  title: "", theme: "", genre: "jpop", bpm: "", key: "", mood: "melancholic",
-  vocalType: "female", songLength: "full", englishRatio: "low",
+  title: "", theme: "", genre: "jpop", bpm: "", key: "", mood: "",
+  vocalType: "", songLength: "full", englishRatio: "low",
   worldPreset: "", referenceVibe: "", avoidExpressions: "",
   startWithChorus: false, avoidAiCliche: false, lyrics: "", nudges: [],
   genreLock: "",    // Phase 1: "" = AI decides, e.g. "jpop" = [GENRE LOCK: J-Pop]

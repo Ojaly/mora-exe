@@ -121,12 +121,12 @@ export function buildStylePrompt(
   const bpmPart = input.bpm ? `${input.bpm} BPM` : groove;
   const keyPart = input.key ? `, key of ${input.key}` : "";
   const extraStyle = themeDesc?.styleWords.slice(0, 2) ?? [];
-  const moodFull = [mood, ...extraStyle].join(", ");
+  const moodFull = [mood, ...extraStyle].filter(Boolean).join(", ");
   const subStyleStr = (input.subStyles ?? []).join(", ");
-  sentences.push(`${genre}${subStyleStr ? `, ${subStyleStr}` : ""}, ${moodFull}, ${bpmPart}${keyPart}.`);
+  sentences.push(`${genre}${subStyleStr ? `, ${subStyleStr}` : ""}${moodFull ? `, ${moodFull}` : ""}, ${bpmPart}${keyPart}.`);
 
-  // S2: vocal
-  sentences.push(`${cap(vocal)}.`);
+  // S2: vocal (skipped when vocalType is empty — AI decides)
+  if (vocal) sentences.push(`${cap(vocal)}.`);
 
   // S3: instruments
   const instrParts = instruments.split(/,\s*/);
@@ -210,7 +210,7 @@ export function buildRegeneratePrompt(input: SongInput): string {
   const theme = input.theme?.trim();
   const title = input.title?.trim();
   const parts = [
-    `Regenerate as ${genre}, ${mood}`,
+    `Regenerate as ${genre}${mood ? `, ${mood}` : ""}`,
     ...(input.bpm ? [`at ${input.bpm} BPM`] : []),
     ...(theme ? [`Theme: ${theme}`] : []),
     ...(title ? [`Title: ${title}`] : []),
