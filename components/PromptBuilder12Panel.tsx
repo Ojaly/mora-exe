@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PromptBuilder12State, PromptBuilderStep } from "@/types";
 import {
   createInitialState,
   makeSampleState,
   buildStylePromptFrom12Steps,
 } from "@/lib/promptBuilder12";
+
+const STORAGE_KEY = "mora-builder-12";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +81,50 @@ function StepRow({
 
 export default function PromptBuilder12Panel({ onApply }: Props) {
   const [state, setState] = useState<PromptBuilder12State>(createInitialState);
+  const [mounted, setMounted] = useState(false);
+
+  // Restore from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          steps: { id: string; selected: string | null; custom: string }[];
+        };
+        if (Array.isArray(parsed?.steps)) {
+          const map = new Map(parsed.steps.map((s) => [s.id, s]));
+          setState({
+            steps: createInitialState().steps.map((step) => {
+              const stored = map.get(step.id);
+              if (!stored) return step;
+              const validSelected =
+                stored.selected === null ||
+                step.options.some((o) => o.value === stored.selected)
+                  ? stored.selected
+                  : null;
+              return {
+                ...step,
+                selected: validSelected,
+                custom: typeof stored.custom === "string" ? stored.custom : "",
+              };
+            }),
+          });
+        }
+      }
+    } catch {
+      /* corrupt data: start fresh */
+    }
+    setMounted(true);
+  }, []);
+
+  // Persist to localStorage on every state change (post-mount only)
+  useEffect(() => {
+    if (!mounted) return;
+    const toStore = {
+      steps: state.steps.map((s) => ({ id: s.id, selected: s.selected, custom: s.custom })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+  }, [state, mounted]);
 
   // Derived: compute prompt on every render (fast, pure)
   const { prompt, charCount } = buildStylePromptFrom12Steps(state);
