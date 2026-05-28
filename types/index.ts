@@ -272,6 +272,19 @@ export interface PromptBuildResult {
   charCount: number;
 }
 
+export interface BuilderPresetStep {
+  id: string;
+  selected: string | null;
+  custom: string;
+}
+
+export interface BuilderPreset {
+  id: string;
+  name: string;
+  steps: BuilderPresetStep[];
+  builtIn?: true;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PromptMemory {

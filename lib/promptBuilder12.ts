@@ -11,6 +11,7 @@ import type {
   PromptBuilderStep,
   PromptBuilder12State,
   PromptBuildResult,
+  BuilderPreset,
 } from "@/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -543,3 +544,131 @@ export function makeSampleState(): PromptBuilder12State {
 
   return state;
 }
+
+// ─── Preset Loader ────────────────────────────────────────────────────────────
+
+/**
+ * Builds a PromptBuilder12State from a BuilderPreset.
+ * Always starts from createInitialState() so step definitions come from
+ * DEFAULT_STEPS — stored selected/custom values are overlaid on top.
+ * Unknown step IDs are silently ignored; unknown option values are reset to null.
+ */
+export function loadPresetState(preset: BuilderPreset): PromptBuilder12State {
+  const map = new Map(preset.steps.map((s) => [s.id, s]));
+  return {
+    steps: createInitialState().steps.map((step) => {
+      const stored = map.get(step.id);
+      if (!stored) return step;
+      const validSelected =
+        stored.selected === null ||
+        step.options.some((o) => o.value === stored.selected)
+          ? stored.selected
+          : null;
+      return {
+        ...step,
+        selected: validSelected,
+        custom: typeof stored.custom === "string" ? stored.custom : "",
+      };
+    }),
+  };
+}
+
+// ─── Built-in Presets ─────────────────────────────────────────────────────────
+
+export const BUILT_IN_PRESETS: BuilderPreset[] = [
+  {
+    id: "corp-electro-funk",
+    name: "Corporate Electro Funk",
+    builtIn: true,
+    steps: [
+      { id: "genre-foundation",     selected: "a",  custom: "Corporate Electro Funk" },
+      { id: "tempo-feel",           selected: "b",  custom: "" },
+      { id: "genre-density",        selected: "a",  custom: "" },
+      { id: "vocal-texture",        selected: "a",  custom: "" },
+      { id: "vocal-processing",     selected: "b",  custom: "" },
+      { id: "electronic-treatment", selected: "b",  custom: "" },
+      { id: "lead-instrument",      selected: null, custom: "Roland Juno-106" },
+      { id: "drum-direction",       selected: "b",  custom: "LinnDrum" },
+      { id: "bass-direction",       selected: null, custom: "synth slap bass" },
+      { id: "space-treatment",      selected: "a",  custom: "" },
+      { id: "world-atmosphere",     selected: "b",  custom: "obsessive corporate precision" },
+      { id: "final-impression",     selected: null, custom: "feels like a boardroom dance floor" },
+    ],
+  },
+  {
+    id: "digital-motown-disco-soul",
+    name: "Digital Motown Disco Soul",
+    builtIn: true,
+    steps: [
+      { id: "genre-foundation",     selected: "a",  custom: "Digital Motown Disco Soul" },
+      { id: "tempo-feel",           selected: "b",  custom: "" },
+      { id: "genre-density",        selected: "a",  custom: "" },
+      { id: "vocal-texture",        selected: "a",  custom: "" },
+      { id: "vocal-processing",     selected: "b",  custom: "" },
+      { id: "electronic-treatment", selected: "b",  custom: "" },
+      { id: "lead-instrument",      selected: "a",  custom: "Rhodes, Fender Rhodes" },
+      { id: "drum-direction",       selected: "a",  custom: "live disco drums, four-on-the-floor" },
+      { id: "bass-direction",       selected: "a",  custom: "walking bass, groovy fills" },
+      { id: "space-treatment",      selected: "b",  custom: "" },
+      { id: "world-atmosphere",     selected: "a",  custom: "soul dancefloor warmth" },
+      { id: "final-impression",     selected: "a",  custom: "" },
+    ],
+  },
+  {
+    id: "danceable-electro-waltz",
+    name: "Danceable Electro Waltz",
+    builtIn: true,
+    steps: [
+      { id: "genre-foundation",     selected: "b",  custom: "Danceable Electro Waltz" },
+      { id: "tempo-feel",           selected: "b",  custom: "" },
+      { id: "genre-density",        selected: "b",  custom: "" },
+      { id: "vocal-texture",        selected: "b",  custom: "" },
+      { id: "vocal-processing",     selected: "b",  custom: "" },
+      { id: "electronic-treatment", selected: "b",  custom: "" },
+      { id: "lead-instrument",      selected: "a",  custom: "harpsichord, synth strings" },
+      { id: "drum-direction",       selected: "b",  custom: "electronic waltz pattern, 3/4 feel" },
+      { id: "bass-direction",       selected: "a",  custom: "staccato synth bass" },
+      { id: "space-treatment",      selected: "c",  custom: "" },
+      { id: "world-atmosphere",     selected: "c",  custom: "elegant dystopian ballroom" },
+      { id: "final-impression",     selected: "c",  custom: "" },
+    ],
+  },
+  {
+    id: "dark-electro-swing",
+    name: "Dark Electro Swing",
+    builtIn: true,
+    steps: [
+      { id: "genre-foundation",     selected: "a",  custom: "Dark Electro Swing" },
+      { id: "tempo-feel",           selected: "b",  custom: "swinging groove, jazz-inflected" },
+      { id: "genre-density",        selected: "a",  custom: "" },
+      { id: "vocal-texture",        selected: "c",  custom: "" },
+      { id: "vocal-processing",     selected: "c",  custom: "vintage crackle, phonograph warmth" },
+      { id: "electronic-treatment", selected: "b",  custom: "" },
+      { id: "lead-instrument",      selected: "c",  custom: "muted trumpet, clarinet" },
+      { id: "drum-direction",       selected: "b",  custom: "electro swing kick, shuffled snare" },
+      { id: "bass-direction",       selected: "a",  custom: "walking double bass" },
+      { id: "space-treatment",      selected: "a",  custom: "intimate speakeasy room" },
+      { id: "world-atmosphere",     selected: "b",  custom: "smoky underground cabaret" },
+      { id: "final-impression",     selected: "b",  custom: "" },
+    ],
+  },
+  {
+    id: "electro-gospel-irony",
+    name: "Electro Gospel Irony",
+    builtIn: true,
+    steps: [
+      { id: "genre-foundation",     selected: "c",  custom: "Electro Gospel Irony" },
+      { id: "tempo-feel",           selected: "c",  custom: "driving, anthemic pulse" },
+      { id: "genre-density",        selected: "b",  custom: "" },
+      { id: "vocal-texture",        selected: "a",  custom: "gospel choir harmonics" },
+      { id: "vocal-processing",     selected: "c",  custom: "massive reverb, cathedral space" },
+      { id: "electronic-treatment", selected: "c",  custom: "" },
+      { id: "lead-instrument",      selected: "a",  custom: "Hammond organ, synth stabs" },
+      { id: "drum-direction",       selected: "b",  custom: "glitchy gospel rhythm" },
+      { id: "bass-direction",       selected: "c",  custom: "" },
+      { id: "space-treatment",      selected: "c",  custom: "" },
+      { id: "world-atmosphere",     selected: "a",  custom: "ironic euphoria, hollow triumph" },
+      { id: "final-impression",     selected: "c",  custom: "" },
+    ],
+  },
+];

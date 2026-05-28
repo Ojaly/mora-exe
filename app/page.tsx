@@ -412,6 +412,12 @@ export default function Home() {
       if (Array.isArray(parsed)) setBuilderSections(parsed as BuilderSection[]);
     } catch { /* 旧 custom テキストは破棄 */ }
 
+    // Restore centerTab
+    const storedCenterTab = localStorage.getItem("mora-center-tab");
+    if (storedCenterTab === "prompt" || storedCenterTab === "library" || storedCenterTab === "builder") {
+      setCenterTab(storedCenterTab);
+    }
+
     // Restore genreLock / subStyles
     const storedGenreLock = localStorage.getItem("mora-genre-lock");
     const restoredGenreLock = typeof storedGenreLock === "string" ? storedGenreLock : "";
@@ -443,6 +449,7 @@ export default function Home() {
   useEffect(() => { if (mounted) localStorage.setItem("mora-structure-custom", JSON.stringify(builderSections));      }, [builderSections,  mounted]);
   useEffect(() => { if (mounted) localStorage.setItem("mora-genre-lock",       input.genreLock ?? "");                }, [input.genreLock,  mounted]);
   useEffect(() => { if (mounted) localStorage.setItem("mora-sub-styles",       JSON.stringify(input.subStyles ?? [])); }, [input.subStyles,  mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-center-tab",       centerTab);                             }, [centerTab,         mounted]);
 
   /**
    * Returns the structure string to send to the API.

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PromptBuilder12State, PromptBuilderStep } from "@/types";
 import {
   createInitialState,
   makeSampleState,
   buildStylePromptFrom12Steps,
+  loadPresetState,
+  BUILT_IN_PRESETS,
 } from "@/lib/promptBuilder12";
 
 const STORAGE_KEY = "mora-builder-12";
@@ -30,9 +32,9 @@ function StepRow({
   return (
     <div className="space-y-1">
       {/* Label */}
-      <span className="text-[10px] font-mono text-zinc-400 tracking-[0.1em] uppercase leading-none block">
+      <span className="text-[11px] font-mono text-zinc-600 tracking-[0.1em] uppercase leading-none block font-semibold">
         {step.labelJa}
-        <span className="text-zinc-300 mx-1">/</span>
+        <span className="text-zinc-400 mx-1">/</span>
         {step.label}
       </span>
 
@@ -44,10 +46,10 @@ function StepRow({
             <button
               key={opt.value}
               onClick={() => onToggle(step.id, opt.value)}
-              className={`px-2 py-[2px] text-[10px] font-mono rounded border transition-all ${
+              className={`px-2 py-[2px] text-[11px] font-mono rounded border transition-all ${
                 active
                   ? "border-blue-400 text-blue-700 bg-blue-50 font-semibold"
-                  : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                  : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
               }`}
             >
               {active ? "· " : ""}
@@ -67,10 +69,10 @@ function StepRow({
             ? "例: Corporate Electro Funk / Dark Electro Gospel"
             : "Custom..."
         }
-        className={`w-full h-7 border rounded px-2 text-[11px] font-mono text-zinc-700 placeholder-zinc-300 focus:outline-none focus:border-blue-400 transition-colors ${
+        className={`w-full h-8 border rounded px-2 text-[12px] font-mono text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-blue-400 transition-colors ${
           step.id === "genre-foundation"
             ? "border-blue-200 bg-blue-50/30 placeholder-blue-300"
-            : "border-[#E2E8F0] bg-white"
+            : "border-zinc-300 bg-white"
         }`}
       />
     </div>
@@ -92,23 +94,7 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
           steps: { id: string; selected: string | null; custom: string }[];
         };
         if (Array.isArray(parsed?.steps)) {
-          const map = new Map(parsed.steps.map((s) => [s.id, s]));
-          setState({
-            steps: createInitialState().steps.map((step) => {
-              const stored = map.get(step.id);
-              if (!stored) return step;
-              const validSelected =
-                stored.selected === null ||
-                step.options.some((o) => o.value === stored.selected)
-                  ? stored.selected
-                  : null;
-              return {
-                ...step,
-                selected: validSelected,
-                custom: typeof stored.custom === "string" ? stored.custom : "",
-              };
-            }),
-          });
+          setState(loadPresetState({ id: "_wip", name: "", steps: parsed.steps }));
         }
       }
     } catch {
@@ -116,6 +102,18 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
     }
     setMounted(true);
   }, []);
+
+  // Active preset: which built-in preset matches the current state exactly
+  const activePresetId = useMemo(() => {
+    return (
+      BUILT_IN_PRESETS.find((preset) =>
+        preset.steps.every((ps) => {
+          const cs = state.steps.find((s) => s.id === ps.id);
+          return cs && cs.selected === ps.selected && cs.custom === ps.custom;
+        })
+      )?.id ?? null
+    );
+  }, [state]);
 
   // Persist to localStorage on every state change (post-mount only)
   useEffect(() => {
@@ -179,6 +177,32 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* ── Preset row ────────────────────────────────────────────────────── */}
+      <div className="space-y-1">
+        <span className="text-[11px] font-mono text-zinc-500 tracking-[0.1em] uppercase leading-none block">
+          PRESET
+        </span>
+        <div className="flex flex-wrap gap-1">
+          {BUILT_IN_PRESETS.map((preset) => {
+            const active = activePresetId === preset.id;
+            return (
+              <button
+                key={preset.id}
+                onClick={() => setState(loadPresetState(preset))}
+                className={`px-2 py-[2px] text-[11px] font-mono rounded border transition-all ${
+                  active
+                    ? "border-emerald-400 text-emerald-700 bg-emerald-50 font-semibold"
+                    : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                {active ? "· " : ""}
+                {preset.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ── 12 Steps ──────────────────────────────────────────────────────── */}
       {state.steps.map((step) => (
         <StepRow
@@ -193,11 +217,11 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
       <div className="border-t border-[#E2E8F0] pt-2.5 space-y-1.5">
         {/* Preview text */}
         <p
-          className="text-[11px] font-mono leading-snug text-zinc-600 line-clamp-2 min-h-[2.5rem]"
+          className="text-[12px] font-mono leading-snug text-zinc-700 line-clamp-2 min-h-[2.5rem]"
           title={prompt || undefined}
         >
           {prompt || (
-            <span className="text-zinc-300">— 未入力。Step 1 のCustomにジャンル名を入力してください。</span>
+            <span className="text-zinc-400">— 未入力。Step 1 のCustomにジャンル名を入力してください。</span>
           )}
         </p>
 
@@ -209,7 +233,7 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
               style={{ width: `${Math.min(100, (charCount / 800) * 100)}%` }}
             />
           </div>
-          <span className={`text-[10px] font-mono tabular-nums shrink-0 ${countColor}`}>
+          <span className={`text-[11px] font-mono tabular-nums shrink-0 ${countColor}`}>
             {charCount} / 800
           </span>
         </div>
@@ -229,15 +253,15 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
         <div className="flex gap-1">
           <button
             onClick={handleSample}
-            className="flex-1 h-7 text-[10px] font-mono rounded border border-[#E2E8F0] text-zinc-500
-              hover:border-zinc-400 hover:text-zinc-700 transition-colors"
+            className="flex-1 h-8 text-[11px] font-mono rounded border border-zinc-300 text-zinc-600
+              hover:border-zinc-500 hover:text-zinc-800 transition-colors"
           >
             SAMPLE
           </button>
           <button
             onClick={handleClear}
-            className="flex-1 h-7 text-[10px] font-mono rounded border border-[#E2E8F0] text-zinc-500
-              hover:border-zinc-400 hover:text-zinc-700 transition-colors"
+            className="flex-1 h-8 text-[11px] font-mono rounded border border-zinc-300 text-zinc-600
+              hover:border-zinc-500 hover:text-zinc-800 transition-colors"
           >
             CLEAR
           </button>
