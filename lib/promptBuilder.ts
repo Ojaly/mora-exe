@@ -169,7 +169,7 @@ export function buildNegativePrompt(input: SongInput): string {
 
   if (input.avoidAiCliche) {
     parts.push(
-      "generic AI vocal phrases, over-polished production, synthetic timbre, predictable chord progressions"
+      "generic AI vocal phrases, over-polished production, synthetic timbre, predictable chord progressions, generic night-city imagery, neon-aesthetic clichés, rain-soaked street visuals"
     );
   }
 

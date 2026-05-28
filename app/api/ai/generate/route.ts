@@ -64,7 +64,15 @@ HARD RULES:
 
 BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me higher"
   "warrior" "rise above" "burning inside" "meant to be" "forever and always"
-  "街の灯り" "光の海" "君の笑顔" "翼を広げて" "空に向かって" (generic AI filler)
+  "neon-lit streets" "rain-soaked streets" "fluorescent flicker"
+  "loneliness in the crowd" "city lights below" "tears in the rain"
+  "街の灯り" "光の海" "君の笑顔" "翼を広げて" "空に向かって"
+  "蛍光灯" "滲んだ街明かり" "雨に濡れた街" "夜明け前" "光と影" "誰もいない部屋" (generic AI filler)
+
+VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
+  lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
+  explicitly contains such imagery. If the Seed has no city / night / rain elements, invent
+  concrete imagery that belongs to the Seed's own world instead.
 
 QUALITY:
 - Concrete > abstract. Name the thing. "うどんの麺が震える" beats "何かが溢れる".

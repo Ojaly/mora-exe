@@ -287,6 +287,14 @@ Guided Mode         ← レガシー（dim表示、深く折りたたみ）
 - Fine Tune は主役に見えてはいけない（Genre / BPM は World Forge の補正に過ぎない）
 - Guided Mode（Wizard）は「World Seed で語りにくい場合の代替」として dim 表示
 
+**Main production flow（本線）：**
+```
+World Seed → World Forge → Genre / Style → Fine Tune → Structure → Generate
+```
+Guided Mode（Wizard）は legacy alternative path。Q&A で入力を補助するが、
+expansion-first パスを経由しないため本線の制作ダッシュボードとは別系統として扱う。
+Wizard コードは保留・削除はしないが、今後の機能開発は本線を優先する。
+
 ---
 
 ## 9. GENRE / STYLE 制御レイヤー整備（2026-05）
@@ -375,6 +383,33 @@ React state のみで管理されていたためリロードで消えていた�
 
 ---
 
+### 9-5. cliché Guard / Imagery Guard 追加
+
+**問題意識：**
+AI 生成歌詞が World Seed の内容に関わらず、蛍光灯・雨に濡れた街・夜明け前などの
+定番都市夜景メタファーに逃げる問題があった。Seed が全く異なる世界観でも
+generic urban night imagery が出力されることが繰り返されていた。
+
+**実装内容：**
+
+- `app/api/ai/generate/route.ts` の BANNED_PHRASES を拡張
+  - 英語6語句追加: `"neon-lit streets"` / `"rain-soaked streets"` / `"fluorescent flicker"` /
+    `"loneliness in the crowd"` / `"city lights below"` / `"tears in the rain"`
+  - 日本語6語句追加: `"蛍光灯"` / `"滲んだ街明かり"` / `"雨に濡れた街"` / `"夜明け前"` / `"光と影"` / `"誰もいない部屋"`
+- VISUAL IMAGERY RULE を BANNED PHRASES 直後に追加
+  - Seed に夜景・雨・蛍光灯の要素がない場合、generic urban night imagery に逃げないルール
+  - Seed に明示されている場合は使用可（単語単体の禁止ではなく定型フレーズを封じる方針）
+- `lib/promptBuilder.ts` の `buildNegativePrompt` avoidAiCliche branch に imagery guard を追加
+  - `"generic night-city imagery, neon-aesthetic clichés, rain-soaked street visuals"` を追加
+  - Suno が音楽的に夜景 city-pop 方向に引っ張られるのを avoidAiCliche ON 時に抑制
+
+**設計方針：**
+- 単語単体（`"neon"` / `"rain"` / `"蛍光灯"` の文字単体）は禁止しない
+- 定番の組み合わせフレーズのみを封じる
+- Seed / Style Prompt に明示された表現はそのまま使える余地を残す
+
+---
+
 ## 10. 現在の到達点（2026-05）
 
 ### 実装済み
@@ -397,6 +432,9 @@ React state のみで管理されていたためリロードで消えていた�
 - [x] Genre Lock（genreLock — Style Prompt / instruments / negative / structure variation に反映）
 - [x] Style Modifiers（subStyles チップ複数選択 — Style Prompt に反映）
 - [x] genreLock / subStyles の localStorage 永続化
+- [x] default mood / vocalType バイアス除去（空文字デフォルト化）
+- [x] cliché Guard — BANNED_PHRASES 拡張（英語 +6 / 日本語 +6）+ VISUAL IMAGERY RULE
+- [x] Imagery Guard — buildNegativePrompt avoidAiCliche branch に夜景 cliché negative 追加
 
 ### 現在の制作レイヤー構造
 
