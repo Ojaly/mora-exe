@@ -89,6 +89,8 @@ const defaultInput: SongInput = {
   vocalType: "female", songLength: "full", englishRatio: "low",
   worldPreset: "", referenceVibe: "", avoidExpressions: "",
   startWithChorus: false, avoidAiCliche: false, lyrics: "", nudges: [],
+  genreLock: "",    // Phase 1: "" = AI decides, e.g. "jpop" = [GENRE LOCK: J-Pop]
+  subStyles: [],    // Phase 2 (reserved): sub-style modifier chips
 };
 
 // Rewrite button categories — REWRITE / TONE / LANGUAGE

@@ -224,7 +224,7 @@ function CollapseSection({
     <div className="sidebar-card">
       <button
         onClick={onToggle}
-        className="w-full flex items-start gap-2 px-3 py-3 text-left hover:bg-[#EEF3F8] transition-colors"
+        className="w-full flex items-start gap-2 px-3 py-2.5 text-left hover:bg-[#EEF3F8] transition-colors"
       >
         <div className="flex-1 min-w-0 flex items-start gap-2">
           {icon && (
@@ -246,13 +246,32 @@ function CollapseSection({
         </div>
       </button>
       {open && (
-        <div className="px-3 pb-3 border-t border-[#E2E8F0]">
-          <div className="pt-2.5">{children}</div>
+        <div className="px-3 pb-2.5 border-t border-[#E2E8F0]">
+          <div className="pt-2">{children}</div>
         </div>
       )}
     </div>
   );
 }
+
+// ─── Genre options ────────────────────────────────────────────────────────────
+
+const GENRE_OPTIONS: Array<[string, string]> = [
+  ["jpop",       "J-Pop"],
+  ["jrock",      "J-Rock"],
+  ["city",       "City Pop"],
+  ["electronic", "Electronic"],
+  ["hiphop",     "Hip-Hop"],
+  ["rnb",        "R&B"],
+  ["jazz",       "Jazz"],
+  ["ambient",    "Ambient"],
+  ["folk",       "Folk"],
+  ["metal",      "Rock/Metal"],
+  ["anime",      "Anime"],
+  ["cinematic",  "Cinematic"],
+  ["funk",       "Funk/Soul"],
+  ["kpop",       "K-Pop"],
+];
 
 // ─── Nudge chips ──────────────────────────────────────────────────────────────
 
@@ -322,6 +341,7 @@ export default function Sidebar({
   mounted = false,
 }: Props) {
   const [alchemyOpen,    setAlchemyOpen]    = useState(false);
+  const [genreLockOpen,  setGenreLockOpen]  = useState(false);
   const [fineTuneOpen,   setFineTuneOpen]   = useState(false);
   const [structureOpen,  setStructureOpen]  = useState(false);
   const [libraryOpen,    setLibraryOpen]    = useState(false);
@@ -411,7 +431,7 @@ export default function Sidebar({
         <div className="sidebar-card">
           <button
             onClick={() => setAlchemyOpen((v) => !v)}
-            className="w-full flex items-center gap-2 px-3 py-3 text-left hover:bg-slate-50 transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors"
           >
             <div className="flex-1 min-w-0">
               <span className="text-[14px] ui-sans tracking-[0.01em] uppercase font-bold text-violet-600 flex items-center gap-2" style={{ textShadow: "0 0 0.4px currentColor" }}>
@@ -426,7 +446,7 @@ export default function Sidebar({
             </div>
           </button>
           {alchemyOpen && (
-            <div className="px-3 pb-3 border-t border-[#E2E8F0] pt-3">
+            <div className="px-3 pb-2.5 border-t border-[#E2E8F0] pt-2.5">
               <SourceAlchemy onSetWorldSeed={(seed) => set("theme", seed)} />
             </div>
           )}
@@ -434,11 +454,11 @@ export default function Sidebar({
 
         {/* ══ 1. WORLD SEED + FORGE ═════════════════════════════════════════════ */}
         <div className="sidebar-card">
-          <div className="px-3 py-2.5 border-b border-[#E2E8F0]">
+          <div className="px-3 py-2 border-b border-[#E2E8F0]">
             <p className="text-[11px] font-mono font-bold text-zinc-700 tracking-[0.12em] uppercase">1. WORLD SEED</p>
             <p className="text-[11px] font-mono text-zinc-400 mt-0.5">作りたい世界観の種を書く</p>
           </div>
-          <div className="p-3">
+          <div className="p-2.5">
             <WorldForge
               worldSeed={input.theme}
               onWorldSeedChange={(v) => set("theme", v)}
@@ -449,16 +469,75 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* ══ 2. FINE TUNE (collapsible) ════════════════════════════════════════ */}
+        {/* ══ 2. GENRE / STYLE ══════════════════════════════════════════════════ */}
         <CollapseSection
-          label="2. FINE TUNE"
+          label={
+            input.genreLock
+              ? `2. GENRE / STYLE · ${GENRE_OPTIONS.find(([v]) => v === input.genreLock)?.[1] ?? input.genreLock}`
+              : "2. GENRE / STYLE"
+          }
+          icon="music"
+          sub="ジャンル固定・AI推測を上書き"
+          open={genreLockOpen}
+          onToggle={() => setGenreLockOpen((v) => !v)}
+        >
+          <div className="space-y-2">
+            {/* PRIMARY GENRE chips */}
+            <div>
+              <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block mb-1.5">
+                PRIMARY GENRE
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {GENRE_OPTIONS.map(([val, label]) => {
+                  const active = (input.genreLock ?? "") === val;
+                  return (
+                    <button
+                      key={val}
+                      onClick={() => set("genreLock", active ? "" : val)}
+                      className={`px-2 py-[3px] text-[11px] font-mono rounded border transition-all ${
+                        active
+                          ? "border-blue-400 text-blue-700 bg-blue-50 font-semibold"
+                          : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                      }`}
+                    >
+                      {active ? "· " : ""}{label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Status line */}
+            {input.genreLock ? (
+              <div className="flex items-center justify-between pt-0.5">
+                <p className="text-[11px] font-mono text-blue-600 leading-snug">
+                  ↳ [GENRE LOCK: {GENRE_OPTIONS.find(([v]) => v === input.genreLock)?.[1] ?? input.genreLock}] を先頭に固定
+                </p>
+                <button
+                  onClick={() => set("genreLock", "")}
+                  className="text-[10px] font-mono text-zinc-400 hover:text-zinc-600 ml-2 shrink-0 transition-colors"
+                >
+                  ✕ クリア
+                </button>
+              </div>
+            ) : (
+              <p className="text-[10px] font-mono text-zinc-400 leading-snug pt-0.5">
+                未選択 — AIがSeedからジャンルを推測
+              </p>
+            )}
+          </div>
+        </CollapseSection>
+
+        {/* ══ 3. FINE TUNE (collapsible) ════════════════════════════════════════ */}
+        <CollapseSection
+          label="3. FINE TUNE"
           icon="sliders-horizontal"
           sub="方向性・BPM・言語比率などの詳細設定"
           open={fineTuneOpen}
           onToggle={() => setFineTuneOpen((v) => !v)}
         >
           {/* Direction adjust chips */}
-          <div className="space-y-1.5 py-1">
+          <div className="space-y-1">
             <div>
               <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
                 方向性を微調整
@@ -598,16 +677,16 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 3. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
+        {/* ══ 4. STRUCTURE BLUEPRINT ══════════════════════════════════════════ */}
         <CollapseSection
           label={
             !mounted
-              ? "3. STRUCTURE"
+              ? "4. STRUCTURE"
               : structureMode === "builder" && builderSections.length > 0
-                ? `3. STRUCTURE · ${builderSections.length}P`
+                ? `4. STRUCTURE · ${builderSections.length}P`
                 : structureMode === "preset"
-                  ? "3. STRUCTURE · preset"
-                  : "3. STRUCTURE"
+                  ? "4. STRUCTURE · preset"
+                  : "4. STRUCTURE"
           }
           icon="list-tree"
           sub="曲の流れ・セクション構成を指定"
@@ -624,16 +703,16 @@ export default function Sidebar({
           />
         </CollapseSection>
 
-        {/* ══ 4. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
+        {/* ══ 5. PROMPT LIBRARY (compact summary) ════════════════════════════ */}
         <CollapseSection
           label={
             !mounted
-              ? "4. PROMPT LIBRARY"
+              ? "5. PROMPT LIBRARY"
               : selectedLibraryItems.length > 0
-                ? `4. PROMPT LIBRARY · ${selectedLibraryItems.length}`
+                ? `5. PROMPT LIBRARY · ${selectedLibraryItems.length}`
                 : recommendations.length > 0
-                  ? `4. PROMPT LIBRARY · ◆${recommendations.length}`
-                  : "4. PROMPT LIBRARY"
+                  ? `5. PROMPT LIBRARY · ◆${recommendations.length}`
+                  : "5. PROMPT LIBRARY"
           }
           icon="library"
           sub="音色・質感・構成語彙を追加"
@@ -685,9 +764,9 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 5. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
+        {/* ══ 6. AVOID / NEGATIVE ══════════════════════════════════════════════ */}
         <CollapseSection
-          label="5. AVOID / NEGATIVE"
+          label="6. AVOID / NEGATIVE"
           sub="避けたい音・表現・AI臭さの指定"
           open={avoidOpen}
           onToggle={() => setAvoidOpen((v) => !v)}

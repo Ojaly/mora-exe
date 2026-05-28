@@ -16,6 +16,17 @@ export interface SongInput {
   lyrics: string;
   /** Directional nudges applied as Fine Tune corrections on top of MORA.exe's inference */
   nudges: string[];
+  /**
+   * Phase 1: User-locked genre key (e.g. "jpop", "jazz").
+   * When set, buildStylePrompt injects [GENRE LOCK: X] at the front and suppresses AI genre inference.
+   * Empty string = let AI decide.
+   */
+  genreLock?: string;
+  /**
+   * Phase 2 (reserved): Sub-style modifiers stacked on top of genreLock.
+   * e.g. ["lo-fi", "acoustic", "minimal"]
+   */
+  subStyles?: string[];
 }
 
 export type DangerLevel = "safe" | "short" | "long";

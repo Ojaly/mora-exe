@@ -140,7 +140,7 @@ export default function WorldForge({
       <button
         onClick={handleForge}
         disabled={!hasContent || isForging}
-        className={`w-full h-9 font-mono font-bold text-[13px] tracking-widest rounded border transition-all disabled:cursor-not-allowed ${
+        className={`w-full h-8 font-mono font-bold text-[13px] tracking-widest rounded border transition-all disabled:cursor-not-allowed ${
           isForging
             ? "border-blue-300 text-blue-400 bg-blue-50 animate-pulse"
             : hasContent
@@ -188,7 +188,7 @@ export default function WorldForge({
             </div>
           </div>
 
-          <div className="px-3 py-2.5 space-y-3">
+          <div className="px-3 py-2 space-y-2">
 
             {/* Music Direction — MORA.exe's inference */}
             <MusicDirectionPanel
@@ -292,7 +292,7 @@ export default function WorldForge({
             <div>
               <button
                 onClick={handleApply}
-                className={`w-full h-9 font-mono font-bold text-[13px] tracking-wider rounded border transition-all ${
+                className={`w-full h-8 font-mono font-bold text-[13px] tracking-wider rounded border transition-all ${
                   applyFlash
                     ? "border-emerald-400 text-emerald-700 bg-emerald-50"
                     : "border-[#0969da] text-[#0969da] hover:bg-[#0969da] hover:text-white active:scale-[0.98]"

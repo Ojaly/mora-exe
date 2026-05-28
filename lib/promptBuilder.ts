@@ -22,6 +22,8 @@ const GENRE_MAP: Record<string, string> = {
   vocaloid: "Vocaloid-style", electronic: "Electronic / Synth-pop",
   rnb: "R&B / Soul", hiphop: "Hip-Hop / Trap", folk: "Folk / Acoustic",
   metal: "Metal / Hard Rock", jazz: "Jazz / Neo-Soul", ambient: "Ambient / Atmospheric",
+  // Phase 1 additions (Genre Controller)
+  cinematic: "Cinematic / Orchestral", funk: "Funk / Soul", kpop: "K-Pop",
 };
 const MOOD_MAP: Record<string, string> = {
   melancholic: "melancholic, introspective, bittersweet",
@@ -87,13 +89,17 @@ export function buildStylePrompt(
 ): string {
   const activePreset = preset ? WORLD_PRESETS[preset as WorldPresetKey] : null;
 
-  const genre = GENRE_MAP[input.genre] ?? input.genre;
+  // When genreLock is set, all genre-keyed lookups (display label, instruments, negatives)
+  // use the locked key so every part of the prompt stays genre-consistent.
+  const effectiveGenreKey = input.genreLock?.trim() || input.genre;
+
+  const genre = GENRE_MAP[effectiveGenreKey] ?? effectiveGenreKey;
   const mood = MOOD_MAP[input.mood] ?? input.mood;
   const vocal = VOCAL_MAP[input.vocalType] ?? input.vocalType;
   const groove = grooveFromBpm(input.bpm);
 
   const instruments = activePreset?.styleOverrides.instruments
-    ?? INSTRUMENTS_MAP[input.genre]
+    ?? INSTRUMENTS_MAP[effectiveGenreKey]
     ?? "piano, synth pads, drums, bass";
   const texture = activePreset?.styleOverrides.texture
     ?? TEXTURE_MAP[input.mood]
@@ -105,7 +111,13 @@ export function buildStylePrompt(
 
   const sentences: string[] = [];
 
+  // ── Genre Lock (user override — `genre` already reflects effectiveGenreKey above) ──
+  if (input.genreLock?.trim()) {
+    sentences.push(`[GENRE LOCK: ${genre}]`);
+  }
+
   // S1: genre + mood + BPM / tempo
+  // `genre` is already derived from effectiveGenreKey (genreLock || input.genre)
   const bpmPart = input.bpm ? `${input.bpm} BPM` : groove;
   const keyPart = input.key ? `, key of ${input.key}` : "";
   const extraStyle = themeDesc?.styleWords.slice(0, 2) ?? [];
@@ -170,7 +182,9 @@ export function buildNegativePrompt(input: SongInput): string {
     hiphop: "mumble rap aesthetics, trap hi-hat spam",
   };
 
-  const genreNeg = GENRE_NEGATIVES[input.genre];
+  // Use genreLock key when set, otherwise fall back to input.genre
+  const effectiveGenreKey = input.genreLock?.trim() || input.genre;
+  const genreNeg = GENRE_NEGATIVES[effectiveGenreKey];
   if (genreNeg) parts.push(genreNeg);
 
   if (input.avoidExpressions?.trim()) {
@@ -181,7 +195,8 @@ export function buildNegativePrompt(input: SongInput): string {
 }
 
 export function buildRegeneratePrompt(input: SongInput): string {
-  const genre = GENRE_MAP[input.genre] ?? input.genre;
+  const effectiveGenreKey = input.genreLock?.trim() || input.genre;
+  const genre = GENRE_MAP[effectiveGenreKey] ?? effectiveGenreKey;
   const mood = MOOD_MAP[input.mood] ?? input.mood;
   const theme = input.theme?.trim();
   const title = input.title?.trim();
@@ -226,6 +241,13 @@ export function buildStylePromptFromExpansion(
 ): string {
   const md = expansion.musicDirection;
   const sentences: string[] = [];
+
+  // ── Genre Lock (user override — prepend before Forge inference) ────────────
+  const lockedGenreExp = input.genreLock?.trim();
+  if (lockedGenreExp) {
+    const lockLabel = GENRE_MAP[lockedGenreExp] ?? lockedGenreExp;
+    sentences.push(`[GENRE LOCK: ${lockLabel}]`);
+  }
 
   // ── S1: Genre / atmosphere / BPM ───────────────────────────────────────────
   const bpmNum = input.bpm ? parseInt(input.bpm, 10) : md.bpmEstimate;
