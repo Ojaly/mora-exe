@@ -406,6 +406,8 @@ export default function Sidebar({
   const activeSubStyles = input.subStyles ?? [];
 
   // ─── Wizard helpers ─────────────────────────────────────────────────────────
+  // Legacy: Guided Mode は Main UI から非表示。将来の 12-Step Prompt Builder に置き換え予定。
+  const SHOW_GUIDED_MODE = false;
 
   const questions = wizardMode === "quick" ? QUICK_QUESTIONS : DEEP_QUESTIONS;
   const currentQ  = questions[wizardStep];
@@ -864,7 +866,8 @@ export default function Sidebar({
           </div>
         </CollapseSection>
 
-        {/* ══ 6. GUIDED MODE (legacy, deeply collapsed) ════════════════════════ */}
+        {/* ══ 6. GUIDED MODE (legacy, hidden — replaced by 12-Step Prompt Builder) ══ */}
+        {SHOW_GUIDED_MODE && (
         <CollapseSection
           label="Guided Mode"
           sub="Seedが書きにくい場合に。質問に答えて組み立てる"
@@ -983,6 +986,7 @@ export default function Sidebar({
             </div>
           )}
         </CollapseSection>
+        )}
 
       </div>
 

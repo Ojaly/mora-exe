@@ -410,7 +410,143 @@ generic urban night imagery が出力されることが繰り返されていた�
 
 ---
 
-## 10. 現在の到達点（2026-05）
+### 9-6. Micro Genre Genre Lock サポート（Phase 2 Batch 1）
+
+**問題意識：**
+Genre Lock の選択肢が大分類（J-Pop / Jazz / Funk など）に限られており、
+`Electro Funk` / `Corporate Electro Funk` / `Digital Motown` のような
+micro genre を指定しても Style Prompt に正しく反映されなかった。
+
+具体的には `buildStylePromptFromExpansion` が S1（ジャンル）に Forge の `md.genreHint` を、
+S3（楽器）に `md.instruments` をそのまま使うため、
+genreLock に `electro-funk` を指定しても Forge が推定した `upright bass / brushed snare / muted trumpet`
+（jazz 方向）が出力されてしまっていた。
+
+**実装内容：**
+
+- `GENRE_MAP` に 4 件追加
+  - `"electro-funk"` / `"corporate-electro-funk"` / `"digital-motown"` / `"nu-disco-soul"`
+- `INSTRUMENTS_MAP` に 4 件追加（genre-specific 楽器セット）
+  - 例: `"electro-funk": "Roland Juno-106, LinnDrum, synth slap bass, filtered chord stabs, drum machine"`
+  - 例: `"corporate-electro-funk": "Roland Juno-106, LinnDrum, vocoder, rhythm synth guitar, sterile bass synth"`
+- `GENRE_NEGATIVES` に 4 件追加（Forge 由来の incompatible 楽器を排除）
+  - 例: `"electro-funk"` → `"acoustic blues guitar, orchestral soul, upright piano ballad, organic folk instrumentation"`
+- `buildStylePromptFromExpansion` S1 修正
+  - `genreLock` が設定されている場合、`genreRoot = GENRE_MAP[lockedGenreExp]` を使用（`md.genreHint` を使わない）
+  - Forge の `md.atmosphere` は保持（世界観の解釈は維持する）
+- `buildStylePromptFromExpansion` S3 修正
+  - `INSTRUMENTS_MAP[lockedGenreExp]` が存在する場合、Forge の `md.instruments` を上書き
+  - 存在しない場合は Forge にフォールバック
+- `components/Sidebar.tsx` の `GENRE_OPTIONS` に 4 件追加
+
+**設計方針：**
+- Forge の atmosphere / moodWords は genreLock があっても上書きしない（世界観の個性を守る）
+- Micro genre の楽器定義が INSTRUMENTS_MAP に存在する場合のみ上書き（既存ジャンルには影響なし）
+- INSTRUMENTS_MAP への追加なしで Forge フォールバックが維持されるため、
+  新しい micro genre key を GENRE_MAP だけに追加した場合も動作する
+
+**関連コミット：**
+`cd0872d feat: add micro-genre Genre Lock support (phase 2 batch 1)`
+
+---
+
+## 10. 12-Step Prompt Builder（Phase 1A）
+
+### 背景と目的
+
+旧 Wizard（Guided Mode）は「初心者向けの Q&A 入力補助」として設計されたが、
+実際にユーザーが必要としているのは **Suno 用 Style Prompt を 12 個の制作判断に分解して設計するモード** だった。
+
+特に以下の問題があった：
+- `Corporate Electro Funk` / `Digital Motown` / `Dark Electro Gospel` / `French House Waltz` のような
+  micro genre / style preset は、既存の Genre Lock（大分類選択）では表現しきれない
+- GENRE_MAP / INSTRUMENTS_MAP への手動追記が必要で、新しい micro genre を都度 hardcode する必要があった
+- Forge が推定したジャンルが意図しないものでも、Structure Prompt を自由に補正する手段がなかった
+
+**旧 Wizard との違い：**
+
+| | 旧 Wizard | 12-Step Builder |
+|---|---|---|
+| 対象 | 初心者向け Q&A | 制作者向け設計シート |
+| 入力方式 | ステップガイド | 12 項目並列選択 |
+| 出力 | SongInput 全体 | Style Prompt のみ |
+| 接続 | レガシーパス | 独立出力（UI 接続は Phase 1B 以降） |
+| 位置づけ | legacy alternative | 新設（本線への組み込みを想定） |
+
+### 実装内容（Phase 1A — コア生成ロジックのみ）
+
+**対象ファイル：**
+- `types/index.ts` — 型追加
+- `lib/promptBuilder12.ts` — 新規作成
+
+**追加した型（`types/index.ts`）：**
+```typescript
+PromptBuilderStepOption  // 選択肢 1 件（value / label / promptFrag）
+PromptBuilderStep        // Step 1 件（id / label / labelJa / options / selected / custom / weight）
+PromptBuilder12State     // { steps: PromptBuilderStep[] }
+PromptBuildResult        // { prompt: string; charCount: number }
+```
+
+**12 Step 定義（`DEFAULT_STEPS`）：**
+
+| # | ID | 役割 | Weight |
+|---|----|------|--------|
+| 1 | `genre-foundation` | ジャンルの核（Custom = genre 名） | heavy |
+| 2 | `tempo-feel` | テンポ感 | medium |
+| 3 | `genre-density` | ジャンル密度 | light |
+| 4 | `vocal-texture` | 声の質感 | heavy |
+| 5 | `vocal-processing` | ボーカルエフェクト | medium |
+| 6 | `electronic-treatment` | 電子処理の量 | light |
+| 7 | `lead-instrument` | メイン楽器 | heavy |
+| 8 | `drum-direction` | ドラムの性格 | heavy |
+| 9 | `bass-direction` | ベースの性格 | medium |
+| 10 | `space-treatment` | 空間処理・残響 | medium |
+| 11 | `world-atmosphere` | 世界観・情緒 | heavy |
+| 12 | `final-impression` | 最終印象 | medium |
+
+**各 Step の入力モデル：**
+- 選択肢 A / B / C から 1 つ選ぶ（ラジオ選択）
+- Custom テキストを入力（全 Step 対応、日英問わず受け付ける）
+- 未入力の Step はスキップ（Style Prompt に寄与しない）
+- 選択肢 + Custom 両方ある場合: Custom が先頭、選択肢が補足
+  - 例: `"LinnDrum, drum machine, tight and quantized"`
+
+**`resolveGenreFoundation()`（Step 1 専用）：**
+- Custom = 実際の genre 名（例: `"Corporate Electro Funk"`）
+- 選択肢 = 密度・アプローチ修飾語（例: `"genre-definitive, style-consistent production"`）
+- 両方ある場合: `"Corporate Electro Funk, genre-definitive, style-consistent production"`
+- Custom のみ: `"Dark Electro Gospel"`（そのまま）
+- これにより GENRE_MAP への hardcode なしに任意の micro genre を指定できる
+
+**`buildStylePromptFrom12Steps()` 出力ロジック：**
+- 出力順: genre → density → tempo → lead → drum → bass → electronic → vocal → vocal-fx → space → atmosphere → impression
+- 800 文字以内に収める（`CHAR_LIMIT = 800`）
+- 超過時: light step（genre-density / electronic-treatment）を先に削除、次に medium step を削除
+- heavy step（genre / lead / drum / vocal-texture / atmosphere）は自動トリム対象外
+- 最終手段: hard-cut + `"..."`
+- 返却: `{ prompt: string; charCount: number }`
+
+**検証用サンプル（`makeSampleState()`）：**
+- Corporate Electro Funk + Roland Juno-106 + LinnDrum + synth slap bass + obsessive corporate atmosphere
+- 出力例: `450 / 800 文字`
+
+### 現時点での未実装（Phase 1B 以降）
+
+| 項目 | 状況 |
+|------|------|
+| UI（`PromptBuilder12Panel`） | 未接続（`components/` / `Sidebar.tsx` / `app/page.tsx` は未変更） |
+| localStorage 保存 | 未実装 |
+| 日本語 Custom の自動英語化 | 未実装（Phase 1 では英語入力を推奨するのみ） |
+| 曖昧語変換（「もっと暗く」→ `dark, brooding`） | 未実装（Phase 2） |
+| Micro Genre プリセット（Step 1-12 の推奨値セット） | 未実装（Phase 3） |
+| Genre Lock / Sub Styles との自動連携 | 未実装（Phase 2） |
+
+**関連コミット：**
+`bec5ce4 feat: add 12-step prompt builder core`
+
+---
+
+## 11. 現在の到達点（2026-05）
 
 ### 実装済み
 
@@ -435,6 +571,12 @@ generic urban night imagery が出力されることが繰り返されていた�
 - [x] default mood / vocalType バイアス除去（空文字デフォルト化）
 - [x] cliché Guard — BANNED_PHRASES 拡張（英語 +6 / 日本語 +6）+ VISUAL IMAGERY RULE
 - [x] Imagery Guard — buildNegativePrompt avoidAiCliche branch に夜景 cliché negative 追加
+- [x] Micro Genre Genre Lock（electro-funk / corporate-electro-funk / digital-motown / nu-disco-soul）
+- [x] buildStylePromptFromExpansion の genreLock 優先ロジック修正（S1 / S3）
+- [x] 12-Step Prompt Builder Core（`lib/promptBuilder12.ts` — 型定義 + コア生成ロジック、UI 未接続）
+- [x] 旧 Guided Mode を Main UI から非表示化（`SHOW_GUIDED_MODE = false`）  
+       cliché imagery 混入（"Neon-lit city, rain-soaked streets, cyberpunk"）による退避。  
+       コード・ロジックは保持。12-Step Prompt Builder UI 完成後に正式 deprecation 予定。
 
 ### 現在の制作レイヤー構造
 
@@ -456,7 +598,33 @@ NEGATIVE        = AI 悪癖封じ（Avoid / avoidAiCliche）
 
 ---
 
-## 11. 次回以降の改善候補
+## 12. 次回以降の改善候補
+
+### 12-Step Prompt Builder（優先）
+
+- **[ ] PromptBuilder12Panel UI 実装（Phase 1B）**  
+  `components/PromptBuilder12Panel.tsx` を新規作成し、Sidebar に追加。  
+  各 Step をチップ選択 + Custom テキスト入力で表示。  
+  生成結果を `{charCount} / 800` とともにプレビュー表示し、  
+  「Use as Style Prompt」ボタンで `stylePromptOverride` state に反映する。  
+  ※ 旧 Guided Mode は `SHOW_GUIDED_MODE = false` で非表示中（cliché imagery 混入問題により退避）。  
+  12-Step Prompt Builder UI の実装完了後、Guided Mode コードを正式 deprecation する予定。
+
+- **[ ] Genre Lock / Sub Styles との自動連携（Phase 2）**  
+  `genreLock` が設定されている場合に Step 1 Custom へ自動反映。  
+  `subStyles` が選択されている場合に Step 3 へ自動反映。
+
+- **[ ] 曖昧語変換（Phase 2）**  
+  「もっと暗く」→ `dark, brooding`、「海外っぽく」→ `Western production sensibility` など  
+  日本語の方向性キーワードを英語 fragment に変換する辞書を追加。
+
+- **[ ] Micro Genre プリセット（Phase 3）**  
+  12-Step の推奨値セット（Step 1〜12 のデフォルト値）を  
+  `Corporate Electro Funk` / `Digital Motown` などのプリセット名で保存・呼び出しできるようにする。  
+  これにより GENRE_MAP / INSTRUMENTS_MAP への hardcode 追記が不要になる。
+
+- **[ ] localStorage 保存（Phase 3）**  
+  12-Step の入力状態をセッション間で保持する。
 
 ### GENRE / STYLE 周り
 
@@ -541,6 +709,9 @@ NEGATIVE        = AI 悪癖封じ（Avoid / avoidAiCliche）
 | `AlchemyResult` | `types/index.ts` |
 | `RewriteMode` | `types/index.ts` |
 | `WorldPresetKey` | `types/index.ts` |
+| `PromptBuilderStep` | `types/index.ts` |
+| `PromptBuilder12State` | `types/index.ts` |
+| `PromptBuildResult` | `types/index.ts` |
 
 ## 付録：API Routes 一覧
 
