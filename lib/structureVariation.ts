@@ -31,13 +31,15 @@ function hasKw(text: string, kws: string[]): boolean {
 }
 
 function detectGenreCategory(input: SongInput): GenreCategory {
-  const combined = `${input.genre ?? ""} ${input.theme ?? ""} ${input.referenceVibe ?? ""}`;
+  // genreLock takes priority over input.genre for structure inference
+  const effectiveGenreKey = input.genreLock?.trim() || input.genre || "";
+  const combined = `${effectiveGenreKey} ${input.theme ?? ""} ${input.referenceVibe ?? ""}`;
   if (hasKw(combined, DANCE_KW))   return "dance";
   if (hasKw(combined, RAP_KW))     return "rap";
   if (hasKw(combined, THEATRE_KW)) return "theatrical";
   if (
     BALLAD_MOODS.includes(input.mood ?? "") &&
-    hasKw(input.genre ?? "", BALLAD_GENRES)
+    hasKw(effectiveGenreKey, BALLAD_GENRES)
   ) return "ballad";
   return "standard";
 }
