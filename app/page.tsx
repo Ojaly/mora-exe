@@ -407,6 +407,26 @@ export default function Home() {
       if (Array.isArray(parsed)) setBuilderSections(parsed as BuilderSection[]);
     } catch { /* 旧 custom テキストは破棄 */ }
 
+    // Restore genreLock / subStyles
+    const storedGenreLock = localStorage.getItem("mora-genre-lock");
+    const restoredGenreLock = typeof storedGenreLock === "string" ? storedGenreLock : "";
+
+    let restoredSubStyles: string[] = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem("mora-sub-styles") ?? "[]");
+      if (Array.isArray(parsed)) {
+        restoredSubStyles = parsed.filter((v): v is string => typeof v === "string");
+      }
+    } catch { /* ignore corrupt data */ }
+
+    if (restoredGenreLock !== "" || restoredSubStyles.length > 0) {
+      setInput(prev => ({
+        ...prev,
+        genreLock: restoredGenreLock,
+        subStyles: restoredSubStyles,
+      }));
+    }
+
     setMounted(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -416,6 +436,8 @@ export default function Home() {
   useEffect(() => { if (mounted) localStorage.setItem("mora-structure-mode",   structureMode);                        }, [structureMode,    mounted]);
   useEffect(() => { if (mounted) localStorage.setItem("mora-structure-preset", structurePreset);                      }, [structurePreset,  mounted]);
   useEffect(() => { if (mounted) localStorage.setItem("mora-structure-custom", JSON.stringify(builderSections));      }, [builderSections,  mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-genre-lock",       input.genreLock ?? "");                }, [input.genreLock,  mounted]);
+  useEffect(() => { if (mounted) localStorage.setItem("mora-sub-styles",       JSON.stringify(input.subStyles ?? [])); }, [input.subStyles,  mounted]);
 
   /**
    * Returns the structure string to send to the API.
