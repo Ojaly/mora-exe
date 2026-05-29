@@ -13,9 +13,9 @@ import {
   MoraLine, MoraSuggestion, PhraseMatch, SyntaxMatch, CollapseRisk, SongStats,
   RewriteMode, RewriteIntensity, SectionTarget, HistoryEntry,
   StructureMode, StructurePreset, BuilderSection,
-  SongProject, BuilderPresetStep,
+  SongProject, SongProjectMeta, BuilderPresetStep,
 } from "@/types";
-import { saveProject, loadProject, generateProjectId } from "@/lib/songProject";
+import { saveProject, loadProject, listProjects, generateProjectId } from "@/lib/songProject";
 import { getPresetStructure } from "@/lib/structureVariation";
 import {
   buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt,
@@ -309,6 +309,72 @@ function MemoryPanel({
   );
 }
 
+// ─── Project List Panel ───────────────────────────────────────────────────────
+
+function ProjectListPanel({
+  onClose,
+  onLoad,
+}: {
+  onClose: () => void;
+  onLoad: (id: string) => void;
+}) {
+  const [projects] = useState<SongProjectMeta[]>(() => listProjects());
+
+  return (
+    <div
+      className="absolute inset-0 z-50 flex flex-col"
+      style={{ background: "rgba(246,248,250,0.97)" }}
+    >
+      <div
+        className="shrink-0 h-11 border-b border-[#E2E8F0] flex items-center px-4 gap-3"
+        style={{ background: "var(--bg-panel-hdr)" }}
+      >
+        <span className="text-[13px] font-mono text-zinc-800 font-semibold tracking-widest">PROJECTS</span>
+        <span className="text-[12px] font-mono text-zinc-500">{projects.length} saved</span>
+        <button
+          onClick={onClose}
+          className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[#c8cdd4] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
+        >
+          ✕ CLOSE
+        </button>
+      </div>
+
+      {projects.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-[12px] font-mono text-zinc-500">No saved projects.</span>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {projects.map((p) => (
+            <div
+              key={p.id}
+              className="border border-[#E2E8F0] rounded-lg p-3 hover:border-slate-300 transition-colors"
+              style={{ background: "#ffffff" }}
+            >
+              <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-mono font-bold text-zinc-800 truncate">{p.name || "(untitled)"}</p>
+                  <p className="text-[12px] font-mono text-zinc-500 mt-0.5">
+                    {new Date(p.updatedAt).toLocaleDateString("ja-JP", {
+                      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => onLoad(p.id)}
+                  className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors shrink-0"
+                >
+                  LOAD
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Diff helper ─────────────────────────────────────────────────────────────
 
 /**
@@ -373,10 +439,12 @@ export default function Home() {
   // When set, this prompt replaces buildStylePrompt / buildStylePromptFromExpansion in generate.
   const [stylePromptOverride, setStylePromptOverride] = useState("");
 
-  // Project save
+  // Project save / load
   const [projectName, setProjectName] = useState("");
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [projectSaveFlash, setProjectSaveFlash] = useState(false);
+  const [showProjectList, setShowProjectList] = useState(false);
+  const [builderReloadKey, setBuilderReloadKey] = useState(0);
 
   // Memory panel
   const [showMemory, setShowMemory] = useState(false);
@@ -917,6 +985,48 @@ export default function Home() {
     setTimeout(() => setProjectSaveFlash(false), 1800);
   };
 
+  const handleLoadProject = (id: string) => {
+    try {
+      const project = loadProject(id);
+      if (!project) return;
+
+      setInput(project.input);
+      setPreset(project.worldPreset);
+      setExpansion(project.expansion);
+      setLyricsRaw(project.lyrics);
+      setStyle(project.stylePrompt);
+      setStylePromptOverride(project.stylePromptOverride);
+      setNeg(project.negPrompt);
+      setRegen(project.regenPrompt);
+      setStructureMode(project.structureMode);
+      setStructurePreset(project.structurePreset);
+      setBuilderSections(project.builderSections);
+      setLibraryIds(project.libraryIds);
+      setHistory(project.history ?? []);
+
+      // Clear transient state
+      setIsSample(false);
+      setChangedLines([]);
+      setRewriteNotes("");
+      setRewriteSource(null);
+
+      // Update project tracking
+      setProjectName(project.name);
+      setCurrentProjectId(project.id);
+
+      // Write builder steps back to localStorage and remount the panel
+      try {
+        localStorage.setItem("mora-builder-12", JSON.stringify({ steps: project.builderSteps }));
+      } catch { /* ignore */ }
+      setBuilderReloadKey((k) => k + 1);
+
+      // Re-run analysis on loaded lyrics
+      if (project.lyrics) analyse(project.lyrics);
+
+      setShowProjectList(false);
+    } catch { /* ignore corrupt project */ }
+  };
+
   // ─── Derived ─────────────────────────────────────────────────────────────
 
   const score   = songStats?.riskScore ?? null;
@@ -1181,14 +1291,21 @@ export default function Home() {
             onProjectNameChange={setProjectName}
             onSaveProject={handleSaveProject}
             projectSaveFlash={projectSaveFlash}
+            onOpenProjectList={() => setShowProjectList(true)}
           />
         </aside>
 
         {/* CENTER: Style Workspace */}
         <section
-          className="flex flex-col border-r border-[#E2E8F0] min-w-0 overflow-hidden"
+          className="relative flex flex-col border-r border-[#E2E8F0] min-w-0 overflow-hidden"
           style={{ flex: "8 1 0%", background: "var(--bg-center)" }}
         >
+          {showProjectList && (
+            <ProjectListPanel
+              onClose={() => setShowProjectList(false)}
+              onLoad={handleLoadProject}
+            />
+          )}
           {/* Mini tab pills */}
           <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2">
             <button
@@ -1307,6 +1424,7 @@ export default function Home() {
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 pt-2">
               <div className="max-w-2xl mx-auto">
                 <PromptBuilder12Panel
+                  key={builderReloadKey}
                   onApply={(p) => {
                     setStylePromptOverride(p);
                     setCenterTab("prompt");
@@ -1398,6 +1516,12 @@ export default function Home() {
 
       {/* ── Mobile single-col ───────────────────────────────────────────────── */}
       <div className="relative z-10 flex-1 min-h-0 flex flex-col lg:hidden overflow-hidden">
+        {showProjectList && (
+          <ProjectListPanel
+            onClose={() => setShowProjectList(false)}
+            onLoad={handleLoadProject}
+          />
+        )}
         {mobileTab === "concept" && (
           <div className="flex-1 overflow-y-auto" style={{ background: "var(--bg-sidebar)" }}>
             <Sidebar
@@ -1439,6 +1563,7 @@ export default function Home() {
               onProjectNameChange={setProjectName}
               onSaveProject={handleSaveProject}
               projectSaveFlash={projectSaveFlash}
+              onOpenProjectList={() => setShowProjectList(true)}
             />
           </div>
         )}
@@ -1511,6 +1636,7 @@ export default function Home() {
             </PanelHeader>
             <div className="flex-1 overflow-y-auto p-4">
               <PromptBuilder12Panel
+                key={builderReloadKey}
                 onApply={(p) => {
                   setStylePromptOverride(p);
                   setMobile("prompt");

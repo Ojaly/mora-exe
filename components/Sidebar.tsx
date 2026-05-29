@@ -59,6 +59,7 @@ interface Props {
   onProjectNameChange?: (name: string) => void;
   onSaveProject?: () => void;
   projectSaveFlash?: boolean;
+  onOpenProjectList?: () => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -378,6 +379,7 @@ export default function Sidebar({
   onProjectNameChange,
   onSaveProject,
   projectSaveFlash = false,
+  onOpenProjectList,
 }: Props) {
   const [alchemyOpen,        setAlchemyOpen]        = useState(false);
   const [genreLockOpen,      setGenreLockOpen]      = useState(false);
@@ -494,16 +496,24 @@ export default function Sidebar({
               className={inputCls}
               style={{ background: "#fafbfc" }}
             />
-            <button
-              onClick={onSaveProject}
-              className={`w-full h-8 text-[12px] font-mono font-bold rounded border transition-all ${
-                projectSaveFlash
-                  ? "border-emerald-400 text-emerald-700 bg-emerald-50"
-                  : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
-              }`}
-            >
-              {projectSaveFlash ? "✓ Saved" : "SAVE PROJECT"}
-            </button>
+            <div className="flex gap-1.5">
+              <button
+                onClick={onSaveProject}
+                className={`flex-1 h-8 text-[12px] font-mono font-bold rounded border transition-all ${
+                  projectSaveFlash
+                    ? "border-emerald-400 text-emerald-700 bg-emerald-50"
+                    : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+                }`}
+              >
+                {projectSaveFlash ? "✓ Saved" : "SAVE"}
+              </button>
+              <button
+                onClick={onOpenProjectList}
+                className="flex-1 h-8 text-[12px] font-mono rounded border border-zinc-300 text-zinc-600 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
+              >
+                LOAD
+              </button>
+            </div>
           </div>
         </div>
 
