@@ -15,7 +15,7 @@ import {
   StructureMode, StructurePreset, BuilderSection,
   SongProject, SongProjectMeta, BuilderPresetStep,
 } from "@/types";
-import { saveProject, loadProject, deleteProject, listProjects, generateProjectId } from "@/lib/songProject";
+import { saveProject, loadProject, deleteProject, listProjects, generateProjectId, validateAndNormalizeSongProject } from "@/lib/songProject";
 import { getPresetStructure } from "@/lib/structureVariation";
 import {
   buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt,
@@ -341,6 +341,7 @@ function ProjectListPanel({
   onLoad,
   onDelete,
   onRename,
+  onImport,
   refreshKey,
   currentProjectId,
 }: {
@@ -348,6 +349,7 @@ function ProjectListPanel({
   onLoad: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string, newName: string) => void;
+  onImport: () => void;
   refreshKey: number;
   currentProjectId: string | null;
 }) {
@@ -355,6 +357,8 @@ function ProjectListPanel({
   const [editingId,       setEditingId]       = useState<string | null>(null);
   const [editingName,     setEditingName]     = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<"restore" | "asNew">("restore");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -410,6 +414,60 @@ function ProjectListPanel({
     if (failed > 0) alert(`${failed} project(s) could not be loaded and were skipped.`);
   };
 
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+
+    const mode = importMode;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const raw = JSON.parse(ev.target?.result as string);
+        // Auto-detect: all-projects bundle has { projects: [] }, single export is a flat object
+        const entries: unknown[] = Array.isArray(raw?.projects) ? raw.projects : [raw];
+
+        let imported = 0;
+        let skipped  = 0;
+        let invalid  = 0;
+        const existingIds = new Set(projects.map((p) => p.id));
+
+        for (const entry of entries) {
+          const project = validateAndNormalizeSongProject(entry);
+          if (!project) { invalid++; continue; }
+
+          if (mode === "asNew") {
+            // Always assign a fresh ID; append "(copy)" to distinguish from the original
+            saveProject({ ...project, id: generateProjectId(), name: `${project.name} (copy)` });
+            imported++;
+          } else {
+            // restore: skip if ID already exists
+            if (existingIds.has(project.id)) { skipped++; continue; }
+            saveProject(project);
+            existingIds.add(project.id); // guard against duplicates within the same file
+            imported++;
+          }
+        }
+
+        if (imported > 0) {
+          setProjects(listProjects());
+          onImport(); // signal parent to increment refreshKey
+        }
+
+        const parts: string[] = [];
+        if (imported > 0) parts.push(`${imported} project${imported !== 1 ? "s" : ""} imported.`);
+        if (skipped  > 0) parts.push(`${skipped} skipped (ID already exists).`);
+        if (invalid  > 0) parts.push(`${invalid} skipped (invalid format).`);
+        if (parts.length === 0) parts.push("No projects to import.");
+        alert(parts.join("\n"));
+      } catch {
+        alert("Import failed: could not parse JSON file.");
+      }
+    };
+    reader.onerror = () => alert("Import failed: could not read file.");
+    reader.readAsText(file);
+  };
+
   const commitDelete = (id: string) => {
     setConfirmDeleteId(null);
     onDelete(id);
@@ -434,6 +492,25 @@ function ProjectListPanel({
             export all ↓
           </button>
         )}
+        <button
+          onClick={() => { setImportMode("restore"); fileInputRef.current?.click(); }}
+          className="text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+        >
+          restore ↑
+        </button>
+        <button
+          onClick={() => { setImportMode("asNew"); fileInputRef.current?.click(); }}
+          className="text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+        >
+          as new ↑
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,.mora.json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
         <button
           onClick={onClose}
           className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[#c8cdd4] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
@@ -1286,6 +1363,10 @@ export default function Home() {
     setProjectListRefreshKey((k) => k + 1);
   };
 
+  const handleProjectsImported = () => {
+    setProjectListRefreshKey((k) => k + 1);
+  };
+
   const handleRenameProject = (id: string, newName: string) => {
     try {
       const project = loadProject(id);
@@ -1647,6 +1728,7 @@ export default function Home() {
               onLoad={handleLoadProject}
               onDelete={handleDeleteProject}
               onRename={handleRenameProject}
+              onImport={handleProjectsImported}
               refreshKey={projectListRefreshKey}
               currentProjectId={currentProjectId}
             />
@@ -1867,6 +1949,7 @@ export default function Home() {
             onLoad={handleLoadProject}
             onDelete={handleDeleteProject}
             onRename={handleRenameProject}
+            onImport={handleProjectsImported}
             refreshKey={projectListRefreshKey}
             currentProjectId={currentProjectId}
           />

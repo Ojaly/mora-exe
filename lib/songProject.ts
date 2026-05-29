@@ -83,6 +83,52 @@ export function loadProject(id: string): SongProject | null {
   }
 }
 
+/**
+ * Validate an unknown value as a SongProject and normalise optional fields.
+ * Returns null if required fields are missing or have wrong types.
+ */
+export function validateAndNormalizeSongProject(data: unknown): SongProject | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+
+  if (typeof d.id !== "string" || !d.id.trim()) return null;
+  if (typeof d.name !== "string") return null;
+  if (typeof d.createdAt !== "string") return null;
+  if (typeof d.updatedAt !== "string") return null;
+  if (!d.input || typeof d.input !== "object") return null;
+  if (typeof d.lyrics !== "string") return null;
+  if (typeof d.stylePrompt !== "string") return null;
+  if (typeof d.stylePromptOverride !== "string") return null;
+  if (typeof d.negPrompt !== "string") return null;
+  if (typeof d.regenPrompt !== "string") return null;
+  if (d.structureMode !== "preset" && d.structureMode !== "builder") return null;
+  if (!Array.isArray(d.builderSteps)) return null;
+  if (!Array.isArray(d.builderSections)) return null;
+  if (!Array.isArray(d.libraryIds)) return null;
+
+  return {
+    id:                  d.id,
+    name:                d.name,
+    createdAt:           d.createdAt,
+    updatedAt:           d.updatedAt,
+    input:               d.input as SongProject["input"],
+    worldPreset:         typeof d.worldPreset === "string" ? d.worldPreset as SongProject["worldPreset"] : "",
+    expansion:           (d.expansion != null && typeof d.expansion === "object") ? d.expansion as SongProject["expansion"] : null,
+    lyrics:              d.lyrics,
+    stylePrompt:         d.stylePrompt,
+    stylePromptOverride: d.stylePromptOverride,
+    negPrompt:           d.negPrompt,
+    regenPrompt:         d.regenPrompt,
+    builderSteps:        d.builderSteps as SongProject["builderSteps"],
+    structureMode:       d.structureMode,
+    structurePreset:     typeof d.structurePreset === "string" ? d.structurePreset as SongProject["structurePreset"] : "verse-first",
+    builderSections:     d.builderSections as SongProject["builderSections"],
+    libraryIds:          d.libraryIds as SongProject["libraryIds"],
+    history:             Array.isArray(d.history) ? d.history as SongProject["history"] : [],
+    notes:               typeof d.notes === "string" ? d.notes : "",
+  };
+}
+
 /** Delete a project payload and remove it from the index. */
 export function deleteProject(id: string): void {
   try {
