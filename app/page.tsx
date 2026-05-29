@@ -1206,6 +1206,13 @@ export default function Home() {
                     setStylePromptOverride(p);
                     setCenterTab("prompt");
                   }}
+                  onApplyNegative={(neg) => {
+                    setNeg((prev) => {
+                      const existing = prev.trim() === "" || prev.trim().toLowerCase() === "none" ? "" : prev.trim();
+                      if (existing && existing.includes(neg)) return existing;
+                      return existing ? `${existing}, ${neg}` : neg;
+                    });
+                  }}
                 />
               </div>
             </div>
@@ -1396,6 +1403,13 @@ export default function Home() {
                 onApply={(p) => {
                   setStylePromptOverride(p);
                   setMobile("prompt");
+                }}
+                onApplyNegative={(neg) => {
+                  setNeg((prev) => {
+                    const existing = prev.trim() === "" || prev.trim().toLowerCase() === "none" ? "" : prev.trim();
+                    if (existing && existing.includes(neg)) return existing;
+                    return existing ? `${existing}, ${neg}` : neg;
+                  });
                 }}
               />
             </div>

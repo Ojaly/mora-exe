@@ -6,6 +6,7 @@ import {
   createInitialState,
   makeSampleState,
   buildStylePromptFrom12Steps,
+  buildNegativeFragmentsFromBuilderState,
   loadPresetState,
   BUILT_IN_PRESETS,
 } from "@/lib/promptBuilder12";
@@ -16,6 +17,7 @@ const STORAGE_KEY = "mora-builder-12";
 
 interface Props {
   onApply: (prompt: string) => void;
+  onApplyNegative?: (neg: string) => void;
 }
 
 // ─── Step row ────────────────────────────────────────────────────────────────
@@ -81,7 +83,7 @@ function StepRow({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function PromptBuilder12Panel({ onApply }: Props) {
+export default function PromptBuilder12Panel({ onApply, onApplyNegative }: Props) {
   const [state, setState] = useState<PromptBuilder12State>(createInitialState);
   const [mounted, setMounted] = useState(false);
 
@@ -126,6 +128,13 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
 
   // Derived: compute prompt on every render (fast, pure)
   const { prompt, charCount } = buildStylePromptFrom12Steps(state);
+
+  // Derived: negative fragments from current builder state
+  const negFragments = useMemo(
+    () => buildNegativeFragmentsFromBuilderState(state),
+    [state]
+  );
+  const negPreview = negFragments.join(", ");
 
   // ── Step updaters ──────────────────────────────────────────────────────────
 
@@ -248,6 +257,28 @@ export default function PromptBuilder12Panel({ onApply }: Props) {
         >
           Use as Style Prompt
         </button>
+
+        {/* Builder Negative preview + Append button */}
+        {negPreview && (
+          <div className="space-y-1 border border-zinc-200 rounded px-2 py-1.5 bg-zinc-50">
+            <span className="text-[10px] font-mono text-zinc-500 tracking-[0.1em] uppercase leading-none block">
+              BUILDER NEGATIVE
+            </span>
+            <p
+              className="text-[11px] font-mono leading-snug text-zinc-600 line-clamp-1"
+              title={negPreview}
+            >
+              {negPreview}
+            </p>
+            <button
+              onClick={() => onApplyNegative?.(negPreview)}
+              className="w-full h-7 text-[11px] font-mono rounded border transition-all
+                border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 active:scale-[0.99]"
+            >
+              Append to Negative
+            </button>
+          </div>
+        )}
 
         {/* Clear / Sample */}
         <div className="flex gap-1">

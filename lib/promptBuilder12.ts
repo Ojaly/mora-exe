@@ -575,6 +575,77 @@ export function loadPresetState(preset: BuilderPreset): PromptBuilder12State {
 
 // ─── Built-in Presets ─────────────────────────────────────────────────────────
 
+// ─── Builder-derived Negative Prompt ─────────────────────────────────────────
+
+/**
+ * Negative fragments keyed by genre-foundation custom text (case-insensitive trim).
+ * These capture what Suno tends to do wrong for each known micro-genre.
+ */
+const BUILDER_GENRE_NEGATIVES: Record<string, string> = {
+  "corporate electro funk":    "generic EDM energy, over-cheerful advertising music, acoustic live band feel, gratuitous wah guitar",
+  "digital motown disco soul": "trap hi-hat spam, aggressive EDM drop, heavy guitar distortion, cold lo-fi crackle",
+  "danceable electro waltz":   "four-on-the-floor EDM kick, 4/4 time rigidity, generic club drop, losing the 3/4 waltz feel",
+  "dark electro swing":        "cheesy Halloween kitsch, over-produced clean modern sheen, Disney villain aesthetic, generic swing revival cliché",
+  "electro gospel irony":      "sincere devotional gospel, earnest praise-and-worship tone, over-sincere choir anthem, literal religious sentiment",
+};
+
+/**
+ * Derives negative prompt fragments from the current PromptBuilder12State.
+ * Targets what Suno tends to get wrong given the selected genre and production choices.
+ * Returns [] when no steps are selected.
+ */
+export function buildNegativeFragmentsFromBuilderState(
+  state: PromptBuilder12State
+): string[] {
+  const frags: string[] = [];
+  const step = (id: string) => state.steps.find((s) => s.id === id);
+
+  // Step 1: genre-specific negatives (keyed by custom text)
+  const genreStep = step("genre-foundation");
+  if (genreStep?.custom) {
+    const neg = BUILDER_GENRE_NEGATIVES[genreStep.custom.trim().toLowerCase()];
+    if (neg) frags.push(neg);
+  }
+
+  // Step 4: Vocal Texture — avoid the opposite direction
+  const vocal = step("vocal-texture");
+  if (vocal?.selected === "a") frags.push("muddy mix, buried vocal presence");
+  if (vocal?.selected === "b") frags.push("hard-compressed vocal aggression, over-projected presence");
+  if (vocal?.selected === "c") frags.push("over-polished AutoTune sheen, airbrushed vocal production");
+
+  // Step 5: Vocal Processing
+  const vocalFx = step("vocal-processing");
+  if (vocalFx?.selected === "a") frags.push("excessive reverb wash, wet over-processed vocal");
+  if (vocalFx?.selected === "c") frags.push("dry clinical vocal recording, academic studio sound");
+
+  // Step 6: Electronic Treatment
+  const elec = step("electronic-treatment");
+  if (elec?.selected === "a") frags.push("digital harshness, over-quantized sterility, synthetic gloss");
+  if (elec?.selected === "c") frags.push("acoustic bleed, organic looseness, live room ambience");
+
+  // Step 8: Drum Direction
+  const drums = step("drum-direction");
+  if (drums?.selected === "a") frags.push("over-quantized rigid drum machine, robotic timing");
+  if (drums?.selected === "b") frags.push("sloppy live drumming, loose timing, room bleed");
+  if (drums?.selected === "c") frags.push("busy drum fills, rushing energy, uptight snare");
+
+  // Step 11: World / Atmosphere
+  const atmo = step("world-atmosphere");
+  if (atmo?.selected === "a") frags.push("dark brooding texture, oppressive claustrophobic sound");
+  if (atmo?.selected === "b") frags.push("cheerful pop energy, saccharine warmth, feel-good brightness");
+  if (atmo?.selected === "c") frags.push("hard-edged clarity, aggressive transients, over-present attack");
+
+  // Step 12: Final Impression
+  const finale = step("final-impression");
+  if (finale?.selected === "a") frags.push("rough unfinished edges, bedroom production quality");
+  if (finale?.selected === "b") frags.push("over-polished radio-friendly sheen, smooth adult contemporary finish");
+  if (finale?.selected === "c") frags.push("small-scale intimate production, bedroom lo-fi aesthetic");
+
+  return frags;
+}
+
+// ─── Built-in Presets ─────────────────────────────────────────────────────────
+
 export const BUILT_IN_PRESETS: BuilderPreset[] = [
   {
     id: "corp-electro-funk",
