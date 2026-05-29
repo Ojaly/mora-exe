@@ -5,7 +5,7 @@
 | 項目 | 状態 |
 |---|---|
 | Branch | `master` |
-| 最新コミット | `4ad31d2 feat: improve project summary readability` |
+| 最新コミット | `282edf5 feat: add project export and overwrite guard` |
 | origin/master | 同期済み |
 | Working tree | clean |
 
@@ -28,6 +28,8 @@
 | Project保存 Phase 1 | `d7074a2`〜`1505c50` | 下記参照 |
 | Project保存 Phase 2 | `a5857a8`〜`1ebe94e` | 下記参照（**完了**） |
 | Project一覧 Summary | `4ad31d2` | `SongProjectMeta` に summary fields 追加 + 一覧表示改善 |
+| Project Export（単体・全件） | `282edf5` | EXP ボタン / export all ↓ ボタン、safe filename 生成 |
+| Save name drift overwrite guard | `282edf5` | LOAD 済み Project の名前変更状態での SAVE を中断 |
 
 ---
 
@@ -105,6 +107,8 @@ Builder state は `PromptBuilder12Panel` 内部 state として管理されて�
 | Save As | `7cba51f` | `handleSaveAsProject` + `readBuilderSteps()` 共通化 + Sidebar "save as new project →" |
 | Inline Rename | `3cebe04` | `editingId/editingName` state + Enter/Escape + `onRename(id, newName)` シグネチャ変更 |
 | Inline Delete | `1ebe94e` | `confirmDeleteId` state + YES,DELETE/CANCEL + `setSavedSnapshot(null)` on active delete |
+| Project Export | `282edf5` | 単体 EXP ボタン + 全件 export all ↓ ボタン + safe filename 生成 |
+| Save name drift overwrite guard | `282edf5` | `savedProjectName` と名前が一致しない場合に SAVE を中断 |
 
 ### Unsaved changes の設計（Phase 2-B）
 
@@ -251,6 +255,104 @@ Rename 編集中・Delete 確認中は summary 行を非表示（`!isConfirmingD
 
 ---
 
+## 6. Project Export の詳細（**Export 完了 / Import 未実装**）
+
+### コミット
+
+`282edf5 feat: add project export and overwrite guard`
+
+### 単体エクスポート（EXP ボタン）
+
+- `ProjectListPanel` の各 Project 行に `EXP` ボタンを追加
+- `handleExportProject(meta)` → `loadProject(meta.id)` でフルペイロードを取得し JSON ダウンロード
+- ファイル名: `${toSafeFilename(project.name)}.mora.json`
+
+### 全件エクスポート（export all ↓ ボタン）
+
+- PROJECT セクション右端の `export all ↓` ボタン（projects.length > 0 のときのみ表示）
+- `handleExportAll()` → 全 Project を `loadProject` で読み込み、1 ファイルにまとめてダウンロード
+- ファイル名: `mora-projects-YYYY-MM-DD.json`（実行日の ISO 日付）
+- ペイロード構造:
+  ```json
+  {
+    "version": 1,
+    "exportedAt": "<ISO 8601>",
+    "projects": [ /* SongProject[] */ ]
+  }
+  ```
+- 読み込めなかった件数があれば `alert` で通知してスキップ
+
+### safe filename ロジック（`toSafeFilename`）
+
+```typescript
+function toSafeFilename(name: string): string {
+  return (
+    name
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+      .replace(/\s+/g, "_")
+      .replace(/_{2,}/g, "_")
+      .trim() || "untitled"
+  );
+}
+```
+
+Windows / Unix 双方で unsafe な文字をアンダースコアに置換し、連続アンダースコアを圧縮。空文字になった場合は `"untitled"` にフォールバック。
+
+### Import は未実装
+
+- JSON ファイルの読み込みによる Project の復元は **未実装**
+- 次回候補タスクの最上位（§ 9 参照）
+
+---
+
+## 6b. Save name drift overwrite guard の詳細
+
+### コミット
+
+`282edf5 feat: add project export and overwrite guard`
+
+### 概要
+
+LOAD 済みの Project において、名前欄を変更したまま SAVE（上書き保存）しようとすると保存を中断し、`alert` でユーザーに案内する。
+
+### ガード発動条件
+
+```typescript
+// handleSaveProject 内
+if (
+  currentProjectId !== null &&   // 既存 Project を編集中
+  savedProjectName !== null &&   // 保存時の名前ベースラインが設定されている
+  nameToSave !== savedProjectName // 名前が変わっている
+) { alert(...); return; }
+```
+
+`savedProjectName` は SAVE / SAVE AS / LOAD / Rename（REN）の各操作で更新される。
+NEW プロジェクト（`currentProjectId === null`）では発動しない。
+
+### ユーザーへの案内（alert メッセージ）
+
+```
+プロジェクト名が変更されているため保存できません。
+
+保存済み名: "${savedProjectName}"
+現在の名前: "${nameToSave}"
+
+・別プロジェクトとして保存するには「save as new project →」を使ってください。
+・既存プロジェクトの名前を変えるには、プロジェクト一覧の「REN」を使ってください。
+```
+
+### `savedProjectName` の更新タイミング
+
+| 操作 | savedProjectName |
+|---|---|
+| SAVE | `nameToSave` をセット |
+| SAVE AS | `newName.trim()` をセット |
+| LOAD | `project.name` をセット |
+| REN（プロジェクト一覧から rename） | `newName` をセット（active project のみ） |
+| NEW | `null` にクリア |
+
+---
+
 ## 7. Negative Prompt 周りの詳細
 
 ### Builder Negative preview
@@ -300,16 +402,19 @@ npm.cmd run dev
 
 優先度順（暫定）:
 
-1. **Project Export / Import** — JSON ファイルとして書き出し / 読み込み
+1. **Project Import** — JSON ファイルを読み込んで Project を復元（Export 済み形式に対応）
 2. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
-3. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
-4. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+3. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
+4. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
+5. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
 
 > 完了済みのため次回候補から除外:
 > - ~~Current Project 表示強化~~ → Phase 2-A で完了
 > - ~~Unsaved changes 表示~~ → Phase 2-B で完了
 > - ~~Save As / Duplicate~~ → 完了
 > - ~~npm build 確認~~ → 各フェーズで通過確認済み
+> - ~~Project Export~~ → `282edf5` で完了（単体 EXP / 全件 export all / safe filename）
+> - ~~Save name drift overwrite guard~~ → `282edf5` で完了
 
 ---
 
@@ -320,7 +425,7 @@ npm.cmd run dev
 - **Builder state のリマウント**: Project LOAD 時に `builderReloadKey` をインクリメントしてリマウント。次フェーズで Builder の controlled 化（state lift up）を検討
 - **DELETE は作業内容を消さない**: 保存済みのスナップショットのみ削除し、現在の作業 state は残る（active の場合は `currentProjectId` / `projectName` / `savedSnapshot` の紐付けを解除）
 - **NEW は CLEAR SESSION 相当**: Builder state / genreLock / subStyles / centerTab などのセッション設定は消えない
-- **Export 機能は未実装**: `mora-project-list` / `mora-project-<id>` を直接 DevTools で確認可能
+- **Import 機能は未実装**: Export した JSON ファイルの読み込みによる Project 復元は未実装。Export は EXP ボタン（単体）/ `export all ↓` ボタン（全件）で実行可能。Import が必要な場合は DevTools で `mora-project-<id>` / `mora-project-list` を手動操作するか、次フェーズの Import 実装を待つこと
 - **lint は exit code 1（pre-existing errors）**: 各 Phase の変更起因の新規エラーはなし。`npm run build` は全フェーズで通過。pre-existing errors は `react-hooks/set-state-in-effect`（mount effect 内 setState）・`react/jsx-no-comment-textnodes`（複数コンポーネント）など
 - **SongProjectMeta の summary は再 SAVE まで更新されない**: 既存 Project は一覧に summary が出ないが壊れない。SAVE / SAVE AS を実行すると `lyricsContentLines` / `hasStyle` / `hasNeg` / `lyricsPreview` が生成される
 
