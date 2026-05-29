@@ -327,20 +327,17 @@ function ProjectListPanel({
   currentProjectId: string | null;
 }) {
   const [projects, setProjects] = useState<SongProjectMeta[]>(() => listProjects());
-  const [editingId,   setEditingId]   = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
+  const [editingId,       setEditingId]       = useState<string | null>(null);
+  const [editingName,     setEditingName]     = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProjects(listProjects());
   }, [refreshKey]);
 
-  const handleDelete = (id: string) => {
-    if (!window.confirm("Delete this project? This cannot be undone.")) return;
-    onDelete(id);
-  };
-
   const startEditing = (id: string, name: string) => {
+    setConfirmDeleteId(null); // cancel any pending delete confirm
     setEditingId(id);
     setEditingName(name);
   };
@@ -352,6 +349,19 @@ function ProjectListPanel({
   };
 
   const cancelRename = () => setEditingId(null);
+
+  const startConfirmDelete = (id: string) => {
+    setEditingId(null); // cancel any active rename
+    setEditingName("");
+    setConfirmDeleteId(id);
+  };
+
+  const cancelConfirmDelete = () => setConfirmDeleteId(null);
+
+  const commitDelete = (id: string) => {
+    setConfirmDeleteId(null);
+    onDelete(id);
+  };
 
   return (
     <div
@@ -379,7 +389,8 @@ function ProjectListPanel({
       ) : (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {projects.map((p) => {
-            const isEditing = editingId === p.id;
+            const isEditing         = editingId       === p.id;
+            const isConfirmingDelete = confirmDeleteId === p.id;
             return (
               <div
                 key={p.id}
@@ -403,7 +414,9 @@ function ProjectListPanel({
                     ) : (
                       <>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-[13px] font-mono font-bold text-zinc-800 truncate">{p.name || "(untitled)"}</p>
+                          <p className={`text-[13px] font-mono font-bold truncate ${isConfirmingDelete ? "text-red-600" : "text-zinc-800"}`}>
+                            {p.name || "(untitled)"}
+                          </p>
                           {p.id === currentProjectId && (
                             <span className="text-[10px] font-mono font-bold px-1.5 py-px rounded border border-emerald-300 text-emerald-700 bg-emerald-50 leading-tight shrink-0">
                               · ACTIVE
@@ -411,9 +424,11 @@ function ProjectListPanel({
                           )}
                         </div>
                         <p className="text-[12px] font-mono text-zinc-500 mt-0.5">
-                          {new Date(p.updatedAt).toLocaleDateString("ja-JP", {
-                            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                          })}
+                          {isConfirmingDelete
+                            ? "Delete this project? This cannot be undone."
+                            : new Date(p.updatedAt).toLocaleDateString("ja-JP", {
+                                month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                              })}
                         </p>
                       </>
                     )}
@@ -434,6 +449,21 @@ function ProjectListPanel({
                           ✕
                         </button>
                       </>
+                    ) : isConfirmingDelete ? (
+                      <>
+                        <button
+                          onClick={() => commitDelete(p.id)}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-red-400 text-red-600 hover:border-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          YES, DELETE
+                        </button>
+                        <button
+                          onClick={cancelConfirmDelete}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                        >
+                          CANCEL
+                        </button>
+                      </>
                     ) : (
                       <>
                         <button
@@ -452,7 +482,7 @@ function ProjectListPanel({
                           REN
                         </button>
                         <button
-                          onClick={() => handleDelete(p.id)}
+                          onClick={() => startConfirmDelete(p.id)}
                           className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
                         >
                           DEL
@@ -1143,6 +1173,7 @@ export default function Home() {
     if (id === currentProjectId) {
       setCurrentProjectId(null);
       setProjectName("");
+      setSavedSnapshot(null);
     }
     setProjectListRefreshKey((k) => k + 1);
   };
