@@ -227,7 +227,7 @@ export default function PromptBuilder12Panel({ onApply, onReplaceNegative, onApp
       <div className="border-t border-[#E2E8F0] pt-2.5 space-y-1.5">
         {/* Preview text */}
         <p
-          className="text-[12px] font-mono leading-snug text-zinc-700 line-clamp-2 min-h-[2.5rem]"
+          className="text-[13px] font-mono leading-snug text-zinc-700 line-clamp-2 min-h-[2.5rem]"
           title={prompt || undefined}
         >
           {prompt || (

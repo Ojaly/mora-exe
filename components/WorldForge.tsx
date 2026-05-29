@@ -133,7 +133,7 @@ export default function WorldForge({
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleForge();
           }}
         />
-        <p className="text-[11px] font-mono text-zinc-500">⌘Enter で Forge</p>
+        <p className="text-[12px] font-mono text-zinc-500">⌘Enter で Forge</p>
       </div>
 
       {/* Forge button */}
@@ -201,7 +201,7 @@ export default function WorldForge({
               <ExpRow label="Scene">
                 <div className="space-y-0.5">
                   {expansion.scene.map((s, i) => (
-                    <p key={i} className="text-[12px] font-mono text-zinc-700 leading-snug">
+                    <p key={i} className="text-[13px] font-mono text-zinc-700 leading-snug">
                       {s}
                     </p>
                   ))}
@@ -272,7 +272,7 @@ export default function WorldForge({
             {/* Lyrics direction */}
             {expansion.lyricsDirection && (
               <ExpRow label="Lyrics Direction">
-                <p className="text-[12px] font-mono text-zinc-600 leading-snug">
+                <p className="text-[13px] font-mono text-zinc-600 leading-snug">
                   {expansion.lyricsDirection}
                 </p>
               </ExpRow>
@@ -300,7 +300,7 @@ export default function WorldForge({
               >
                 {applyFlash ? "✓ Generating…" : "▶ GENERATE DRAFT"}
               </button>
-              <p className="text-[10px] font-mono text-zinc-500 text-center mt-1 leading-snug">
+              <p className="text-[11px] font-mono text-zinc-500 text-center mt-1 leading-snug">
                 このWorldからStyle + Lyricsを一括生成
               </p>
             </div>

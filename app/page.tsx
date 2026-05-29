@@ -1573,7 +1573,7 @@ export default function Home() {
             <span className="text-[10px] font-mono text-zinc-500 tracking-widest uppercase font-semibold block mb-0.5">
               {sectionTarget !== "all" ? `${sectionTarget.toUpperCase()} · ` : ""}変更メモ
             </span>
-            <p className="text-[12px] font-mono text-zinc-700 leading-relaxed overflow-y-auto" style={{ maxHeight: "4.5rem" }}>
+            <p className="text-[13px] font-mono text-zinc-700 leading-relaxed overflow-y-auto" style={{ maxHeight: "4.5rem" }}>
               {rewriteNotes}
             </p>
           </div>
@@ -1735,7 +1735,7 @@ export default function Home() {
           <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2">
             <button
               onClick={() => setCenterTab("prompt")}
-              className={`text-[12px] ui-sans px-3 py-1 rounded-md border transition-colors ${
+              className={`text-[13px] ui-sans px-3 py-1 rounded-md border transition-colors ${
                 centerTab === "prompt"
                   ? "bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
                   : "border-[#CBD5E1] text-[#64748B] font-semibold hover:border-[#94A3B8] hover:text-[#1E293B]"
@@ -1745,7 +1745,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setCenterTab("library")}
-              className={`text-[12px] ui-sans px-3 py-1 rounded-md border transition-colors ${
+              className={`text-[13px] ui-sans px-3 py-1 rounded-md border transition-colors ${
                 centerTab === "library"
                   ? "bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
                   : "border-[#CBD5E1] text-[#64748B] font-semibold hover:border-[#94A3B8] hover:text-[#1E293B]"
@@ -1759,7 +1759,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setCenterTab("builder")}
-              className={`text-[12px] ui-sans px-3 py-1 rounded-md border transition-colors ${
+              className={`text-[13px] ui-sans px-3 py-1 rounded-md border transition-colors ${
                 centerTab === "builder"
                   ? "bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
                   : "border-[#CBD5E1] text-[#64748B] font-semibold hover:border-[#94A3B8] hover:text-[#1E293B]"
@@ -1889,11 +1889,11 @@ export default function Home() {
                     <HeaderIcon name="music" />
                     <button
                       onClick={() => setRight("lyrics")}
-                      className="text-[12px] ui-sans px-3 py-1 rounded-md border bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
+                      className="text-[13px] ui-sans px-3 py-1 rounded-md border bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
                     >LYRICS</button>
                     <button
                       onClick={() => setRight("tuner")}
-                      className={`text-[12px] ui-sans font-semibold px-3 py-1 rounded-md border transition-colors ${
+                      className={`text-[13px] ui-sans font-semibold px-3 py-1 rounded-md border transition-colors ${
                         dangers > 0
                           ? "border-[var(--accent-warning-border)] text-[var(--accent-warning-strong)]"
                           : "border-[#CBD5E1] text-[#64748B] hover:border-[#94A3B8] hover:text-[#1E293B]"
@@ -1923,11 +1923,11 @@ export default function Home() {
                   <HeaderIcon name="music" />
                   <button
                     onClick={() => setRight("lyrics")}
-                    className="text-[12px] ui-sans font-semibold px-3 py-1 rounded-md border border-[#CBD5E1] text-[#64748B] hover:border-[#94A3B8] hover:text-[#1E293B] transition-colors"
+                    className="text-[13px] ui-sans font-semibold px-3 py-1 rounded-md border border-[#CBD5E1] text-[#64748B] hover:border-[#94A3B8] hover:text-[#1E293B] transition-colors"
                   >LYRICS</button>
                   <button
                     onClick={() => setRight("tuner")}
-                    className="text-[12px] ui-sans px-3 py-1 rounded-md border bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
+                    className="text-[13px] ui-sans px-3 py-1 rounded-md border bg-[#EFF6FF] border-[#2563EB] text-[#1D4ED8] font-bold"
                   >
                     TUNER{dangers > 0 ? ` ▲${dangers}` : issues > 0 ? ` (${issues})` : ""}
                   </button>

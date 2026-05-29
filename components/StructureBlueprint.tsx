@@ -117,7 +117,7 @@ export default function StructureBlueprint({
               </option>
             ))}
           </select>
-          <p className="text-[10px] font-mono text-zinc-500 leading-snug break-words">
+          <p className="text-[11px] font-mono text-zinc-500 leading-snug break-words">
             {hint}
           </p>
         </div>
@@ -202,7 +202,7 @@ export default function StructureBlueprint({
 
           {/* Preview (valid sections only) */}
           {validSections.length > 0 && (
-            <p className="text-[10px] font-mono text-zinc-500 leading-snug break-words">
+            <p className="text-[11px] font-mono text-zinc-500 leading-snug break-words">
               {preview}
             </p>
           )}
