@@ -5,8 +5,8 @@
 | 項目 | 状態 |
 |---|---|
 | Branch | `master` |
-| 最新コミット | `3dc8854 style: improve TIPS/hint text legibility across main UI components` |
-| origin/master | 未 push（ローカル 7 commits ahead） |
+| 最新コミット | `f4cec5a style: improve style prompt text contrast` |
+| origin/master | 同期済み |
 | Working tree | clean |
 
 ---
@@ -23,6 +23,9 @@
 | Phase D | `5720a9a` | `app/page.tsx` — border 値統一 + ProjectListPanel Export/Import ボタンを文字リンクから border 付きボタンへ強化 |
 | Phase E | `b15efed` | `components/PromptBuilder12Panel.tsx` — border 値統一 |
 | TIPS 改善 | `3dc8854` | Sidebar / page.tsx / PromptBuilder12 / WorldForge / StructureBlueprint の TIPS・補足テキストを `zinc-400/500` → `zinc-500/600/700` に改善 |
+| Readable Size Pass 第一段階 | `ced2009` | TIPS `text-[10px]`→`[11px]` × 10 / `text-[11px]`→`[12px]` × 5 / パネルタブ `text-[12px]`→`[13px]` × 7 / 本文・preview `text-[12px]`→`[13px]`（PromptBuilder12Panel / page.tsx / PromptEditor / LyricsEditor / WorldForge） |
+| Readable Size Pass 第二段階（安全範囲） | `93757a1` | World Lens chips / Selected Library item chips / Builder preset chips / SAMPLE・CLEAR ボタン `text-[11px]`→`[12px]` |
+| Style Prompt 本文コントラスト改善 | `f4cec5a` | `globals.css` `.pe-plain` color `#475569`→`#334155`（slate-700相当） |
 
 **UI Polish で変更したファイル一覧:**
 
@@ -32,14 +35,20 @@
 - `components/PromptBuilder12Panel.tsx`
 - `components/WorldForge.tsx`
 - `components/StructureBlueprint.tsx`
+- `components/PromptEditor.tsx`
+- `components/LyricsEditor.tsx`
 - `app/page.tsx`
 
 **UI Polish で変更しなかったもの（意図的）:**
 
-- padding / font / text size / layout — 後続フェーズで段階的に対応
+- padding / font / layout — 後続フェーズで段階的に対応
 - `font-mono` / `ui-sans` 統一 — スコープ外
 - ロジック・状態管理・保存/読込/Export/Import — 一切変更なし
 - `components/MoraTunerPanel.tsx` / `SourceAlchemy.tsx` / `PromptLibraryPanel.tsx` 等 — 後続フェーズで見直し
+- Genre / Sub-style / Nudge chips（`text-[11px]` のまま） — wrapping 変化があるため別フェーズ
+- Builder Step option chips（`text-[11px]` のまま） — パネル高変化リスクあり
+- h-7 ボタン（Replace / Append Negative 等） — mobile レイアウトリスクあり
+- ProjectListPanel ヘッダーボタン — ヘッダー詰まりリスクあり
 
 ---
 
@@ -524,42 +533,25 @@ npm.cmd run dev
 
 ## 9. 次回候補タスク
 
-### 最優先: Readable Size Pass（文字サイズ改善）— 棚卸し完了・実装は次回
+### UI Polish — 残り候補（未実装）
 
-棚卸し済み。第一段階として安全に実施できる変更は以下の 4 グループ:
+以下は wrapping 変化・ヘッダー詰まりリスクがあるため、別フェーズで一つずつ確認する。
 
-**グループ1: TIPS `text-[10px]` → `text-[11px]`（10箇所、レイアウト影響なし）**
-対象: Genre 未選択説明・SUB STYLE 説明・Direction Adjust 説明・Library 空状態/おすすめ通知・GENERATE hint・WorldForge footer hint・StructureBlueprint hint × 2
-ファイル: `Sidebar.tsx` / `WorldForge.tsx` / `StructureBlueprint.tsx`
+**Sidebar Genre / Sub-style / Nudge chips（A/B/C）**
+- 現状 `text-[11px]`。18種・10種・13種と多いため、`text-[12px]` にすると flex-wrap 行数が増える
+- 実施する場合は mobile（375px）での折り返し増加を事前確認すること
 
-**グループ2: TIPS `text-[11px]` → `text-[12px]`（5箇所、レイアウト影響なし）**
-対象: CollapseSection sub テキスト・SAVE CURRENT overwrites hint・WORLD SEED 説明・SOURCE ALCHEMY 説明・"⌘Enter で Forge"
-ファイル: `Sidebar.tsx` / `WorldForge.tsx`
+**Builder Step option chips（F）**
+- 現状 `text-[11px]`。12 steps × 複数 options = パネル全体高が大幅増加の可能性
+- 実施する場合は desktop / mobile 両方で縦スクロール量の変化を確認すること
 
-**グループ3: CENTER / RIGHT パネルタブ `text-[12px]` → `text-[13px]`（5箇所）**
-対象: STYLE PROMPT / LIBRARY / BUILDER タブ・LYRICS / TUNER in-card タブ
-ファイル: `app/page.tsx`
+**ProjectListPanel ヘッダーボタン（J）**
+- `export all ↓` / `restore ↑` / `as new ↑` — 現状 `text-[11px]`
+- `h-11` の1行ヘッダーに4要素横並び。mobile 幅で詰まるリスクあり
 
-**グループ4: 本文 preview `text-[12px]` → `text-[13px]`**
-対象: PromptBuilder prompt preview・Rewrite notes 本文・PromptEditor / LyricsEditor placeholder・WorldForge expansion 本文
-ファイル: `PromptBuilder12Panel.tsx` / `app/page.tsx` / `PromptEditor.tsx` / `LyricsEditor.tsx` / `WorldForge.tsx`
-
-**第二段階候補（ボタン・chip 系、確認後に実施）**
-- Sidebar / PromptBuilder の chip `text-[11px]` → `text-[12px]`（flex-wrap で吸収されるが wrapping 変化あり）
-- ProjectListPanel export/import/CLOSE ボタン `text-[11px]` → `text-[12px]`
-
-**mobile で注意が必要な箇所:**
-- `StructureBlueprint` mode buttons（h-7）: `text-[11px]` のまま維持推奨
-- `PromptBuilder12` Replace / Append Neg ボタン（h-7）: 同様に維持推奨
-- mobile tab strip（TabBtn）: 既に `text-[13px]`、変更不要
-
-**次回最初にやること:**
-1. 上記棚卸し結果を再確認
-2. 第一段階（グループ 1〜4）だけに絞って実装
-3. mobile 崩れに注意（h-7 ボタンは今回スコープ外）
-4. `npm.cmd run build` で確認
-5. ブラウザ手動確認（desktop + mobile）
-6. commit
+**h-7 ボタン（スコープ外）**
+- `StructureBlueprint` mode buttons / `PromptBuilder12` Replace・Append Negative ボタン
+- `text-[11px]` のまま維持推奨。変更しない。
 
 ---
 
@@ -567,11 +559,12 @@ npm.cmd run dev
 
 優先度順（暫定）:
 
-1. **Readable Size Pass 実装** — 上記参照
+1. **Sidebar chip 文字サイズ（A/B/C）** — mobile 確認しながら段階的に検討
 2. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
 3. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
 4. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
 5. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+6. **次機能開発へ進む** — UI Polish をいったん区切り、新機能実装に移行する選択肢もあり
 
 > 完了済みのため次回候補から除外:
 > - ~~Current Project 表示強化~~ → Phase 2-A で完了
@@ -583,6 +576,9 @@ npm.cmd run dev
 > - ~~Project Save UI 改善~~ → `c1c505a` で完了
 > - ~~UI Polish Phase A〜E~~ → `2bf55f1`〜`b15efed` で完了
 > - ~~TIPS テキスト視認性改善~~ → `3dc8854` で完了
+> - ~~Readable Size Pass 第一段階（TIPS / タブ / 本文 preview）~~ → `ced2009` で完了
+> - ~~Readable Size Pass 第二段階（安全範囲 chip / button）~~ → `93757a1` で完了
+> - ~~Style Prompt 本文コントラスト改善~~ → `f4cec5a` で完了
 
 ---
 
