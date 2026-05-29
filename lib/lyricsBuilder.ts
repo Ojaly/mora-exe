@@ -956,7 +956,7 @@ const THEME_INJECTION: Partial<Record<SectionType, number>> = {
 export function buildLyricsDraft(input: SongInput): LyricsDraft {
   const sections = getSections(input);
   const titleWord = input.title.trim();
-  let seed = (input.mood.charCodeAt(0) ?? 0) + (input.genre.charCodeAt(0) ?? 0);
+  let seed = (input.mood.charCodeAt(0) || 0) + (input.genre.charCodeAt(0) || 0);
 
   // Extract theme motifs once — used across all sections
   const themeMotifs =

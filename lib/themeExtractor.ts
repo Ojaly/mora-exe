@@ -253,7 +253,7 @@ export function buildThemeLines(
   if (applicable.length === 0) return null;
 
   const lines: string[] = [];
-  let ti = seed % applicable.length;
+  let ti = (Number.isFinite(seed) ? seed : 0) % applicable.length;
   let mi = 0;
 
   for (let i = 0; i < count; i++) {
