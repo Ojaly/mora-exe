@@ -5,7 +5,7 @@
 | 項目 | 状態 |
 |---|---|
 | Branch | `master` |
-| 最新コミット | `1ebe94e feat: add inline project delete confirmation` |
+| 最新コミット | `4ad31d2 feat: improve project summary readability` |
 | origin/master | 同期済み |
 | Working tree | clean |
 
@@ -27,6 +27,7 @@
 | start-dev.bat | `868733f` | `%~dp0` ベース、Windows 用起動スクリプト |
 | Project保存 Phase 1 | `d7074a2`〜`1505c50` | 下記参照 |
 | Project保存 Phase 2 | `a5857a8`〜`1ebe94e` | 下記参照（**完了**） |
+| Project一覧 Summary | `4ad31d2` | `SongProjectMeta` に summary fields 追加 + 一覧表示改善 |
 
 ---
 
@@ -44,7 +45,7 @@
 ### localStorage キー設計
 
 ```
-mora-project-list       SongProjectMeta[]   軽量 index（id / name / updatedAt）
+mora-project-list       SongProjectMeta[]   軽量 index（id / name / updatedAt / summary fields）
 mora-project-<id>       SongProject         個別プロジェクトのフルペイロード
 mora-current-project    string (id)         現在アクティブな Project ID（未実装 — 将来用）
 ```
@@ -178,7 +179,79 @@ const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
 ---
 
-## 5. Negative Prompt 周りの詳細
+## 5. Project一覧 Summary の詳細
+
+### コミット
+
+`4ad31d2 feat: improve project summary readability`（前コミット `4ad31d2` = 本文行数ラベル修正を含む最終版）
+
+### SongProjectMeta に追加した optional フィールド
+
+```typescript
+export interface SongProjectMeta {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  // 以下 optional — 後方互換。旧エントリは undefined → 再 SAVE で更新される
+  lyricsContentLines?: number;  // 空行と [Chorus] 等のセクションタグを除外した本文行数
+  hasStyle?:           boolean; // stylePrompt または stylePromptOverride のどちらかが非空なら true
+  hasNeg?:             boolean; // negPrompt が非空なら true
+  lyricsPreview?:      string;  // 最初の本文行（セクションタグ除外）を最大 28 文字で切り出し
+}
+```
+
+### buildProjectSummary() の計算ロジック（lib/songProject.ts）
+
+```typescript
+function buildProjectSummary(project: SongProject) {
+  const isSectionTag  = (line: string) => /^\[[^\]]+\]$/.test(line.trim());
+  const isContentLine = (line: string) => line.trim().length > 0 && !isSectionTag(line);
+
+  const lines        = project.lyrics ? project.lyrics.split("\n") : [];
+  const contentLines = lines.filter(isContentLine);  // 本文行のみ
+
+  const firstLine = contentLines[0]?.trim() ?? "";
+  const preview   = firstLine.length > 28 ? firstLine.slice(0, 28) + "…" : firstLine;
+
+  return {
+    lyricsContentLines: contentLines.length > 0 ? contentLines.length : undefined,
+    hasStyle:           !!(project.stylePrompt.trim() || project.stylePromptOverride.trim()) || undefined,
+    hasNeg:             !!project.negPrompt.trim() || undefined,
+    lyricsPreview:      preview || undefined,
+  };
+}
+```
+
+`saveProject()` が `buildProjectSummary()` を呼び、結果を `SongProjectMeta` に spread して index に書き込む。
+
+### 後方互換設計
+
+- 旧 `mora-project-list` エントリには summary fields がない → `undefined`
+- UI は `p.lyricsContentLines != null` 等でガードしているため、旧エントリは summary 行が出ないだけで壊れない
+- 再 SAVE（SAVE / SAVE AS）したタイミングで summary が埋まる
+
+### ProjectListPanel の表示（通常状態のみ）
+
+```
+[Project Name]        [· ACTIVE]
+5/29 14:30
+本文 31行   STYLE   NEG
+♪ 消えない痛みを　抱えたまま…
+```
+
+| 要素 | 条件 | スタイル |
+|---|---|---|
+| `本文 N行` | `lyricsContentLines != null` | `text-[13px] font-mono font-semibold text-zinc-600` |
+| `STYLE` チップ | `hasStyle === true` | `text-[12px] border border-zinc-300 text-zinc-600 rounded px-1.5 py-px` |
+| `NEG` チップ | `hasNeg === true` | 同上 |
+| `♪ preview` | `lyricsPreview` が存在 | `text-[13px] font-mono text-zinc-600 truncate` |
+
+Rename 編集中・Delete 確認中は summary 行を非表示（`!isConfirmingDelete` かつ `!isEditing` 相当の分岐で制御）。
+
+---
+
+## 7. Negative Prompt 周りの詳細
 
 ### Builder Negative preview
 
@@ -207,7 +280,7 @@ return existing ? `${existing}, ${neg}` : neg;
 
 ---
 
-## 6. 現在の起動方法
+## 8. 現在の起動方法
 
 ```bat
 # Windows — ダブルクリック起動
@@ -223,7 +296,7 @@ npm.cmd run dev
 
 ---
 
-## 7. 次回候補タスク
+## 9. 次回候補タスク
 
 優先度順（暫定）:
 
@@ -240,7 +313,7 @@ npm.cmd run dev
 
 ---
 
-## 8. 注意事項
+## 10. 注意事項
 
 - **Auto-save は未実装**: SAVE ボタンの明示的な押下のみで保存される
 - **Project は localStorage 保存**: ブラウザのデータ消去で失われる。Export 未実装のため注意
@@ -249,10 +322,11 @@ npm.cmd run dev
 - **NEW は CLEAR SESSION 相当**: Builder state / genreLock / subStyles / centerTab などのセッション設定は消えない
 - **Export 機能は未実装**: `mora-project-list` / `mora-project-<id>` を直接 DevTools で確認可能
 - **lint は exit code 1（pre-existing errors）**: 各 Phase の変更起因の新規エラーはなし。`npm run build` は全フェーズで通過。pre-existing errors は `react-hooks/set-state-in-effect`（mount effect 内 setState）・`react/jsx-no-comment-textnodes`（複数コンポーネント）など
+- **SongProjectMeta の summary は再 SAVE まで更新されない**: 既存 Project は一覧に summary が出ないが壊れない。SAVE / SAVE AS を実行すると `lyricsContentLines` / `hasStyle` / `hasNeg` / `lyricsPreview` が生成される
 
 ---
 
-## 9. 既存 localStorage キー一覧
+## 11. 既存 localStorage キー一覧
 
 | キー | 内容 | 管理箇所 |
 |---|---|---|
@@ -266,6 +340,6 @@ npm.cmd run dev
 | `mora-style-override` | stylePromptOverride 文字列 | page.tsx |
 | `mora-negative-prompt` | negPrompt 文字列 | page.tsx |
 | `mora-builder-12` | 12-Step Builder steps | PromptBuilder12Panel |
-| `mora-project-list` | SongProjectMeta[] index | lib/songProject.ts |
+| `mora-project-list` | SongProjectMeta[] index（summary fields 含む） | lib/songProject.ts |
 | `mora-project-<id>` | SongProject フルペイロード | lib/songProject.ts |
 | `mora-current-project` | アクティブ Project ID（将来用） | 未使用 |
