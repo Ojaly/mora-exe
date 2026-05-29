@@ -74,14 +74,14 @@
 
 ---
 
-#### Gemini 移行状態
+#### Gemini 移行状態（最終）
 
 | エンドポイント | プロバイダー | fallback |
 |---|---|---|
-| `/api/ai/alchemy` | **Gemini**（`GEMINI_API_KEY`） | ❌ なし（変更なし） |
-| `/api/ai/generate` | Claude（`ANTHROPIC_API_KEY`） | ✅ rule-based |
-| `/api/ai/rewrite` | Claude（`ANTHROPIC_API_KEY`） | ✅ rule-based |
-| `/api/ai/forge` | Claude（`ANTHROPIC_API_KEY`） | ✅ rule-based（サーバー側） |
+| `/api/ai/alchemy` | **Gemini**（`GEMINI_API_KEY`） | ❌ なし |
+| `/api/ai/rewrite` | **Gemini**（`GEMINI_API_KEY`） | ✅ rule-based（client 側） |
+| `/api/ai/generate` | **Gemini**（`GEMINI_API_KEY`） | ✅ rule-based（client 側） |
+| `/api/ai/forge` | **Gemini**（`GEMINI_API_KEY`） | ✅ ruleBasedForge（server 側） |
 
 #### `.env.local` に必要なキー
 
@@ -597,6 +597,58 @@ npm.cmd run dev
 
 ---
 
+---
+
+## 8b. Gemini API 移行完了（2026-05-29）
+
+以下 4 ルートを Claude API から Gemini API へ移行済み。
+
+### `/api/ai/alchemy`
+- commit: `7ee9517 fix: harden Gemini alchemy JSON parsing`
+- Gemini API 実動作確認済み（finishReason=STOP）
+- JSON parse / MAX_TOKENS 問題を解消
+- `thinkingConfig: { thinkingBudget: 0 }` 使用
+
+### `/api/ai/rewrite`
+- commit: `0d62a09 feat: switch rewrite to Gemini API`
+- 実動作確認済み（finishReason=STOP、rawLength 492〜691）
+- `rewrittenLyrics` / `notes` / `changedLines` 返却確認済み
+
+### `/api/ai/generate`
+- commit: `e3f7b91 feat: switch generate to Gemini API`
+- 実動作確認済み（finishReason=STOP、rawLength 595〜608）
+- PATH B（World Forge なし）確認済み
+- PATH A（World Forge 後）確認済み
+- 失敗時の `{ lyrics: "", notes: "" }` fallback 設計は維持
+
+### `/api/ai/forge`
+- commit: `1c7bf19 feat: switch forge to Gemini API`
+- 実動作確認済み（finishReason=STOP、rawLength=1600）
+- Forge 後の Generate PATH A 連携確認済み
+- 失敗時は従来通り `ruleBasedForge(worldSeed)` に fallback
+
+### 共通実装メモ
+
+- **Gemini model**: `gemini-2.5-flash`
+- **API key**: `GEMINI_API_KEY` を `.env.local` に設定（`.gitignore` 対象、commit 禁止）
+- **SDK 追加なし**: fetch で Gemini REST API を直接呼ぶ
+- **`thinkingConfig: { thinkingBudget: 0 }`** を `generationConfig` 内に配置（外側に置くと 400 エラー）
+- **JSON parse 防御** として各ルートに以下を導入:
+  - `sanitizeControlChars()`: JSON string 内の literal control char を状態機械方式でエスケープ
+  - `extractJson()`: string-aware ブラケット抽出 + コードフェンス除去 + sanitize → parse
+  - `rawLength` / `finishReason`: dev 環境限定ログ（`NODE_ENV !== "production"`）
+
+### 注意事項
+
+- dev server / preview / launch.json は Claude 側で触らない
+- ブラウザ確認はユーザーが手動で行う
+- package.json 変更なし（SDK 追加なし）
+- provider 抽象化はまだ未実施（各 route に `callGemini` / `sanitizeControlChars` / `extractJson` が重複）
+- Claude API は現在不要だが、将来の高品質オプションとして残すかは別途判断
+- `musicDirection.source` の型は `"claude" | "rule"` のまま維持（Gemini 結果も `"claude"` で返す）
+
+---
+
 ### 次スレッドで最初にやること
 
 1. `git pull`
@@ -610,14 +662,15 @@ npm.cmd run dev
 
 優先度順（暫定）:
 
-1. **Source Alchemy の Gemini 手動テスト確認** — ⚠ **Gemini credits 枯渇中**（下記参照）。credits 補充後に正常レスポンスを確認すること
-2. **generate / rewrite / forge の Gemini 化検討** — `lib/llmClient.ts` で provider 抽象化してから段階移行
-3. **Sidebar chip 文字サイズ（A/B/C）** — mobile 確認しながら段階的に検討
-4. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
-5. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
-6. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
-7. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
-8. **次機能開発へ進む** — UI Polish をいったん区切り、新機能実装に移行する選択肢もあり
+1. **provider 共通化** — `lib/llmClient.ts` で Gemini 呼び出しを共通化。現状は各 route に同種処理が重複
+2. **UI 表示整理** — バッジ・内部 source 名が `Claude AI` / `"claude"` のまま残っている箇所を `AI` / `Gemini` 表示へ整理
+3. **`musicDirection.source` 型整理** — 現状 `"claude" | "rule"`。将来 `"gemini"` または `"ai"` 追加を検討
+4. **Sidebar chip 文字サイズ（A/B/C）** — mobile 確認しながら段階的に検討
+5. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
+6. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
+7. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
+8. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+9. **次機能開発へ進む** — UI Polish をいったん区切り、新機能実装に移行する選択肢もあり
 
 > 完了済みのため次回候補から除外:
 > - ~~Current Project 表示強化~~ → Phase 2-A で完了
@@ -635,6 +688,8 @@ npm.cmd run dev
 > - ~~ProjectList delete danger 表示~~ → `bd7e6eb` で完了
 > - ~~rule-based fallback クラッシュ修正~~ → `91cd434` で完了
 > - ~~Source Alchemy Gemini API 化~~ → `6f482a8` で完了
+> - ~~Source Alchemy Gemini 手動テスト確認~~ → `7ee9517` で完了（finishReason=STOP 確認済み）
+> - ~~generate / rewrite / forge の Gemini 化~~ → `0d62a09` / `e3f7b91` / `1c7bf19` で完了
 
 ---
 
