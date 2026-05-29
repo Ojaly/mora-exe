@@ -52,7 +52,7 @@ function StepRow({
               className={`px-2 py-[2px] text-[11px] font-mono rounded border transition-all ${
                 active
                   ? "border-blue-400 text-blue-700 bg-blue-50 font-semibold"
-                  : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
+                  : "border-[var(--border-muted)] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
               }`}
             >
               {active ? "· " : ""}
@@ -75,7 +75,7 @@ function StepRow({
         className={`w-full h-8 border rounded px-2 text-[12px] font-mono text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-blue-400 transition-colors ${
           step.id === "genre-foundation"
             ? "border-blue-200 bg-blue-50/30 placeholder-blue-300"
-            : "border-zinc-300 bg-white"
+            : "border-[var(--border-muted)] bg-white"
         }`}
       />
     </div>
@@ -202,7 +202,7 @@ export default function PromptBuilder12Panel({ onApply, onReplaceNegative, onApp
                 className={`px-2 py-[2px] text-[11px] font-mono rounded border transition-all ${
                   active
                     ? "border-emerald-400 text-emerald-700 bg-emerald-50 font-semibold"
-                    : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
+                    : "border-[var(--border-muted)] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
                 }`}
               >
                 {active ? "· " : ""}
@@ -294,14 +294,14 @@ export default function PromptBuilder12Panel({ onApply, onReplaceNegative, onApp
         <div className="flex gap-1">
           <button
             onClick={handleSample}
-            className="flex-1 h-8 text-[11px] font-mono rounded border border-zinc-300 text-zinc-600
+            className="flex-1 h-8 text-[11px] font-mono rounded border border-[var(--border-muted)] text-zinc-600
               hover:border-zinc-500 hover:text-zinc-800 transition-colors"
           >
             SAMPLE
           </button>
           <button
             onClick={handleClear}
-            className="flex-1 h-8 text-[11px] font-mono rounded border border-zinc-300 text-zinc-600
+            className="flex-1 h-8 text-[11px] font-mono rounded border border-[var(--border-muted)] text-zinc-600
               hover:border-zinc-500 hover:text-zinc-800 transition-colors"
           >
             CLEAR
