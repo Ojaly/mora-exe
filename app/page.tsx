@@ -241,7 +241,7 @@ function MemoryPanel({
         <span className="text-[12px] font-mono text-zinc-500">{memories.length} / 20 saved</span>
         <button
           onClick={onClose}
-          className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[#c8cdd4] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
+          className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[var(--border-muted)] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
         >
           ✕ CLOSE
         </button>
@@ -269,7 +269,7 @@ function MemoryPanel({
                       </span>
                     )}
                     {m.worldPreset && (
-                      <span className="text-[11px] font-mono text-zinc-500 border border-[#c4cdd6] px-1 rounded">{m.worldPreset}</span>
+                      <span className="text-[11px] font-mono text-zinc-500 border border-[var(--border-muted)] px-1 rounded">{m.worldPreset}</span>
                     )}
                   </div>
                   {m.memo && (
@@ -295,7 +295,7 @@ function MemoryPanel({
                   </button>
                   <button
                     onClick={() => handleDelete(m.id)}
-                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
+                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-[var(--border-muted)] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
                   >
                     DEL
                   </button>
@@ -487,20 +487,20 @@ function ProjectListPanel({
         {projects.length > 0 && (
           <button
             onClick={handleExportAll}
-            className="text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+            className="text-[11px] font-mono border border-[var(--border-muted)] rounded px-2 py-0.5 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors"
           >
             export all ↓
           </button>
         )}
         <button
           onClick={() => { setImportMode("restore"); fileInputRef.current?.click(); }}
-          className="text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+          className="text-[11px] font-mono border border-[var(--border-muted)] rounded px-2 py-0.5 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors"
         >
           restore ↑
         </button>
         <button
           onClick={() => { setImportMode("asNew"); fileInputRef.current?.click(); }}
-          className="text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+          className="text-[11px] font-mono border border-[var(--border-muted)] rounded px-2 py-0.5 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors"
         >
           as new ↑
         </button>
@@ -513,7 +513,7 @@ function ProjectListPanel({
         />
         <button
           onClick={onClose}
-          className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[#c8cdd4] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
+          className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[var(--border-muted)] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
         >
           ✕ CLOSE
         </button>
@@ -601,7 +601,7 @@ function ProjectListPanel({
                         </button>
                         <button
                           onClick={cancelRename}
-                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[var(--border-muted)] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
                         >
                           ✕
                         </button>
@@ -616,7 +616,7 @@ function ProjectListPanel({
                         </button>
                         <button
                           onClick={cancelConfirmDelete}
-                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[var(--border-muted)] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
                         >
                           CANCEL
                         </button>
@@ -634,19 +634,19 @@ function ProjectListPanel({
                         </button>
                         <button
                           onClick={() => startEditing(p.id, p.name)}
-                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[var(--border-muted)] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
                         >
                           REN
                         </button>
                         <button
                           onClick={() => startConfirmDelete(p.id)}
-                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[var(--border-muted)] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
                         >
                           DEL
                         </button>
                         <button
                           onClick={() => handleExportProject(p)}
-                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[var(--border-muted)] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
                         >
                           EXP
                         </button>
@@ -1473,7 +1473,7 @@ export default function Home() {
               className={`px-2 py-0.5 text-[12px] font-mono rounded border transition-colors ${
                 sectionTarget === val
                   ? "border-violet-400 text-violet-700 bg-violet-50"
-                  : "border-[#c4cdd6] text-zinc-600 hover:border-zinc-500 hover:text-zinc-800"
+                  : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-500 hover:text-zinc-800"
               }`}
             >
               {lbl}
@@ -1490,7 +1490,7 @@ export default function Home() {
               className={`px-2 py-0.5 text-[12px] font-mono rounded border transition-colors ${
                 intensity === lv
                   ? "border-blue-400 text-blue-700 bg-blue-50"
-                  : "border-[#c4cdd6] text-zinc-600 hover:border-zinc-500 hover:text-zinc-800"
+                  : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-500 hover:text-zinc-800"
               }`}
             >
               {lbl}
@@ -1519,10 +1519,10 @@ export default function Home() {
                     isLoading
                       ? "border-blue-400 text-blue-600 bg-blue-50 animate-pulse"
                       : isDisabled
-                      ? "border-[#c4cdd6] text-zinc-400"
+                      ? "border-[var(--border-muted)] text-zinc-400"
                       : mode === "ojaly"
                       ? "border-violet-300 text-violet-700 hover:border-violet-500 hover:bg-violet-50 active:scale-95"
-                      : "border-[#c4cdd6] text-zinc-700 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 active:scale-95"
+                      : "border-[var(--border-muted)] text-zinc-700 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 active:scale-95"
                   }`}
                 >
                   {isLoading ? "…" : display}
@@ -1539,7 +1539,7 @@ export default function Home() {
           <button
             onClick={handleUndo}
             title={`Undo: ${history[0]?.label}`}
-            className="shrink-0 text-[12px] font-mono px-2.5 py-0.5 rounded border border-[#c4cdd6] text-zinc-700 hover:border-blue-400 hover:text-blue-700 transition-colors active:scale-95"
+            className="shrink-0 text-[12px] font-mono px-2.5 py-0.5 rounded border border-[var(--border-muted)] text-zinc-700 hover:border-blue-400 hover:text-blue-700 transition-colors active:scale-95"
           >
             ↩ UNDO{history.length > 1 ? ` (${history.length})` : ""}
           </button>
@@ -1550,7 +1550,7 @@ export default function Home() {
           className={`shrink-0 text-[12px] font-mono px-2.5 py-0.5 rounded border transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
             isGenerating
               ? "border-[var(--accent-warning-border)] text-[var(--accent-warning)] bg-[var(--accent-warning-bg)] animate-pulse"
-              : "border-[#c4cdd6] text-zinc-700 hover:border-[var(--accent-warning-border)] hover:text-[var(--accent-warning-strong)]"
+              : "border-[var(--border-muted)] text-zinc-700 hover:border-[var(--accent-warning-border)] hover:text-[var(--accent-warning-strong)]"
           }`}
         >
           {isGenerating ? "…" : "↺ REGEN LYRICS"}
@@ -1559,7 +1559,7 @@ export default function Home() {
           <span className={`shrink-0 text-[12px] font-mono font-bold px-2.5 py-0.5 rounded border ${
             rewriteSource === "claude"
               ? "border-blue-300 text-blue-700 bg-blue-50"
-              : "border-[#c4cdd6] text-zinc-700 bg-zinc-100"
+              : "border-[var(--border-muted)] text-zinc-700 bg-zinc-100"
           }`}>
             {rewriteSource === "claude" ? "Claude AI" : "ルールベース"}
           </span>
@@ -2090,7 +2090,7 @@ export default function Home() {
 
       {/* ── Final output footer ─────────────────────────────────────────────── */}
       <footer
-        className="relative z-20 shrink-0 border-t border-[#d0d7de]"
+        className="relative z-20 shrink-0 border-t border-[var(--border-muted)]"
         style={{ background: "var(--bg-titlebar)" }}
       >
         {/* Save memo row */}
@@ -2109,7 +2109,7 @@ export default function Home() {
             className={`text-[13px] font-mono px-3 py-1 rounded border transition-all disabled:opacity-20 disabled:cursor-default ${
               saveFlash
                 ? "border-emerald-400 text-emerald-700 bg-emerald-50"
-                : "border-[#c8cdd4] text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+                : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
             }`}
           >
             {saveFlash ? "✓ SAVED" : "SAVE"}
@@ -2119,7 +2119,7 @@ export default function Home() {
             className={`text-[13px] font-mono px-3 py-1 rounded border transition-all ${
               showMemory
                 ? "border-violet-400 text-violet-700 bg-violet-50"
-                : "border-[#c8cdd4] text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+                : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
             }`}
           >
             MEM
@@ -2127,7 +2127,7 @@ export default function Home() {
         </div>
 
         {/* Output copy row */}
-        <div className="h-9 flex items-center px-4 gap-2 border-t border-[#d0d7de]">
+        <div className="h-9 flex items-center px-4 gap-2 border-t border-[var(--border-muted)]">
           <span className="text-[13px] font-mono text-zinc-500 tracking-[0.2em] shrink-0">OUTPUT</span>
           <div className="w-px h-3 bg-[#d0d7de] mx-1 shrink-0" />
           <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
