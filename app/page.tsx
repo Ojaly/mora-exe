@@ -15,7 +15,7 @@ import {
   StructureMode, StructurePreset, BuilderSection,
   SongProject, SongProjectMeta, BuilderPresetStep,
 } from "@/types";
-import { saveProject, loadProject, listProjects, generateProjectId } from "@/lib/songProject";
+import { saveProject, loadProject, deleteProject, listProjects, generateProjectId } from "@/lib/songProject";
 import { getPresetStructure } from "@/lib/structureVariation";
 import {
   buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt,
@@ -314,11 +314,27 @@ function MemoryPanel({
 function ProjectListPanel({
   onClose,
   onLoad,
+  onDelete,
+  onRename,
+  refreshKey,
 }: {
   onClose: () => void;
   onLoad: (id: string) => void;
+  onDelete: (id: string) => void;
+  onRename: (id: string) => void;
+  refreshKey: number;
 }) {
-  const [projects] = useState<SongProjectMeta[]>(() => listProjects());
+  const [projects, setProjects] = useState<SongProjectMeta[]>(() => listProjects());
+
+  useEffect(() => {
+    setProjects(listProjects());
+  }, [refreshKey]);
+
+  const handleDelete = (id: string) => {
+    if (!window.confirm("Delete this project? This cannot be undone.")) return;
+    onDelete(id);
+    // list refresh is handled by refreshKey increment in onDelete
+  };
 
   return (
     <div
@@ -360,12 +376,26 @@ function ProjectListPanel({
                     })}
                   </p>
                 </div>
-                <button
-                  onClick={() => onLoad(p.id)}
-                  className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors shrink-0"
-                >
-                  LOAD
-                </button>
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    onClick={() => onLoad(p.id)}
+                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors"
+                  >
+                    LOAD
+                  </button>
+                  <button
+                    onClick={() => onRename(p.id)}
+                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                  >
+                    REN
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
+                  >
+                    DEL
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -445,6 +475,7 @@ export default function Home() {
   const [projectSaveFlash, setProjectSaveFlash] = useState(false);
   const [showProjectList, setShowProjectList] = useState(false);
   const [builderReloadKey, setBuilderReloadKey] = useState(0);
+  const [projectListRefreshKey, setProjectListRefreshKey] = useState(0);
 
   // Memory panel
   const [showMemory, setShowMemory] = useState(false);
@@ -983,6 +1014,36 @@ export default function Home() {
     setCurrentProjectId(id);
     setProjectSaveFlash(true);
     setTimeout(() => setProjectSaveFlash(false), 1800);
+    setProjectListRefreshKey((k) => k + 1);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    deleteProject(id);
+    if (id === currentProjectId) {
+      setCurrentProjectId(null);
+      setProjectName("");
+    }
+    setProjectListRefreshKey((k) => k + 1);
+  };
+
+  const handleRenameProject = (id: string) => {
+    const meta = listProjects().find((p) => p.id === id);
+    const newName = window.prompt("New project name:", meta?.name ?? "");
+    if (newName === null || newName.trim() === "") return;
+    try {
+      const project = loadProject(id);
+      if (!project) return;
+      saveProject({ ...project, name: newName.trim(), updatedAt: new Date().toISOString() });
+      if (id === currentProjectId) setProjectName(newName.trim());
+      setProjectListRefreshKey((k) => k + 1);
+    } catch { /* ignore */ }
+  };
+
+  const handleNewProject = () => {
+    if (!window.confirm("Start a new project? Current unsaved changes will be cleared.")) return;
+    setCurrentProjectId(null);
+    setProjectName("");
+    handleClearSession();
   };
 
   const handleLoadProject = (id: string) => {
@@ -1292,6 +1353,7 @@ export default function Home() {
             onSaveProject={handleSaveProject}
             projectSaveFlash={projectSaveFlash}
             onOpenProjectList={() => setShowProjectList(true)}
+            onNewProject={handleNewProject}
           />
         </aside>
 
@@ -1304,6 +1366,9 @@ export default function Home() {
             <ProjectListPanel
               onClose={() => setShowProjectList(false)}
               onLoad={handleLoadProject}
+              onDelete={handleDeleteProject}
+              onRename={handleRenameProject}
+              refreshKey={projectListRefreshKey}
             />
           )}
           {/* Mini tab pills */}
@@ -1520,6 +1585,9 @@ export default function Home() {
           <ProjectListPanel
             onClose={() => setShowProjectList(false)}
             onLoad={handleLoadProject}
+            onDelete={handleDeleteProject}
+            onRename={handleRenameProject}
+            refreshKey={projectListRefreshKey}
           />
         )}
         {mobileTab === "concept" && (
@@ -1564,6 +1632,7 @@ export default function Home() {
               onSaveProject={handleSaveProject}
               projectSaveFlash={projectSaveFlash}
               onOpenProjectList={() => setShowProjectList(true)}
+              onNewProject={handleNewProject}
             />
           </div>
         )}

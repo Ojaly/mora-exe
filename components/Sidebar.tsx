@@ -60,6 +60,7 @@ interface Props {
   onSaveProject?: () => void;
   projectSaveFlash?: boolean;
   onOpenProjectList?: () => void;
+  onNewProject?: () => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -380,6 +381,7 @@ export default function Sidebar({
   onSaveProject,
   projectSaveFlash = false,
   onOpenProjectList,
+  onNewProject,
 }: Props) {
   const [alchemyOpen,        setAlchemyOpen]        = useState(false);
   const [genreLockOpen,      setGenreLockOpen]      = useState(false);
@@ -512,6 +514,12 @@ export default function Sidebar({
                 className="flex-1 h-8 text-[12px] font-mono rounded border border-zinc-300 text-zinc-600 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
               >
                 LOAD
+              </button>
+              <button
+                onClick={onNewProject}
+                className="flex-1 h-8 text-[12px] font-mono rounded border border-zinc-200 text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-all"
+              >
+                NEW
               </button>
             </div>
           </div>
