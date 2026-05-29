@@ -513,8 +513,16 @@ export default function Sidebar({
                     : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
                 }`}
               >
-                {projectSaveFlash ? "✓ Saved" : isProjectDirty ? "SAVE ●" : "SAVE"}
+                {projectSaveFlash ? "✓ Saved" : isProjectDirty ? "SAVE CURRENT ●" : "SAVE CURRENT"}
               </button>
+              <button
+                onClick={onSaveAsProject}
+                className="flex-1 h-8 text-[12px] font-mono font-bold rounded border border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
+              >
+                SAVE AS NEW
+              </button>
+            </div>
+            <div className="flex gap-1.5">
               <button
                 onClick={onOpenProjectList}
                 className="flex-1 h-8 text-[12px] font-mono rounded border border-zinc-300 text-zinc-600 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
@@ -528,12 +536,9 @@ export default function Sidebar({
                 NEW
               </button>
             </div>
-            <button
-              onClick={onSaveAsProject}
-              className="w-full text-right text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
-            >
-              save as new project →
-            </button>
+            <p className="text-[11px] font-mono text-zinc-400">
+              SAVE CURRENT overwrites · SAVE AS NEW creates a copy
+            </p>
           </div>
         </div>
 

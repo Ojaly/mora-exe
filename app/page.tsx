@@ -1265,7 +1265,7 @@ export default function Home() {
         `プロジェクト名が変更されているため保存できません。\n\n` +
         `保存済み名: "${savedProjectName}"\n` +
         `現在の名前: "${nameToSave}"\n\n` +
-        `・別プロジェクトとして保存するには「save as new project →」を使ってください。\n` +
+        `・別プロジェクトとして保存するには「SAVE AS NEW」を使ってください。\n` +
         `・既存プロジェクトの名前を変えるには、プロジェクト一覧の「REN」を使ってください。`
       );
       return;
@@ -1348,8 +1348,6 @@ export default function Home() {
     setProjectName(newName.trim());
     setSavedSnapshot(currentSnapshot);
     setSavedProjectName(newName.trim());
-    setProjectSaveFlash(true);
-    setTimeout(() => setProjectSaveFlash(false), 1800);
     setProjectListRefreshKey((k) => k + 1);
   };
 
@@ -1996,6 +1994,7 @@ export default function Home() {
               onSaveProject={handleSaveProject}
               projectSaveFlash={projectSaveFlash}
               isProjectDirty={isDirty}
+              onSaveAsProject={handleSaveAsProject}
               onOpenProjectList={() => setShowProjectList(true)}
               onNewProject={handleNewProject}
             />
