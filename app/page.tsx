@@ -309,6 +309,31 @@ function MemoryPanel({
   );
 }
 
+// ─── Project Export helpers ──────────────────────────────────────────────────
+
+/** Replace characters that are unsafe in filenames on Windows and Unix. */
+function toSafeFilename(name: string): string {
+  return (
+    name
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+      .replace(/\s+/g, "_")
+      .replace(/_{2,}/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .trim() || "untitled"
+  );
+}
+
+/** Trigger a JSON file download in the browser. */
+function downloadJson(filename: string, data: unknown): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Project List Panel ───────────────────────────────────────────────────────
 
 function ProjectListPanel({
@@ -358,6 +383,33 @@ function ProjectListPanel({
 
   const cancelConfirmDelete = () => setConfirmDeleteId(null);
 
+  const handleExportProject = (meta: SongProjectMeta) => {
+    const project = loadProject(meta.id);
+    if (!project) {
+      alert(`Export failed: could not load project "${meta.name}".`);
+      return;
+    }
+    downloadJson(`${toSafeFilename(project.name)}.mora.json`, project);
+  };
+
+  const handleExportAll = () => {
+    const loaded = projects
+      .map((m) => loadProject(m.id))
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+    if (loaded.length === 0) {
+      alert("Export failed: no projects could be loaded.");
+      return;
+    }
+    const failed = projects.length - loaded.length;
+    const date   = new Date().toISOString().slice(0, 10);
+    downloadJson(`mora-projects-${date}.json`, {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      projects: loaded,
+    });
+    if (failed > 0) alert(`${failed} project(s) could not be loaded and were skipped.`);
+  };
+
   const commitDelete = (id: string) => {
     setConfirmDeleteId(null);
     onDelete(id);
@@ -374,6 +426,14 @@ function ProjectListPanel({
       >
         <span className="text-[13px] font-mono text-zinc-800 font-semibold tracking-widest">PROJECTS</span>
         <span className="text-[12px] font-mono text-zinc-500">{projects.length} saved</span>
+        {projects.length > 0 && (
+          <button
+            onClick={handleExportAll}
+            className="text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            export all ↓
+          </button>
+        )}
         <button
           onClick={onClose}
           className="ml-auto text-xs font-mono text-zinc-600 hover:text-zinc-900 border border-[#c8cdd4] hover:border-zinc-400 px-2 py-0.5 rounded transition-colors"
@@ -507,6 +567,12 @@ function ProjectListPanel({
                         >
                           DEL
                         </button>
+                        <button
+                          onClick={() => handleExportProject(p)}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                        >
+                          EXP
+                        </button>
                       </>
                     )}
                   </div>
@@ -591,7 +657,8 @@ export default function Home() {
   const [showProjectList, setShowProjectList] = useState(false);
   const [builderReloadKey, setBuilderReloadKey] = useState(0);
   const [projectListRefreshKey, setProjectListRefreshKey] = useState(0);
-  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [savedSnapshot,     setSavedSnapshot]     = useState<string | null>(null);
+  const [savedProjectName,  setSavedProjectName]  = useState<string | null>(null);
 
   // Memory panel
   const [showMemory, setShowMemory] = useState(false);
@@ -1107,6 +1174,25 @@ export default function Home() {
   const handleSaveProject = () => {
     const now = new Date().toISOString();
     const id = currentProjectId ?? generateProjectId();
+    const nameToSave = projectName.trim() || "Untitled Project";
+
+    // Block SAVE when the project name has drifted from the saved name.
+    // SAVE = overwrite the current project ID as-is (name changes not allowed).
+    // Use SAVE AS to create a new project, or REN in the project list to rename.
+    if (
+      currentProjectId !== null &&
+      savedProjectName !== null &&
+      nameToSave !== savedProjectName
+    ) {
+      alert(
+        `プロジェクト名が変更されているため保存できません。\n\n` +
+        `保存済み名: "${savedProjectName}"\n` +
+        `現在の名前: "${nameToSave}"\n\n` +
+        `・別プロジェクトとして保存するには「save as new project →」を使ってください。\n` +
+        `・既存プロジェクトの名前を変えるには、プロジェクト一覧の「REN」を使ってください。`
+      );
+      return;
+    }
 
     // Preserve original createdAt when overwriting an existing project
     let createdAt = now;
@@ -1119,7 +1205,7 @@ export default function Home() {
 
     const project: SongProject = {
       id,
-      name: projectName.trim() || "Untitled Project",
+      name: nameToSave,
       createdAt,
       updatedAt: now,
       input,
@@ -1142,6 +1228,7 @@ export default function Home() {
     saveProject(project);
     setCurrentProjectId(id);
     setSavedSnapshot(currentSnapshot);
+    setSavedProjectName(nameToSave);
     setProjectSaveFlash(true);
     setTimeout(() => setProjectSaveFlash(false), 1800);
     setProjectListRefreshKey((k) => k + 1);
@@ -1183,6 +1270,7 @@ export default function Home() {
     setCurrentProjectId(id);
     setProjectName(newName.trim());
     setSavedSnapshot(currentSnapshot);
+    setSavedProjectName(newName.trim());
     setProjectSaveFlash(true);
     setTimeout(() => setProjectSaveFlash(false), 1800);
     setProjectListRefreshKey((k) => k + 1);
@@ -1203,7 +1291,10 @@ export default function Home() {
       const project = loadProject(id);
       if (!project) return;
       saveProject({ ...project, name: newName, updatedAt: new Date().toISOString() });
-      if (id === currentProjectId) setProjectName(newName);
+      if (id === currentProjectId) {
+        setProjectName(newName);
+        setSavedProjectName(newName); // keep name baseline in sync after explicit rename
+      }
       setProjectListRefreshKey((k) => k + 1);
     } catch { /* ignore */ }
   };
@@ -1213,6 +1304,7 @@ export default function Home() {
     setCurrentProjectId(null);
     setProjectName("");
     setSavedSnapshot(null);
+    setSavedProjectName(null);
     handleClearSession();
   };
 
@@ -1244,6 +1336,7 @@ export default function Home() {
       // Update project tracking
       setProjectName(project.name);
       setCurrentProjectId(project.id);
+      setSavedProjectName(project.name);
       setSavedSnapshot(JSON.stringify({
         input: project.input,
         preset: project.worldPreset,
