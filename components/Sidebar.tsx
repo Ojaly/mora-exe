@@ -256,7 +256,7 @@ function CollapseSection({
               {open ? "▾" : "▸"} {label}
             </span>
             {!open && sub && (
-              <p className="text-[11px] font-mono text-zinc-400 mt-0.5 font-normal normal-case tracking-normal leading-tight">{sub}</p>
+              <p className="text-[11px] font-mono text-zinc-600 mt-0.5 font-normal normal-case tracking-normal leading-tight">{sub}</p>
             )}
           </div>
         </div>
@@ -536,7 +536,7 @@ export default function Sidebar({
                 NEW
               </button>
             </div>
-            <p className="text-[11px] font-mono text-zinc-400">
+            <p className="text-[11px] font-mono text-zinc-600">
               SAVE CURRENT overwrites · SAVE AS NEW creates a copy
             </p>
           </div>
@@ -554,7 +554,7 @@ export default function Sidebar({
                 {alchemyOpen ? "▾" : "▸"} Source Alchemy
               </span>
               {!alchemyOpen && (
-                <p className="text-[11px] font-mono text-zinc-400 mt-0.5 font-normal normal-case tracking-normal leading-tight pl-1">
+                <p className="text-[11px] font-mono text-zinc-500 mt-0.5 font-normal normal-case tracking-normal leading-tight pl-1">
                   現実素材を世界観に変換
                 </p>
               )}
@@ -571,7 +571,7 @@ export default function Sidebar({
         <div className="sidebar-card">
           <div className="px-3 py-2 border-b border-[#E2E8F0]">
             <p className="text-[11px] font-mono font-bold text-zinc-700 tracking-[0.12em] uppercase">1. WORLD SEED</p>
-            <p className="text-[11px] font-mono text-zinc-400 mt-0.5">作りたい世界観の種を書く</p>
+            <p className="text-[11px] font-mono text-zinc-500 mt-0.5">作りたい世界観の種を書く</p>
           </div>
           <div className="p-2.5">
             <WorldForge
@@ -638,7 +638,7 @@ export default function Sidebar({
                 </button>
               </div>
             ) : (
-              <p className="text-[10px] font-mono text-zinc-400 leading-snug pt-0.5">
+              <p className="text-[10px] font-mono text-zinc-600 leading-snug pt-0.5">
                 未選択 — AIがSeedからジャンルを推測
               </p>
             )}
@@ -649,7 +649,7 @@ export default function Sidebar({
                 <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
                   SUB STYLE
                 </span>
-                <span className="text-[10px] font-mono text-zinc-400 leading-snug">
+                <span className="text-[10px] font-mono text-zinc-500 leading-snug">
                   質感・サブスタイルを複数選択（Style Promptの先頭付近に挿入）
                 </span>
               </div>
@@ -697,7 +697,7 @@ export default function Sidebar({
               <span className="text-[11px] font-mono text-zinc-500 tracking-[0.12em] uppercase font-bold block">
                 Direction Adjust
               </span>
-              <span className="text-[10px] font-mono text-zinc-400 leading-snug">
+              <span className="text-[10px] font-mono text-zinc-500 leading-snug">
                 音像タグではなく、曲の方向性・強度を微調整する
               </span>
             </div>
@@ -825,7 +825,7 @@ export default function Sidebar({
               })}
             </div>
             {preset && (
-              <p className="text-[11px] font-mono text-zinc-500 leading-snug">
+              <p className="text-[11px] font-mono text-zinc-600 leading-snug">
                 ▸ {WORLD_PRESETS[preset as WorldPresetKey].description}
               </p>
             )}
@@ -904,7 +904,7 @@ export default function Sidebar({
 
             {/* Empty state */}
             {selectedLibraryItems.length === 0 && recommendations.length === 0 && (
-              <p className="text-[10px] font-mono text-zinc-400 leading-snug">
+              <p className="text-[10px] font-mono text-zinc-600 leading-snug">
                 タグなし — Forgeでおすすめを取得
               </p>
             )}
@@ -926,7 +926,7 @@ export default function Sidebar({
           open={avoidOpen}
           onToggle={() => setAvoidOpen((v) => !v)}
         >
-          <p className="text-[12px] font-mono text-zinc-500 pb-2 leading-snug">
+          <p className="text-[12px] font-mono text-zinc-700 pb-2 leading-snug">
             避けたい表現・音像
           </p>
           <div className="space-y-1.5">
@@ -1115,7 +1115,7 @@ export default function Sidebar({
         >
           {isGenerating ? "… GENERATING" : expansion ? "↺ RE-GENERATE" : "▶  GENERATE"}
         </button>
-        <p className="text-[10px] font-mono text-zinc-400 text-center mt-2 leading-snug">
+        <p className="text-[10px] font-mono text-zinc-500 text-center mt-2 leading-snug">
           {isGenerating
             ? "生成中…しばらくお待ちください"
             : expansion

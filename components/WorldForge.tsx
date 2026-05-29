@@ -133,7 +133,7 @@ export default function WorldForge({
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleForge();
           }}
         />
-        <p className="text-[11px] font-mono text-zinc-400">⌘Enter で Forge</p>
+        <p className="text-[11px] font-mono text-zinc-500">⌘Enter で Forge</p>
       </div>
 
       {/* Forge button */}
@@ -300,7 +300,7 @@ export default function WorldForge({
               >
                 {applyFlash ? "✓ Generating…" : "▶ GENERATE DRAFT"}
               </button>
-              <p className="text-[10px] font-mono text-zinc-400 text-center mt-1 leading-snug">
+              <p className="text-[10px] font-mono text-zinc-500 text-center mt-1 leading-snug">
                 このWorldからStyle + Lyricsを一括生成
               </p>
             </div>

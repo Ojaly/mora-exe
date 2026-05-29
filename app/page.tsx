@@ -249,7 +249,7 @@ function MemoryPanel({
 
       {memories.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <span className="text-[12px] font-mono text-zinc-500">No saved memories. Use SAVE in the footer.</span>
+          <span className="text-[12px] font-mono text-zinc-700">No saved memories. Use SAVE in the footer.</span>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -521,7 +521,7 @@ function ProjectListPanel({
 
       {projects.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <span className="text-[12px] font-mono text-zinc-500">No saved projects.</span>
+          <span className="text-[12px] font-mono text-zinc-700">No saved projects.</span>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">

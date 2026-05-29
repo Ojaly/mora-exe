@@ -231,7 +231,7 @@ export default function PromptBuilder12Panel({ onApply, onReplaceNegative, onApp
           title={prompt || undefined}
         >
           {prompt || (
-            <span className="text-zinc-400">— 未入力。Step 1 のCustomにジャンル名を入力してください。</span>
+            <span className="text-zinc-600">— 未入力。Step 1 のCustomにジャンル名を入力してください。</span>
           )}
         </p>
 
