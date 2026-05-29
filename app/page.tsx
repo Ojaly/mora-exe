@@ -322,11 +322,13 @@ function ProjectListPanel({
   onClose: () => void;
   onLoad: (id: string) => void;
   onDelete: (id: string) => void;
-  onRename: (id: string) => void;
+  onRename: (id: string, newName: string) => void;
   refreshKey: number;
   currentProjectId: string | null;
 }) {
   const [projects, setProjects] = useState<SongProjectMeta[]>(() => listProjects());
+  const [editingId,   setEditingId]   = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -336,8 +338,20 @@ function ProjectListPanel({
   const handleDelete = (id: string) => {
     if (!window.confirm("Delete this project? This cannot be undone.")) return;
     onDelete(id);
-    // list refresh is handled by refreshKey increment in onDelete
   };
+
+  const startEditing = (id: string, name: string) => {
+    setEditingId(id);
+    setEditingName(name);
+  };
+
+  const commitRename = (id: string) => {
+    const trimmed = editingName.trim();
+    if (trimmed) onRename(id, trimmed);
+    setEditingId(null);
+  };
+
+  const cancelRename = () => setEditingId(null);
 
   return (
     <div
@@ -364,54 +378,92 @@ function ProjectListPanel({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {projects.map((p) => (
-            <div
-              key={p.id}
-              className="border border-[#E2E8F0] rounded-lg p-3 hover:border-slate-300 transition-colors"
-              style={{ background: "#ffffff" }}
-            >
-              <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-[13px] font-mono font-bold text-zinc-800 truncate">{p.name || "(untitled)"}</p>
-                    {p.id === currentProjectId && (
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-px rounded border border-emerald-300 text-emerald-700 bg-emerald-50 leading-tight shrink-0">
-                        · ACTIVE
-                      </span>
+          {projects.map((p) => {
+            const isEditing = editingId === p.id;
+            return (
+              <div
+                key={p.id}
+                className="border border-[#E2E8F0] rounded-lg p-3 hover:border-slate-300 transition-colors"
+                style={{ background: "#ffffff" }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter")  commitRename(p.id);
+                          if (e.key === "Escape") cancelRename();
+                        }}
+                        className="w-full text-[13px] font-mono font-bold text-zinc-800 border border-blue-300 rounded px-1.5 py-0.5 outline-none focus:border-blue-500 bg-white"
+                      />
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-[13px] font-mono font-bold text-zinc-800 truncate">{p.name || "(untitled)"}</p>
+                          {p.id === currentProjectId && (
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-px rounded border border-emerald-300 text-emerald-700 bg-emerald-50 leading-tight shrink-0">
+                              · ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[12px] font-mono text-zinc-500 mt-0.5">
+                          {new Date(p.updatedAt).toLocaleDateString("ja-JP", {
+                            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                          })}
+                        </p>
+                      </>
                     )}
                   </div>
-                  <p className="text-[12px] font-mono text-zinc-500 mt-0.5">
-                    {new Date(p.updatedAt).toLocaleDateString("ja-JP", {
-                      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button
-                    onClick={() => {
-                      if (!window.confirm("Load this project? Unsaved changes will be lost.")) return;
-                      onLoad(p.id);
-                    }}
-                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors"
-                  >
-                    LOAD
-                  </button>
-                  <button
-                    onClick={() => onRename(p.id)}
-                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
-                  >
-                    REN
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
-                  >
-                    DEL
-                  </button>
+                  <div className="flex gap-1 shrink-0">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => commitRename(p.id)}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors"
+                        >
+                          OK
+                        </button>
+                        <button
+                          onClick={cancelRename}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (!window.confirm("Load this project? Unsaved changes will be lost.")) return;
+                            onLoad(p.id);
+                          }}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors"
+                        >
+                          LOAD
+                        </button>
+                        <button
+                          onClick={() => startEditing(p.id, p.name)}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-zinc-500 hover:text-zinc-700 transition-colors"
+                        >
+                          REN
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[#c4cdd6] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
+                        >
+                          DEL
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -1095,15 +1147,12 @@ export default function Home() {
     setProjectListRefreshKey((k) => k + 1);
   };
 
-  const handleRenameProject = (id: string) => {
-    const meta = listProjects().find((p) => p.id === id);
-    const newName = window.prompt("New project name:", meta?.name ?? "");
-    if (newName === null || newName.trim() === "") return;
+  const handleRenameProject = (id: string, newName: string) => {
     try {
       const project = loadProject(id);
       if (!project) return;
-      saveProject({ ...project, name: newName.trim(), updatedAt: new Date().toISOString() });
-      if (id === currentProjectId) setProjectName(newName.trim());
+      saveProject({ ...project, name: newName, updatedAt: new Date().toISOString() });
+      if (id === currentProjectId) setProjectName(newName);
       setProjectListRefreshKey((k) => k + 1);
     } catch { /* ignore */ }
   };
