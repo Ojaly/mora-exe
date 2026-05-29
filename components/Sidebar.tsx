@@ -52,6 +52,8 @@ interface Props {
   stylePromptOverride?: string;
   /** Clears the 12-Step override and restores normal Style Prompt generation. */
   onClearStylePromptOverride?: () => void;
+  /** Clears the current generated session (style prompt, lyrics, negatives, analysis). */
+  onClearSession?: () => void;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -366,6 +368,7 @@ export default function Sidebar({
   mounted = false,
   stylePromptOverride = "",
   onClearStylePromptOverride,
+  onClearSession,
 }: Props) {
   const [alchemyOpen,        setAlchemyOpen]        = useState(false);
   const [genreLockOpen,      setGenreLockOpen]      = useState(false);
@@ -1048,6 +1051,16 @@ export default function Sidebar({
             ? "同じ設定でStyle + Lyricsを再生成"
             : "現在の設定でStyle + Lyricsを生成"}
         </p>
+        <button
+          onClick={() => {
+            if (window.confirm("Clear current generated session?")) {
+              onClearSession?.();
+            }
+          }}
+          className="w-full mt-2 py-1.5 text-[11px] font-mono font-semibold rounded-lg border border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-colors tracking-[0.08em]"
+        >
+          CLEAR SESSION
+        </button>
       </div>
     </div>
   );

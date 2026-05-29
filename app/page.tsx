@@ -817,6 +817,25 @@ export default function Home() {
     navigator.clipboard.writeText(p.join("\n\n"));
   };
 
+  const handleClearSession = () => {
+    setStylePromptOverride(""); // persist effect will removeItem("mora-style-override")
+    setStyle("");
+    setNeg("");
+    setRegen("");
+    setLyricsRaw("");
+    setIsSample(false);
+    setLines([]);
+    setPhrases([]);
+    setSyntax([]);
+    setRisks([]);
+    setStats(null);
+    setRewriteNotes("");
+    setRewriteSource(null);
+    setChangedLines([]);
+    setHistory([]);
+    setExpansion(null);
+  };
+
   // ─── Derived ─────────────────────────────────────────────────────────────
 
   const score   = songStats?.riskScore ?? null;
@@ -1076,6 +1095,7 @@ export default function Home() {
             mounted={mounted}
             stylePromptOverride={stylePromptOverride}
             onClearStylePromptOverride={() => setStylePromptOverride("")}
+            onClearSession={handleClearSession}
           />
         </aside>
 
