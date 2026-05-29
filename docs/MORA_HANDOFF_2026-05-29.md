@@ -5,7 +5,7 @@
 | 項目 | 状態 |
 |---|---|
 | Branch | `master` |
-| 最新コミット | `f4cec5a style: improve style prompt text contrast` |
+| 最新コミット | `bd7e6eb style: make project delete action visibly dangerous` |
 | origin/master | 同期済み |
 | Working tree | clean |
 
@@ -26,6 +26,7 @@
 | Readable Size Pass 第一段階 | `ced2009` | TIPS `text-[10px]`→`[11px]` × 10 / `text-[11px]`→`[12px]` × 5 / パネルタブ `text-[12px]`→`[13px]` × 7 / 本文・preview `text-[12px]`→`[13px]`（PromptBuilder12Panel / page.tsx / PromptEditor / LyricsEditor / WorldForge） |
 | Readable Size Pass 第二段階（安全範囲） | `93757a1` | World Lens chips / Selected Library item chips / Builder preset chips / SAMPLE・CLEAR ボタン `text-[11px]`→`[12px]` |
 | Style Prompt 本文コントラスト改善 | `f4cec5a` | `globals.css` `.pe-plain` color `#475569`→`#334155`（slate-700相当） |
+| ProjectList delete danger 表示 | `bd7e6eb` | DEL ボタン通常状態を薄赤系に / YES, DELETE をより明確な danger 表示に |
 
 **UI Polish で変更したファイル一覧:**
 
@@ -49,6 +50,33 @@
 - Builder Step option chips（`text-[11px]` のまま） — パネル高変化リスクあり
 - h-7 ボタン（Replace / Append Negative 等） — mobile レイアウトリスクあり
 - ProjectListPanel ヘッダーボタン — ヘッダー詰まりリスクあり
+
+---
+
+### バグ修正・API移行フェーズ（2026-05-29 後半）
+
+| 項目 | コミット | 概要 |
+|---|---|---|
+| rule-based fallback クラッシュ修正 | `91cd434` | `mood: ""` 時に `charCodeAt(0)` が `NaN` → `?? 0` では補正されず `buildThemeLines` でクラッシュ。`lib/lyricsBuilder.ts` を `\|\| 0` に変更、`lib/themeExtractor.ts` に `Number.isFinite` ガードを追加 |
+| Source Alchemy の Gemini API 化 | `6f482a8` | `app/api/ai/alchemy/route.ts` を Anthropic SDK から Gemini REST API（fetch）に切り替え。`GEMINI_API_KEY` を使用。`gemini-2.0-flash` / `response_mime_type: "application/json"` |
+
+#### Gemini 移行状態
+
+| エンドポイント | プロバイダー | fallback |
+|---|---|---|
+| `/api/ai/alchemy` | **Gemini**（`GEMINI_API_KEY`） | ❌ なし（変更なし） |
+| `/api/ai/generate` | Claude（`ANTHROPIC_API_KEY`） | ✅ rule-based |
+| `/api/ai/rewrite` | Claude（`ANTHROPIC_API_KEY`） | ✅ rule-based |
+| `/api/ai/forge` | Claude（`ANTHROPIC_API_KEY`） | ✅ rule-based（サーバー側） |
+
+#### `.env.local` に必要なキー
+
+```
+GEMINI_API_KEY=AIza...     # Google AI Studio で取得
+ANTHROPIC_API_KEY=sk-ant-... # generate / rewrite / forge 用（credit 切れの場合 fallback 動作）
+```
+
+> **⚠ `.env.local` は絶対にコミットしない**
 
 ---
 
@@ -555,16 +583,27 @@ npm.cmd run dev
 
 ---
 
+### 次スレッドで最初にやること
+
+1. `git pull`
+2. `docs/MORA_HANDOFF_2026-05-29.md` を読む
+3. 現在地を要約
+4. 勝手に実装せず、次フェーズ案を提示
+
+---
+
 ### その他の次回候補タスク
 
 優先度順（暫定）:
 
-1. **Sidebar chip 文字サイズ（A/B/C）** — mobile 確認しながら段階的に検討
-2. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
-3. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
-4. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
-5. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
-6. **次機能開発へ進む** — UI Polish をいったん区切り、新機能実装に移行する選択肢もあり
+1. **Source Alchemy の Gemini 手動テスト確認** — JSON parse 安定性 / 全フィールド返却確認
+2. **generate / rewrite / forge の Gemini 化検討** — `lib/llmClient.ts` で provider 抽象化してから段階移行
+3. **Sidebar chip 文字サイズ（A/B/C）** — mobile 確認しながら段階的に検討
+4. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
+5. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
+6. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
+7. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+8. **次機能開発へ進む** — UI Polish をいったん区切り、新機能実装に移行する選択肢もあり
 
 > 完了済みのため次回候補から除外:
 > - ~~Current Project 表示強化~~ → Phase 2-A で完了
@@ -579,6 +618,9 @@ npm.cmd run dev
 > - ~~Readable Size Pass 第一段階（TIPS / タブ / 本文 preview）~~ → `ced2009` で完了
 > - ~~Readable Size Pass 第二段階（安全範囲 chip / button）~~ → `93757a1` で完了
 > - ~~Style Prompt 本文コントラスト改善~~ → `f4cec5a` で完了
+> - ~~ProjectList delete danger 表示~~ → `bd7e6eb` で完了
+> - ~~rule-based fallback クラッシュ修正~~ → `91cd434` で完了
+> - ~~Source Alchemy Gemini API 化~~ → `6f482a8` で完了
 
 ---
 
@@ -629,6 +671,10 @@ npm.cmd run dev
 - **Claude Code は dev server / preview を操作しない**: `.claude/launch.json` は削除済み（`530bfcb`）。ブラウザ確認はユーザーが手動で行う。Claude 側は `git diff` / `npm.cmd run build` / `npm.cmd run lint` のみ実施する
 - **border 統一トークン `--border-muted`**: `globals.css` の `:root` に `#CBD5E1` で定義済み。インタラクティブ要素の非アクティブ border はすべてこのトークンを使う。構造的 divider（`border-t` / `border-b`）は `--border`（`#E2E8F0`）を維持する
 - **SongProjectMeta の summary は再 SAVE まで更新されない**: 既存 Project は一覧に summary が出ないが壊れない。SAVE / SAVE AS を実行すると `lyricsContentLines` / `hasStyle` / `hasNeg` / `lyricsPreview` が生成される
+- **`.env.local` は絶対にコミットしない**: `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` を含む。`.gitignore` 対象。Claude 側も key の中身は一切表示・ログ出力しない
+- **Gemini 移行は alchemy のみ完了**: generate / rewrite / forge はまだ Claude のまま。credit 切れの場合は rule-based fallback で動作
+- **`lib/aiProvider.ts` と `lib/providers/*` はスケルトン**: provider 抽象化の骨格のみ存在し、routes とは未接続。本格実装は `lib/llmClient.ts` を新規作成して段階移行予定
+- **rule-based fallback の `seed` 計算バグは修正済み**: `mood: ""` 時の `charCodeAt(0) = NaN` 問題。`|| 0` と `Number.isFinite` ガードで対処（`91cd434`）
 
 ---
 
