@@ -317,16 +317,19 @@ function ProjectListPanel({
   onDelete,
   onRename,
   refreshKey,
+  currentProjectId,
 }: {
   onClose: () => void;
   onLoad: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string) => void;
   refreshKey: number;
+  currentProjectId: string | null;
 }) {
   const [projects, setProjects] = useState<SongProjectMeta[]>(() => listProjects());
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProjects(listProjects());
   }, [refreshKey]);
 
@@ -369,7 +372,14 @@ function ProjectListPanel({
             >
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-mono font-bold text-zinc-800 truncate">{p.name || "(untitled)"}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-[13px] font-mono font-bold text-zinc-800 truncate">{p.name || "(untitled)"}</p>
+                    {p.id === currentProjectId && (
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-px rounded border border-emerald-300 text-emerald-700 bg-emerald-50 leading-tight shrink-0">
+                        · ACTIVE
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[12px] font-mono text-zinc-500 mt-0.5">
                     {new Date(p.updatedAt).toLocaleDateString("ja-JP", {
                       month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -378,7 +388,10 @@ function ProjectListPanel({
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button
-                    onClick={() => onLoad(p.id)}
+                    onClick={() => {
+                      if (!window.confirm("Load this project? Unsaved changes will be lost.")) return;
+                      onLoad(p.id);
+                    }}
                     className="text-[12px] font-mono px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-800 transition-colors"
                   >
                     LOAD
@@ -1369,6 +1382,7 @@ export default function Home() {
               onDelete={handleDeleteProject}
               onRename={handleRenameProject}
               refreshKey={projectListRefreshKey}
+              currentProjectId={currentProjectId}
             />
           )}
           {/* Mini tab pills */}
@@ -1588,6 +1602,7 @@ export default function Home() {
             onDelete={handleDeleteProject}
             onRename={handleRenameProject}
             refreshKey={projectListRefreshKey}
+            currentProjectId={currentProjectId}
           />
         )}
         {mobileTab === "concept" && (
