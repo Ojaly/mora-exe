@@ -292,6 +292,12 @@ export interface SongProjectMeta {
   name: string;
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
+  // Summary fields — optional for backwards compatibility with pre-existing saved projects.
+  // Populated at saveProject() time. Old entries will have undefined → UI falls back gracefully.
+  lyricsContentLines?: number;  // body line count (excludes blank lines and [Section] tags)
+  hasStyle?:           boolean; // stylePrompt or stylePromptOverride is non-empty
+  hasNeg?:             boolean; // negPrompt is non-empty
+  lyricsPreview?:      string;  // first meaningful lyrics line, max 28 chars
 }
 
 export interface SongProject extends SongProjectMeta {

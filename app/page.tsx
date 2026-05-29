@@ -430,6 +430,26 @@ function ProjectListPanel({
                                 month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
                               })}
                         </p>
+                        {!isConfirmingDelete && (
+                          <>
+                            <p className="text-[13px] font-mono text-zinc-600 mt-1 flex items-center gap-2">
+                              {p.lyricsContentLines != null && (
+                                <span className="font-semibold">本文 {p.lyricsContentLines}行</span>
+                              )}
+                              {p.hasStyle && (
+                                <span className="px-1.5 py-px rounded border border-zinc-300 text-zinc-600 text-[12px]">STYLE</span>
+                              )}
+                              {p.hasNeg && (
+                                <span className="px-1.5 py-px rounded border border-zinc-300 text-zinc-600 text-[12px]">NEG</span>
+                              )}
+                            </p>
+                            {p.lyricsPreview && (
+                              <p className="text-[13px] font-mono text-zinc-600 mt-0.5 truncate">
+                                ♪ {p.lyricsPreview}
+                              </p>
+                            )}
+                          </>
+                        )}
                       </>
                     )}
                   </div>

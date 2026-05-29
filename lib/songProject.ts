@@ -26,6 +26,25 @@ export function listProjects(): SongProjectMeta[] {
   return readList().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
+/** Compute lightweight summary fields from a SongProject for the meta index. */
+function buildProjectSummary(project: SongProject): Pick<SongProjectMeta, "lyricsContentLines" | "hasStyle" | "hasNeg" | "lyricsPreview"> {
+  const isSectionTag  = (line: string) => /^\[[^\]]+\]$/.test(line.trim());
+  const isContentLine = (line: string) => line.trim().length > 0 && !isSectionTag(line);
+
+  const lines        = project.lyrics ? project.lyrics.split("\n") : [];
+  const contentLines = lines.filter(isContentLine);
+
+  const firstLine = contentLines[0]?.trim() ?? "";
+  const preview   = firstLine.length > 28 ? firstLine.slice(0, 28) + "…" : firstLine;
+
+  return {
+    lyricsContentLines: contentLines.length > 0 ? contentLines.length : undefined,
+    hasStyle:           !!(project.stylePrompt.trim() || project.stylePromptOverride.trim()) || undefined,
+    hasNeg:             !!project.negPrompt.trim() || undefined,
+    lyricsPreview:      preview || undefined,
+  };
+}
+
 /** Save (create or overwrite) a project and update the index. */
 export function saveProject(project: SongProject): void {
   try {
@@ -38,6 +57,7 @@ export function saveProject(project: SongProject): void {
       name: project.name,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
+      ...buildProjectSummary(project),
     };
     if (idx >= 0) {
       list[idx] = meta;
