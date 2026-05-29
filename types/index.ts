@@ -285,6 +285,48 @@ export interface BuilderPreset {
   builtIn?: true;
 }
 
+// ─── Song Project ─────────────────────────────────────────────────────────────
+
+export interface SongProjectMeta {
+  id: string;
+  name: string;
+  createdAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
+}
+
+export interface SongProject extends SongProjectMeta {
+  // Input / concept
+  input: SongInput;
+  worldPreset: WorldPresetKey | "";
+
+  // Forge output
+  expansion: WorldExpansion | null;
+
+  // Content outputs
+  lyrics: string;
+  stylePrompt: string;
+  stylePromptOverride: string;
+  negPrompt: string;
+  regenPrompt: string;
+
+  // 12-Step Builder steps (selected/custom only — reuses BuilderPresetStep)
+  builderSteps: BuilderPresetStep[];
+
+  // Structure Blueprint
+  structureMode: StructureMode;
+  structurePreset: StructurePreset;
+  builderSections: BuilderSection[];
+
+  // Library
+  libraryIds: string[];
+
+  // Lyrics edit history (max 10 entries)
+  history: HistoryEntry[];
+
+  // Free-form notes
+  notes: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PromptMemory {
