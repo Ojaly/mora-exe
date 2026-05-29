@@ -443,6 +443,11 @@ export default function Home() {
       if (storedOverride && storedOverride.trim().length > 0) setStylePromptOverride(storedOverride);
     } catch { /* ignore */ }
 
+    try {
+      const storedNeg = localStorage.getItem("mora-negative-prompt");
+      if (storedNeg && storedNeg.trim().length > 0) setNeg(storedNeg);
+    } catch { /* ignore */ }
+
     setMounted(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -465,6 +470,16 @@ export default function Home() {
       }
     } catch { /* ignore */ }
   }, [stylePromptOverride, mounted]);
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      if (negPrompt.trim().length > 0) {
+        localStorage.setItem("mora-negative-prompt", negPrompt);
+      } else {
+        localStorage.removeItem("mora-negative-prompt");
+      }
+    } catch { /* ignore */ }
+  }, [negPrompt, mounted]);
 
   // Derived: whether the 12-Step Builder override is currently active
   const hasOverride = stylePromptOverride.trim().length > 0;
@@ -1185,7 +1200,7 @@ export default function Home() {
                 <textarea
                   value={negPrompt}
                   onChange={(e) => setNeg(e.target.value)}
-                  rows={3}
+                  rows={6}
                   className="w-full bg-white resize-none px-4 py-3 font-mono leading-relaxed focus:outline-none"
                   style={{ color: "#44505c", fontSize: "14px" }}
                   spellCheck={false}
@@ -1226,7 +1241,8 @@ export default function Home() {
                     setStylePromptOverride(p);
                     setCenterTab("prompt");
                   }}
-                  onApplyNegative={(neg) => {
+                  onReplaceNegative={(neg) => setNeg(neg)}
+                  onAppendNegative={(neg) => {
                     setNeg((prev) => {
                       const existing = prev.trim() === "" || prev.trim().toLowerCase() === "none" ? "" : prev.trim();
                       if (existing && existing.includes(neg)) return existing;
@@ -1424,7 +1440,8 @@ export default function Home() {
                   setStylePromptOverride(p);
                   setMobile("prompt");
                 }}
-                onApplyNegative={(neg) => {
+                onReplaceNegative={(neg) => setNeg(neg)}
+                onAppendNegative={(neg) => {
                   setNeg((prev) => {
                     const existing = prev.trim() === "" || prev.trim().toLowerCase() === "none" ? "" : prev.trim();
                     if (existing && existing.includes(neg)) return existing;

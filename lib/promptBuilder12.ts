@@ -582,11 +582,11 @@ export function loadPresetState(preset: BuilderPreset): PromptBuilder12State {
  * These capture what Suno tends to do wrong for each known micro-genre.
  */
 const BUILDER_GENRE_NEGATIVES: Record<string, string> = {
-  "corporate electro funk":    "generic EDM energy, over-cheerful advertising music, acoustic live band feel, gratuitous wah guitar",
-  "digital motown disco soul": "trap hi-hat spam, aggressive EDM drop, heavy guitar distortion, cold lo-fi crackle",
-  "danceable electro waltz":   "four-on-the-floor EDM kick, 4/4 time rigidity, generic club drop, losing the 3/4 waltz feel",
-  "dark electro swing":        "cheesy Halloween kitsch, over-produced clean modern sheen, Disney villain aesthetic, generic swing revival cliché",
-  "electro gospel irony":      "sincere devotional gospel, earnest praise-and-worship tone, over-sincere choir anthem, literal religious sentiment",
+  "corporate electro funk":    "generic EDM drop, corporate jingle feel, over-produced brightness, gratuitous wah guitar",
+  "digital motown disco soul": "trap hi-hat spam, aggressive EDM drop, heavy guitar distortion, sterile digital production",
+  "danceable electro waltz":   "four-on-the-floor kick pattern, 4/4 straight-time groove, generic EDM drop, 3/4 meter loss",
+  "dark electro swing":        "cheesy Halloween kitsch, Disney villain cliché, sterile modern production, generic swing revival",
+  "electro gospel irony":      "sincere praise-and-worship anthem, unironic devotional gospel, sermon piety, inspirational earnestness",
 };
 
 /**
@@ -609,31 +609,31 @@ export function buildNegativeFragmentsFromBuilderState(
 
   // Step 4: Vocal Texture — avoid the opposite direction
   const vocal = step("vocal-texture");
-  if (vocal?.selected === "a") frags.push("muddy mix, buried vocal presence");
-  if (vocal?.selected === "b") frags.push("hard-compressed vocal aggression, over-projected presence");
-  if (vocal?.selected === "c") frags.push("over-polished AutoTune sheen, airbrushed vocal production");
+  if (vocal?.selected === "a") frags.push("muddy mix, buried vocals");
+  if (vocal?.selected === "b") frags.push("harsh vocal compression, over-pushed presence");
+  if (vocal?.selected === "c") frags.push("AutoTune gloss, over-processed vocal sheen");
 
   // Step 5: Vocal Processing
   const vocalFx = step("vocal-processing");
-  if (vocalFx?.selected === "a") frags.push("excessive reverb wash, wet over-processed vocal");
-  if (vocalFx?.selected === "c") frags.push("dry clinical vocal recording, academic studio sound");
+  if (vocalFx?.selected === "a") frags.push("excessive reverb, wet vocal processing");
+  if (vocalFx?.selected === "c") frags.push("dry clinical vocal, zero spatial depth");
 
   // Step 6: Electronic Treatment
   const elec = step("electronic-treatment");
-  if (elec?.selected === "a") frags.push("digital harshness, over-quantized sterility, synthetic gloss");
-  if (elec?.selected === "c") frags.push("acoustic bleed, organic looseness, live room ambience");
+  if (elec?.selected === "a") frags.push("digital harshness, synthetic gloss");
+  if (elec?.selected === "c") frags.push("acoustic bleed, live room looseness");
 
   // Step 8: Drum Direction
   const drums = step("drum-direction");
-  if (drums?.selected === "a") frags.push("over-quantized rigid drum machine, robotic timing");
+  if (drums?.selected === "a") frags.push("rigid drum machine feel, mechanical timing");
   if (drums?.selected === "b") frags.push("sloppy live drumming, loose timing, room bleed");
-  if (drums?.selected === "c") frags.push("busy drum fills, rushing energy, uptight snare");
+  if (drums?.selected === "c") frags.push("busy drum fills, rushing energy, over-tight snare");
 
   // Step 11: World / Atmosphere
   const atmo = step("world-atmosphere");
-  if (atmo?.selected === "a") frags.push("dark brooding texture, oppressive claustrophobic sound");
+  if (atmo?.selected === "a") frags.push("dark brooding texture, claustrophobic sound");
   if (atmo?.selected === "b") frags.push("cheerful pop energy, saccharine warmth, feel-good brightness");
-  if (atmo?.selected === "c") frags.push("hard-edged clarity, aggressive transients, over-present attack");
+  if (atmo?.selected === "c") frags.push("harsh clarity, hard attack, over-present transients");
 
   // Step 12: Final Impression
   const finale = step("final-impression");
