@@ -610,7 +610,7 @@ function ProjectListPanel({
                       <>
                         <button
                           onClick={() => commitDelete(p.id)}
-                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-red-400 text-red-600 hover:border-red-600 hover:bg-red-50 transition-colors"
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-red-300 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100 transition-colors"
                         >
                           YES, DELETE
                         </button>
@@ -640,7 +640,7 @@ function ProjectListPanel({
                         </button>
                         <button
                           onClick={() => startConfirmDelete(p.id)}
-                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-[var(--border-muted)] text-zinc-500 hover:border-red-400 hover:text-red-600 transition-colors"
+                          className="text-[12px] font-mono px-2 py-0.5 rounded border border-red-200 text-red-500 hover:border-red-300 hover:bg-red-50 hover:text-red-700 transition-colors"
                         >
                           DEL
                         </button>
