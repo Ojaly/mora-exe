@@ -982,6 +982,26 @@ export default function Home() {
     setExpansion(null);
   };
 
+  // Read 12-Step Builder steps from localStorage (shared by SAVE and SAVE AS)
+  const readBuilderSteps = (): BuilderPresetStep[] => {
+    try {
+      const raw = localStorage.getItem("mora-builder-12");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { steps?: unknown[] };
+        if (Array.isArray(parsed?.steps)) {
+          return (parsed.steps as { id?: unknown; selected?: unknown; custom?: unknown }[])
+            .filter((s) => typeof s?.id === "string")
+            .map((s) => ({
+              id: s.id as string,
+              selected: typeof s.selected === "string" ? s.selected : null,
+              custom: typeof s.custom === "string" ? s.custom : "",
+            }));
+        }
+      }
+    } catch { /* fallback to [] */ }
+    return [];
+  };
+
   const handleSaveProject = () => {
     const now = new Date().toISOString();
     const id = currentProjectId ?? generateProjectId();
@@ -994,24 +1014,6 @@ export default function Home() {
         if (existing) createdAt = existing.createdAt;
       } catch { /* use now */ }
     }
-
-    // Read 12-Step Builder steps from its own localStorage key
-    let builderSteps: BuilderPresetStep[] = [];
-    try {
-      const raw = localStorage.getItem("mora-builder-12");
-      if (raw) {
-        const parsed = JSON.parse(raw) as { steps?: unknown[] };
-        if (Array.isArray(parsed?.steps)) {
-          builderSteps = (parsed.steps as { id?: unknown; selected?: unknown; custom?: unknown }[])
-            .filter((s) => typeof s?.id === "string")
-            .map((s) => ({
-              id: s.id as string,
-              selected: typeof s.selected === "string" ? s.selected : null,
-              custom: typeof s.custom === "string" ? s.custom : "",
-            }));
-        }
-      }
-    } catch { /* fallback to [] */ }
 
     const project: SongProject = {
       id,
@@ -1026,7 +1028,7 @@ export default function Home() {
       stylePromptOverride,
       negPrompt,
       regenPrompt,
-      builderSteps,
+      builderSteps: readBuilderSteps(),
       structureMode,
       structurePreset,
       builderSections,
@@ -1037,6 +1039,47 @@ export default function Home() {
 
     saveProject(project);
     setCurrentProjectId(id);
+    setSavedSnapshot(currentSnapshot);
+    setProjectSaveFlash(true);
+    setTimeout(() => setProjectSaveFlash(false), 1800);
+    setProjectListRefreshKey((k) => k + 1);
+  };
+
+  const handleSaveAsProject = () => {
+    // Existing project → suggest "(copy)". Unsaved state → use current name as-is.
+    const baseName = projectName.trim() || "Untitled Project";
+    const defaultName = currentProjectId ? `${baseName} (copy)` : baseName;
+    const newName = window.prompt("Save as new project:", defaultName);
+    if (newName === null || newName.trim() === "") return;
+
+    const now = new Date().toISOString();
+    const id = generateProjectId(); // always a fresh ID
+
+    const project: SongProject = {
+      id,
+      name: newName.trim(),
+      createdAt: now,
+      updatedAt: now,
+      input,
+      worldPreset: preset,
+      expansion,
+      lyrics,
+      stylePrompt,
+      stylePromptOverride,
+      negPrompt,
+      regenPrompt,
+      builderSteps: readBuilderSteps(),
+      structureMode,
+      structurePreset,
+      builderSections,
+      libraryIds,
+      history: history.slice(-10),
+      notes: "",
+    };
+
+    saveProject(project);
+    setCurrentProjectId(id);
+    setProjectName(newName.trim());
     setSavedSnapshot(currentSnapshot);
     setProjectSaveFlash(true);
     setTimeout(() => setProjectSaveFlash(false), 1800);
@@ -1394,6 +1437,7 @@ export default function Home() {
             onSaveProject={handleSaveProject}
             projectSaveFlash={projectSaveFlash}
             isProjectDirty={isDirty}
+            onSaveAsProject={handleSaveAsProject}
             onOpenProjectList={() => setShowProjectList(true)}
             onNewProject={handleNewProject}
           />

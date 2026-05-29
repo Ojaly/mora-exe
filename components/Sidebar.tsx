@@ -60,6 +60,7 @@ interface Props {
   onSaveProject?: () => void;
   projectSaveFlash?: boolean;
   isProjectDirty?: boolean;
+  onSaveAsProject?: () => void;
   onOpenProjectList?: () => void;
   onNewProject?: () => void;
 }
@@ -382,6 +383,7 @@ export default function Sidebar({
   onSaveProject,
   projectSaveFlash = false,
   isProjectDirty = false,
+  onSaveAsProject,
   onOpenProjectList,
   onNewProject,
 }: Props) {
@@ -526,6 +528,12 @@ export default function Sidebar({
                 NEW
               </button>
             </div>
+            <button
+              onClick={onSaveAsProject}
+              className="w-full text-right text-[11px] font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              save as new project →
+            </button>
           </div>
         </div>
 
