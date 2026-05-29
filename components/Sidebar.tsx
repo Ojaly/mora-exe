@@ -510,14 +510,14 @@ export default function Sidebar({
                     ? "border-emerald-400 text-emerald-700 bg-emerald-50"
                     : isProjectDirty
                     ? "border-amber-400 text-amber-700 bg-amber-50 hover:border-amber-500 hover:bg-amber-100"
-                    : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+                    : "border-[var(--border-muted)] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
                 }`}
               >
                 {projectSaveFlash ? "✓ Saved" : isProjectDirty ? "SAVE CURRENT ●" : "SAVE CURRENT"}
               </button>
               <button
                 onClick={onSaveAsProject}
-                className="flex-1 h-8 text-[12px] font-mono font-bold rounded border border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
+                className="flex-1 h-8 text-[12px] font-mono font-bold rounded border border-[var(--border-muted)] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
               >
                 SAVE AS NEW
               </button>
@@ -525,7 +525,7 @@ export default function Sidebar({
             <div className="flex gap-1.5">
               <button
                 onClick={onOpenProjectList}
-                className="flex-1 h-8 text-[12px] font-mono rounded border border-zinc-300 text-zinc-600 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
+                className="flex-1 h-8 text-[12px] font-mono rounded border border-[var(--border-muted)] text-zinc-600 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all"
               >
                 LOAD
               </button>
@@ -614,7 +614,7 @@ export default function Sidebar({
                       className={`px-2 py-[3px] text-[11px] font-mono rounded border transition-all ${
                         active
                           ? "border-blue-400 text-blue-700 bg-blue-50 font-semibold"
-                          : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                          : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                       }`}
                     >
                       {active ? "· " : ""}{label}
@@ -663,7 +663,7 @@ export default function Sidebar({
                       className={`px-2 py-[3px] text-[11px] font-mono rounded border transition-all ${
                         active
                           ? "border-violet-400 text-violet-700 bg-violet-50 font-semibold"
-                          : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                          : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                       }`}
                     >
                       {active ? "· " : ""}{SUB_STYLE_LABELS[s] ?? s}
@@ -711,7 +711,7 @@ export default function Sidebar({
                     className={`px-2 py-[3px] text-[11px] font-mono rounded border transition-all ${
                       active
                         ? "border-blue-400 text-blue-700 bg-blue-50 font-semibold"
-                        : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                        : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                   >
                     {active ? "· " : ""}{NUDGE_LABELS[n] ?? n}
@@ -743,7 +743,7 @@ export default function Sidebar({
                     className={`flex-1 h-8 text-[12px] font-mono rounded border transition-colors ${
                       input.songLength === v
                         ? "border-blue-400 text-blue-700 bg-blue-50"
-                        : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                        : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                   >
                     {v}
@@ -760,7 +760,7 @@ export default function Sidebar({
                     className={`flex-1 h-8 text-[12px] font-mono rounded border transition-colors ${
                       input.englishRatio === v
                         ? "border-blue-400 text-blue-700 bg-blue-50"
-                        : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                        : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                   >
                     {v === "low" ? "JP" : v === "mixed" ? "MIX" : "EN"}
@@ -811,7 +811,7 @@ export default function Sidebar({
                     onClick={() => onPresetChange(active ? "" : key)}
                     title={p.description}
                     className={`px-2 py-0.5 text-[11px] font-mono font-bold rounded border transition-all ${
-                      active ? "" : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                      active ? "" : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                     style={active ? {
                       borderColor: p.accentColor,
@@ -889,7 +889,7 @@ export default function Sidebar({
                 {selectedLibraryItems.slice(0, 6).map((item) => (
                   <span
                     key={item.id}
-                    className="px-1.5 py-[2px] text-[11px] font-mono rounded border border-[#E2E8F0] text-zinc-600 bg-slate-50 leading-tight"
+                    className="px-1.5 py-[2px] text-[11px] font-mono rounded border border-[var(--border-muted)] text-zinc-600 bg-slate-50 leading-tight"
                   >
                     {item.label}
                   </span>
@@ -912,7 +912,7 @@ export default function Sidebar({
             {/* Open library button */}
             <button
               onClick={onOpenLibrary}
-              className="w-full h-8 text-[12px] font-mono border border-[#E2E8F0] rounded-md text-zinc-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition-all"
+              className="w-full h-8 text-[12px] font-mono border border-[var(--border-muted)] rounded-md text-zinc-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition-all"
             >
               OPEN LIBRARY →
             </button>
@@ -971,7 +971,7 @@ export default function Sidebar({
                     ? m === "quick"
                       ? "border-blue-400 text-blue-700 bg-blue-50"
                       : "border-violet-400 text-violet-700 bg-violet-50"
-                    : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                    : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                 }`}
               >
                 {m === "quick" ? "QUICK  5問" : "DEEP  12問"}
@@ -1021,7 +1021,7 @@ export default function Sidebar({
                       key={opt.value}
                       onClick={() => handleChip(currentQ.id, opt.value)}
                       className={`px-2 py-0.5 text-[11px] font-mono rounded border transition-all ${
-                        sel ? accentActive : "border-[#E2E8F0] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
+                        sel ? accentActive : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                       }`}
                     >
                       {opt.label}
@@ -1128,7 +1128,7 @@ export default function Sidebar({
               onClearSession?.();
             }
           }}
-          className="w-full mt-2 py-1.5 text-[11px] font-mono font-semibold rounded-lg border border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-colors tracking-[0.08em]"
+          className="w-full mt-2 py-1.5 text-[11px] font-mono font-semibold rounded-lg border border-[var(--border-muted)] text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-colors tracking-[0.08em]"
         >
           CLEAR SESSION
         </button>
