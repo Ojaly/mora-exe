@@ -810,7 +810,7 @@ export default function Sidebar({
                     key={key}
                     onClick={() => onPresetChange(active ? "" : key)}
                     title={p.description}
-                    className={`px-2 py-0.5 text-[11px] font-mono font-bold rounded border transition-all ${
+                    className={`px-2 py-0.5 text-[12px] font-mono font-bold rounded border transition-all ${
                       active ? "" : "border-[var(--border-muted)] text-zinc-600 hover:border-zinc-400 hover:text-zinc-800"
                     }`}
                     style={active ? {
@@ -889,7 +889,7 @@ export default function Sidebar({
                 {selectedLibraryItems.slice(0, 6).map((item) => (
                   <span
                     key={item.id}
-                    className="px-1.5 py-[2px] text-[11px] font-mono rounded border border-[var(--border-muted)] text-zinc-600 bg-slate-50 leading-tight"
+                    className="px-1.5 py-[2px] text-[12px] font-mono rounded border border-[var(--border-muted)] text-zinc-600 bg-slate-50 leading-tight"
                   >
                     {item.label}
                   </span>

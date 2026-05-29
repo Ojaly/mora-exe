@@ -199,7 +199,7 @@ export default function PromptBuilder12Panel({ onApply, onReplaceNegative, onApp
               <button
                 key={preset.id}
                 onClick={() => setState(loadPresetState(preset))}
-                className={`px-2 py-[2px] text-[11px] font-mono rounded border transition-all ${
+                className={`px-2 py-[2px] text-[12px] font-mono rounded border transition-all ${
                   active
                     ? "border-emerald-400 text-emerald-700 bg-emerald-50 font-semibold"
                     : "border-[var(--border-muted)] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
@@ -294,14 +294,14 @@ export default function PromptBuilder12Panel({ onApply, onReplaceNegative, onApp
         <div className="flex gap-1">
           <button
             onClick={handleSample}
-            className="flex-1 h-8 text-[11px] font-mono rounded border border-[var(--border-muted)] text-zinc-600
+            className="flex-1 h-8 text-[12px] font-mono rounded border border-[var(--border-muted)] text-zinc-600
               hover:border-zinc-500 hover:text-zinc-800 transition-colors"
           >
             SAMPLE
           </button>
           <button
             onClick={handleClear}
-            className="flex-1 h-8 text-[11px] font-mono rounded border border-[var(--border-muted)] text-zinc-600
+            className="flex-1 h-8 text-[12px] font-mono rounded border border-[var(--border-muted)] text-zinc-600
               hover:border-zinc-500 hover:text-zinc-800 transition-colors"
           >
             CLEAR
