@@ -5,13 +5,45 @@
 | 項目 | 状態 |
 |---|---|
 | Branch | `master` |
-| 最新コミット | `c1c505a feat: clarify project save actions` |
-| origin/master | 同期済み |
+| 最新コミット | `3dc8854 style: improve TIPS/hint text legibility across main UI components` |
+| origin/master | 未 push（ローカル 7 commits ahead） |
 | Working tree | clean |
 
 ---
 
 ## 2. 今回完了した主な作業
+
+### UI Polish フェーズ（2026-05-29 実施）
+
+| フェーズ | コミット | 概要 |
+|---|---|---|
+| Phase A | `2bf55f1` | `app/layout.tsx` の dead class（`bg-zinc-950 text-zinc-100`）削除 |
+| Phase B | `2bf55f1` | `app/globals.css` に `--border-muted: #CBD5E1` トークン追加 |
+| Phase C | `2146469` | `components/Sidebar.tsx` — border 値統一（チップ・アクションボタン非アクティブ → `--border-muted`） |
+| Phase D | `5720a9a` | `app/page.tsx` — border 値統一 + ProjectListPanel Export/Import ボタンを文字リンクから border 付きボタンへ強化 |
+| Phase E | `b15efed` | `components/PromptBuilder12Panel.tsx` — border 値統一 |
+| TIPS 改善 | `3dc8854` | Sidebar / page.tsx / PromptBuilder12 / WorldForge / StructureBlueprint の TIPS・補足テキストを `zinc-400/500` → `zinc-500/600/700` に改善 |
+
+**UI Polish で変更したファイル一覧:**
+
+- `app/layout.tsx`
+- `app/globals.css`
+- `components/Sidebar.tsx`
+- `components/PromptBuilder12Panel.tsx`
+- `components/WorldForge.tsx`
+- `components/StructureBlueprint.tsx`
+- `app/page.tsx`
+
+**UI Polish で変更しなかったもの（意図的）:**
+
+- padding / font / text size / layout — 後続フェーズで段階的に対応
+- `font-mono` / `ui-sans` 統一 — スコープ外
+- ロジック・状態管理・保存/読込/Export/Import — 一切変更なし
+- `components/MoraTunerPanel.tsx` / `SourceAlchemy.tsx` / `PromptLibraryPanel.tsx` 等 — 後続フェーズで見直し
+
+---
+
+### Project 保存・管理フェーズ（前スレッド完了分）
 
 | 機能 | コミット | 概要 |
 |---|---|---|
@@ -483,26 +515,74 @@ npm.cmd run dev
 - ブラウザで http://localhost:3000 を開く
 - **Turbopack 禁止**: `--turbo` フラグなし（`next dev` のみ）
 
+> **⚠ Claude Code 側での dev server 操作は禁止**
+> `preview_start` / dev server 起動・停止 / `.claude/launch.json` の追加・変更はすべて行わない。
+> ブラウザ確認はユーザーが手動で行う。
+> Claude 側の確認範囲: `git diff` / `npm.cmd run build` / `npm.cmd run lint`（既存エラーは pre-existing 扱い）のみ。
+
 ---
 
 ## 9. 次回候補タスク
 
+### 最優先: Readable Size Pass（文字サイズ改善）— 棚卸し完了・実装は次回
+
+棚卸し済み。第一段階として安全に実施できる変更は以下の 4 グループ:
+
+**グループ1: TIPS `text-[10px]` → `text-[11px]`（10箇所、レイアウト影響なし）**
+対象: Genre 未選択説明・SUB STYLE 説明・Direction Adjust 説明・Library 空状態/おすすめ通知・GENERATE hint・WorldForge footer hint・StructureBlueprint hint × 2
+ファイル: `Sidebar.tsx` / `WorldForge.tsx` / `StructureBlueprint.tsx`
+
+**グループ2: TIPS `text-[11px]` → `text-[12px]`（5箇所、レイアウト影響なし）**
+対象: CollapseSection sub テキスト・SAVE CURRENT overwrites hint・WORLD SEED 説明・SOURCE ALCHEMY 説明・"⌘Enter で Forge"
+ファイル: `Sidebar.tsx` / `WorldForge.tsx`
+
+**グループ3: CENTER / RIGHT パネルタブ `text-[12px]` → `text-[13px]`（5箇所）**
+対象: STYLE PROMPT / LIBRARY / BUILDER タブ・LYRICS / TUNER in-card タブ
+ファイル: `app/page.tsx`
+
+**グループ4: 本文 preview `text-[12px]` → `text-[13px]`**
+対象: PromptBuilder prompt preview・Rewrite notes 本文・PromptEditor / LyricsEditor placeholder・WorldForge expansion 本文
+ファイル: `PromptBuilder12Panel.tsx` / `app/page.tsx` / `PromptEditor.tsx` / `LyricsEditor.tsx` / `WorldForge.tsx`
+
+**第二段階候補（ボタン・chip 系、確認後に実施）**
+- Sidebar / PromptBuilder の chip `text-[11px]` → `text-[12px]`（flex-wrap で吸収されるが wrapping 変化あり）
+- ProjectListPanel export/import/CLOSE ボタン `text-[11px]` → `text-[12px]`
+
+**mobile で注意が必要な箇所:**
+- `StructureBlueprint` mode buttons（h-7）: `text-[11px]` のまま維持推奨
+- `PromptBuilder12` Replace / Append Neg ボタン（h-7）: 同様に維持推奨
+- mobile tab strip（TabBtn）: 既に `text-[13px]`、変更不要
+
+**次回最初にやること:**
+1. 上記棚卸し結果を再確認
+2. 第一段階（グループ 1〜4）だけに絞って実装
+3. mobile 崩れに注意（h-7 ボタンは今回スコープ外）
+4. `npm.cmd run build` で確認
+5. ブラウザ手動確認（desktop + mobile）
+6. commit
+
+---
+
+### その他の次回候補タスク
+
 優先度順（暫定）:
 
-1. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
-2. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
-3. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
-4. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+1. **Readable Size Pass 実装** — 上記参照
+2. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
+3. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
+4. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
+5. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
 
 > 完了済みのため次回候補から除外:
 > - ~~Current Project 表示強化~~ → Phase 2-A で完了
 > - ~~Unsaved changes 表示~~ → Phase 2-B で完了
 > - ~~Save As / Duplicate~~ → 完了
-> - ~~npm build 確認~~ → 各フェーズで通過確認済み
-> - ~~Project Export~~ → `282edf5` で完了（単体 EXP / 全件 export all / safe filename）
+> - ~~Project Export~~ → `282edf5` で完了
 > - ~~Save name drift overwrite guard~~ → `282edf5` で完了
-> - ~~Project Import（restore / as new）~~ → `65d2323` で完了（`validateAndNormalizeSongProject` + 2 モード）
-> - ~~Project Save UI 改善~~ → `c1c505a` で完了（SAVE CURRENT / SAVE AS NEW 、mobile 修正）
+> - ~~Project Import（restore / as new）~~ → `65d2323` で完了
+> - ~~Project Save UI 改善~~ → `c1c505a` で完了
+> - ~~UI Polish Phase A〜E~~ → `2bf55f1`〜`b15efed` で完了
+> - ~~TIPS テキスト視認性改善~~ → `3dc8854` で完了
 
 ---
 
@@ -515,6 +595,8 @@ npm.cmd run dev
 - **NEW は CLEAR SESSION 相当**: Builder state / genreLock / subStyles / centerTab などのセッション設定は消えない
 - **Import は基本機能のみ実装**: `restore ↑`（元 ID 保持）/ `as new ↑`（新 ID）の 2 モードで JSON を読み込める。上書き Import・差分 Import・Import 前プレビューは未実装
 - **lint は exit code 1（pre-existing errors）**: 各 Phase の変更起因の新規エラーはなし。`npm run build` は全フェーズで通過。pre-existing errors は `react-hooks/set-state-in-effect`（mount effect 内 setState）・`react/jsx-no-comment-textnodes`（複数コンポーネント）など
+- **Claude Code は dev server / preview を操作しない**: `.claude/launch.json` は削除済み（`530bfcb`）。ブラウザ確認はユーザーが手動で行う。Claude 側は `git diff` / `npm.cmd run build` / `npm.cmd run lint` のみ実施する
+- **border 統一トークン `--border-muted`**: `globals.css` の `:root` に `#CBD5E1` で定義済み。インタラクティブ要素の非アクティブ border はすべてこのトークンを使う。構造的 divider（`border-t` / `border-b`）は `--border`（`#E2E8F0`）を維持する
 - **SongProjectMeta の summary は再 SAVE まで更新されない**: 既存 Project は一覧に summary が出ないが壊れない。SAVE / SAVE AS を実行すると `lyricsContentLines` / `hasStyle` / `hasNeg` / `lyricsPreview` が生成される
 
 ---
