@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "mora-exe",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "runtimeExecutable": "npm.cmd",
+      "runtimeArgs": ["run", "dev", "--", "--webpack"],
+      "port": 3000,
+      "autoPort": false
     }
   ]
 }
