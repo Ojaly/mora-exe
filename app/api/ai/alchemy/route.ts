@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { AlchemyResult } from "@/types";
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
@@ -35,7 +34,7 @@ metaphors must be tactile — texture, smell, weight, temperature, sound.
 chorusHookIdeas = emotional image hooks, not literal statements about the event.
 worldSeed = the one sentence a songwriter needs to enter this world.
 
-OUTPUT: Valid JSON only — no markdown fences:
+OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
 {
   "sourceSummary": "1-sentence abstract, zero proper nouns, describes the emotional/structural shape of what happened",
   "reactionCore": ["3-5 raw emotion words distilled from user reaction — JP or EN"],
@@ -48,13 +47,51 @@ OUTPUT: Valid JSON only — no markdown fences:
   "worldSeed": "1-2 sentence World Seed for World Forge — JP preferred, zero proper nouns, poetic not journalistic"
 }`;
 
+// ─── Gemini REST helper ───────────────────────────────────────────────────────
+
+async function callGemini(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  maxOutputTokens: number,
+): Promise<string> {
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig: {
+        maxOutputTokens,
+        response_mime_type: "application/json",
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "(no body)");
+    throw Object.assign(new Error(`Gemini HTTP ${res.status}: ${body}`), { status: res.status });
+  }
+
+  const data = await res.json() as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini returned empty content");
+  return text;
+}
+
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "Source Alchemy requires Claude — add ANTHROPIC_API_KEY to .env.local" },
+      { error: "Source Alchemy requires Gemini API — add GEMINI_API_KEY to .env.local" },
       { status: 503 }
     );
   }
@@ -94,28 +131,18 @@ ${desiredTone ? `\nDESIRED TONE: ${desiredTone}` : ""}${avoidNote}
 Transmute this into universal poetic material for music. Return JSON only.`;
 
   try {
-    const client = new Anthropic({ apiKey });
-
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1200,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-
-    const content = message.content[0];
-    if (content.type !== "text") throw new Error("Unexpected response type");
-
-    const raw = content.text
-      .trim()
-      .replace(/^```(?:json)?\n?/, "")
-      .replace(/\n?```$/, "");
-
+    const raw = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt, 1200);
     const parsed = JSON.parse(raw) as AlchemyResult;
     return NextResponse.json(parsed);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[mora/alchemy] Claude API failed:", msg);
+    const status = (err as Record<string, unknown>)?.status;
+    console.error("[mora/alchemy] Gemini API failed:", msg);
+    if (status === 401 || status === 403) {
+      console.error("[mora/alchemy] → API key is invalid or lacks permission. Check GEMINI_API_KEY in .env.local");
+    } else if (status === 429) {
+      console.error("[mora/alchemy] → Rate limited by Google. Retry after a moment.");
+    }
     return NextResponse.json({ error: "Alchemy failed", detail: msg }, { status: 500 });
   }
 }
