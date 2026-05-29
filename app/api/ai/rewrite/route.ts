@@ -1,21 +1,99 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { RewriteMode, RewriteIntensity, SectionTarget, WorldPresetKey } from "@/types";
 import { WORLD_PRESETS } from "@/lib/worldPresets";
 
-/** Claude レスポンスから JSON オブジェクトを堅牢に抽出する */
-function extractJson(text: string): Record<string, unknown> {
-  const s = text.trim().replace(/^```(?:json)?\r?\n?/, "").replace(/\r?\n?```$/, "");
-  const start = s.indexOf("{");
-  if (start === -1) throw new Error("No JSON object found");
-  let depth = 0, end = -1;
-  for (let i = start; i < s.length; i++) {
-    if (s[i] === "{") depth++;
-    else if (s[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+// ─── JSON helpers ────────────────────────────────────────────────────────────
+
+/** JSON string 値内の未エスケープ control character を安全に escape する（状態機械方式） */
+function sanitizeControlChars(json: string): string {
+  const ESC: Record<string, string> = {
+    "\n": "\\n", "\r": "\\r", "\t": "\\t",
+    "\b": "\\b", "\f": "\\f",
+  };
+  let inString = false, escaped = false;
+  const out: string[] = [];
+  for (const c of json) {
+    if (escaped)                { out.push(c); escaped = false; continue; }
+    if (c === "\\" && inString) { out.push(c); escaped = true;  continue; }
+    if (c === '"')              { inString = !inString; out.push(c); continue; }
+    if (inString && c.charCodeAt(0) < 0x20) {
+      out.push(ESC[c] ?? `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+      continue;
+    }
+    out.push(c);
   }
-  if (end === -1) throw new Error("Unterminated JSON");
-  return JSON.parse(s.slice(start, end + 1));
+  return out.join("");
 }
+
+/** コードフェンス除去 → JSON object 抽出（string-aware） → control char sanitize → parse */
+function extractJson(text: string, meta?: { rawLength: number; finishReason?: string }): Record<string, unknown> {
+  const s = text.trim()
+    .replace(/^```(?:json)?\r?\n?/, "")
+    .replace(/\r?\n?```$/, "");
+  const start = s.indexOf("{");
+  if (start === -1) throw new Error("No JSON object found in Gemini response");
+
+  let depth = 0, end = -1;
+  let inStr = false, esc = false;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (esc)              { esc = false; continue; }
+    if (c === "\\" && inStr) { esc = true; continue; }
+    if (c === '"')        { inStr = !inStr; continue; }
+    if (inStr)            { continue; }
+    if (c === "{")        { depth++; }
+    else if (c === "}") { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end === -1) {
+    const hint = meta
+      ? ` (rawLength=${meta.rawLength}, finishReason=${meta.finishReason ?? "unknown"})`
+      : "";
+    throw new Error(`Unterminated JSON in Gemini response${hint}`);
+  }
+  return JSON.parse(sanitizeControlChars(s.slice(start, end + 1)));
+}
+
+// ─── Gemini REST helper ───────────────────────────────────────────────────────
+
+async function callGemini(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  maxOutputTokens: number,
+): Promise<{ text: string; finishReason?: string }> {
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig: {
+        maxOutputTokens,
+        response_mime_type: "application/json",
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "(no body)");
+    throw Object.assign(new Error(`Gemini HTTP ${res.status}: ${body}`), { status: res.status });
+  }
+
+  const data = await res.json() as {
+    candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[];
+  };
+
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini returned empty content");
+  return { text, finishReason: candidate?.finishReason };
+}
+
+// ─── System prompt ────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are a Suno AI lyricist. Rewrite song lyrics with surgical precision.
 
@@ -34,12 +112,14 @@ QUALITY TARGETS:
 - Rhythmic readability for Suno singing
 - Lines should feel singable in one breath
 
-OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
+OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
   "rewrittenLyrics": "<complete lyrics with all section tags and blank lines>",
   "notes": "<1–2 sentence Japanese note on what changed and why>",
   "changedLines": [<1-indexed content line numbers changed, section tags excluded>]
 }`;
+
+// ─── Prompt helpers ───────────────────────────────────────────────────────────
 
 const PRESET_DEEP: Partial<Record<WorldPresetKey, string>> = {
   neon: "World lens: cyber melancholy. Wet streets reflecting neon at 3am. Urban loneliness inside a digital shell. Signal degradation as emotion. Images should feel like a CRT screen through rain.",
@@ -148,16 +228,18 @@ Avoid cliché English phrases (feel alive / in my veins / break free / warrior).
   return map[mode] ?? "Improve overall quality.";
 }
 
+// ─── POST handler ─────────────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.warn(
-      "[mora/rewrite] ANTHROPIC_API_KEY is not set — returning 503. " +
-      "Create .env.local with ANTHROPIC_API_KEY=sk-ant-... to enable Claude. " +
+      "[mora/rewrite] GEMINI_API_KEY is not set — returning 503. " +
+      "Create .env.local with GEMINI_API_KEY=AIza... to enable Gemini. " +
       "Client will fall back to rule-based rewrite."
     );
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY not configured" },
+      { error: "GEMINI_API_KEY not configured" },
       { status: 503 }
     );
   }
@@ -214,24 +296,19 @@ ${lyrics}
 Return JSON only.`;
 
   try {
-    const client = new Anthropic({ apiKey });
+    const { text: raw, finishReason } = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt, 2500);
 
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-
-    const content = message.content[0];
-    if (content.type !== "text") throw new Error("Unexpected Claude response type");
+    if (process.env.NODE_ENV !== "production") {
+      const preview = raw.slice(0, 300).replace(/[\x00-\x1f]/g, (c) => `\\x${c.charCodeAt(0).toString(16).padStart(2, "0")}`);
+      console.log("[mora/rewrite] raw preview:", preview);
+      console.log(`[mora/rewrite] rawLength=${raw.length} finishReason=${finishReason ?? "unknown"}`);
+    }
 
     let parsed: Record<string, unknown>;
     try {
-      parsed = extractJson(content.text);
+      parsed = extractJson(raw, { rawLength: raw.length, finishReason });
     } catch (parseErr) {
-      console.error("[mora/rewrite] JSON parse failed:", parseErr, "| raw:", content.text.slice(0, 300));
-      // parse失敗 → クライアントのルールベースフォールバックへ
+      console.error("[mora/rewrite] JSON parse failed:", parseErr);
       return NextResponse.json({ error: "JSON parse failed" }, { status: 503 });
     }
 
@@ -242,16 +319,14 @@ Return JSON only.`;
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // Surface Anthropic-specific error details
-    const detail = (err as Record<string, unknown>)?.status
-      ? `HTTP ${(err as Record<string, unknown>).status}: ${msg}`
-      : msg;
-    console.error("[mora/rewrite] Claude API request failed:", detail);
-    if ((err as Record<string, unknown>)?.status === 401) {
-      console.error("[mora/rewrite] → API key is invalid or expired. Check ANTHROPIC_API_KEY in .env.local");
-    } else if ((err as Record<string, unknown>)?.status === 429) {
-      console.error("[mora/rewrite] → Rate limited by Anthropic. Retry after a moment.");
+    const status = (err as Record<string, unknown>)?.status;
+    const detail = status ? `HTTP ${status}: ${msg}` : msg;
+    console.error("[mora/rewrite] Gemini API request failed:", detail);
+    if (status === 401 || status === 403) {
+      console.error("[mora/rewrite] → API key is invalid or lacks permission. Check GEMINI_API_KEY in .env.local");
+    } else if (status === 429) {
+      console.error("[mora/rewrite] → Rate limited by Google. Retry after a moment.");
     }
-    return NextResponse.json({ error: "Claude API request failed", detail }, { status: 500 });
+    return NextResponse.json({ error: "Gemini API request failed", detail }, { status: 500 });
   }
 }
