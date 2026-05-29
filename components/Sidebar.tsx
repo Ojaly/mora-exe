@@ -54,6 +54,11 @@ interface Props {
   onClearStylePromptOverride?: () => void;
   /** Clears the current generated session (style prompt, lyrics, negatives, analysis). */
   onClearSession?: () => void;
+  // ── Project ────────────────────────────────────────────────────────────────
+  projectName?: string;
+  onProjectNameChange?: (name: string) => void;
+  onSaveProject?: () => void;
+  projectSaveFlash?: boolean;
 }
 
 // ─── Wizard → SongInput mapping ───────────────────────────────────────────────
@@ -369,6 +374,10 @@ export default function Sidebar({
   stylePromptOverride = "",
   onClearStylePromptOverride,
   onClearSession,
+  projectName = "",
+  onProjectNameChange,
+  onSaveProject,
+  projectSaveFlash = false,
 }: Props) {
   const [alchemyOpen,        setAlchemyOpen]        = useState(false);
   const [genreLockOpen,      setGenreLockOpen]      = useState(false);
@@ -470,6 +479,33 @@ export default function Sidebar({
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-3 space-y-2">
+
+        {/* ══ PROJECT ════════════════════════════════════════════════════════ */}
+        <div className="sidebar-card">
+          <div className="px-3 py-2 border-b border-[#E2E8F0]">
+            <p className="text-[11px] font-mono font-bold text-zinc-700 tracking-[0.12em] uppercase">PROJECT</p>
+          </div>
+          <div className="px-3 py-2.5 space-y-2">
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => onProjectNameChange?.(e.target.value)}
+              placeholder="Untitled Project"
+              className={inputCls}
+              style={{ background: "#fafbfc" }}
+            />
+            <button
+              onClick={onSaveProject}
+              className={`w-full h-8 text-[12px] font-mono font-bold rounded border transition-all ${
+                projectSaveFlash
+                  ? "border-emerald-400 text-emerald-700 bg-emerald-50"
+                  : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+              }`}
+            >
+              {projectSaveFlash ? "✓ Saved" : "SAVE PROJECT"}
+            </button>
+          </div>
+        </div>
 
         {/* ══ 0. SOURCE ALCHEMY ════════════════════════════════════════════════ */}
         <div className="sidebar-card">

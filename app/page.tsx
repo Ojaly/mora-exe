@@ -13,7 +13,9 @@ import {
   MoraLine, MoraSuggestion, PhraseMatch, SyntaxMatch, CollapseRisk, SongStats,
   RewriteMode, RewriteIntensity, SectionTarget, HistoryEntry,
   StructureMode, StructurePreset, BuilderSection,
+  SongProject, BuilderPresetStep,
 } from "@/types";
+import { saveProject, loadProject, generateProjectId } from "@/lib/songProject";
 import { getPresetStructure } from "@/lib/structureVariation";
 import {
   buildStylePrompt, buildNegativePrompt, buildRegeneratePrompt,
@@ -370,6 +372,11 @@ export default function Home() {
   // 12-Step Prompt Builder override
   // When set, this prompt replaces buildStylePrompt / buildStylePromptFromExpansion in generate.
   const [stylePromptOverride, setStylePromptOverride] = useState("");
+
+  // Project save
+  const [projectName, setProjectName] = useState("");
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [projectSaveFlash, setProjectSaveFlash] = useState(false);
 
   // Memory panel
   const [showMemory, setShowMemory] = useState(false);
@@ -851,6 +858,65 @@ export default function Home() {
     setExpansion(null);
   };
 
+  const handleSaveProject = () => {
+    const now = new Date().toISOString();
+    const id = currentProjectId ?? generateProjectId();
+
+    // Preserve original createdAt when overwriting an existing project
+    let createdAt = now;
+    if (currentProjectId) {
+      try {
+        const existing = loadProject(currentProjectId);
+        if (existing) createdAt = existing.createdAt;
+      } catch { /* use now */ }
+    }
+
+    // Read 12-Step Builder steps from its own localStorage key
+    let builderSteps: BuilderPresetStep[] = [];
+    try {
+      const raw = localStorage.getItem("mora-builder-12");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { steps?: unknown[] };
+        if (Array.isArray(parsed?.steps)) {
+          builderSteps = (parsed.steps as { id?: unknown; selected?: unknown; custom?: unknown }[])
+            .filter((s) => typeof s?.id === "string")
+            .map((s) => ({
+              id: s.id as string,
+              selected: typeof s.selected === "string" ? s.selected : null,
+              custom: typeof s.custom === "string" ? s.custom : "",
+            }));
+        }
+      }
+    } catch { /* fallback to [] */ }
+
+    const project: SongProject = {
+      id,
+      name: projectName.trim() || "Untitled Project",
+      createdAt,
+      updatedAt: now,
+      input,
+      worldPreset: preset,
+      expansion,
+      lyrics,
+      stylePrompt,
+      stylePromptOverride,
+      negPrompt,
+      regenPrompt,
+      builderSteps,
+      structureMode,
+      structurePreset,
+      builderSections,
+      libraryIds,
+      history: history.slice(-10),
+      notes: "",
+    };
+
+    saveProject(project);
+    setCurrentProjectId(id);
+    setProjectSaveFlash(true);
+    setTimeout(() => setProjectSaveFlash(false), 1800);
+  };
+
   // ─── Derived ─────────────────────────────────────────────────────────────
 
   const score   = songStats?.riskScore ?? null;
@@ -1111,6 +1177,10 @@ export default function Home() {
             stylePromptOverride={stylePromptOverride}
             onClearStylePromptOverride={() => setStylePromptOverride("")}
             onClearSession={handleClearSession}
+            projectName={projectName}
+            onProjectNameChange={setProjectName}
+            onSaveProject={handleSaveProject}
+            projectSaveFlash={projectSaveFlash}
           />
         </aside>
 
@@ -1364,6 +1434,11 @@ export default function Home() {
               mounted={mounted}
               stylePromptOverride={stylePromptOverride}
               onClearStylePromptOverride={() => setStylePromptOverride("")}
+              onClearSession={handleClearSession}
+              projectName={projectName}
+              onProjectNameChange={setProjectName}
+              onSaveProject={handleSaveProject}
+              projectSaveFlash={projectSaveFlash}
             />
           </div>
         )}
