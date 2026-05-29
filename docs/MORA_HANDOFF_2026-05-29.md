@@ -5,7 +5,7 @@
 | 項目 | 状態 |
 |---|---|
 | Branch | `master` |
-| 最新コミット | `282edf5 feat: add project export and overwrite guard` |
+| 最新コミット | `c1c505a feat: clarify project save actions` |
 | origin/master | 同期済み |
 | Working tree | clean |
 
@@ -30,6 +30,9 @@
 | Project一覧 Summary | `4ad31d2` | `SongProjectMeta` に summary fields 追加 + 一覧表示改善 |
 | Project Export（単体・全件） | `282edf5` | EXP ボタン / export all ↓ ボタン、safe filename 生成 |
 | Save name drift overwrite guard | `282edf5` | LOAD 済み Project の名前変更状態での SAVE を中断 |
+| Project Import（restore） | `65d2323` | `restore ↑` ボタン — 元 ID 保持、衝突時 skip |
+| Import as New | `65d2323` | `as new ↑` ボタン — 常に新 ID、名前に `(copy)` |
+| Project Save UI 改善 | `c1c505a` | SAVE CURRENT / SAVE AS NEW ボタン化、mobile 接続修正 |
 
 ---
 
@@ -109,6 +112,8 @@ Builder state は `PromptBuilder12Panel` 内部 state として管理されて�
 | Inline Delete | `1ebe94e` | `confirmDeleteId` state + YES,DELETE/CANCEL + `setSavedSnapshot(null)` on active delete |
 | Project Export | `282edf5` | 単体 EXP ボタン + 全件 export all ↓ ボタン + safe filename 生成 |
 | Save name drift overwrite guard | `282edf5` | `savedProjectName` と名前が一致しない場合に SAVE を中断 |
+| Project Import / Import as New | `65d2323` | `restore ↑` / `as new ↑` ボタン + `validateAndNormalizeSongProject` |
+| Project Save UI 改善 | `c1c505a` | SAVE CURRENT / SAVE AS NEW 文言・配置変更、mobile 接続修正 |
 
 ### Unsaved changes の設計（Phase 2-B）
 
@@ -151,12 +156,14 @@ const isDirty = currentProjectId !== null
 | DELETE（active） | `null` にクリア |
 | CLEAR SESSION | 変更なし → 自動的に dirty になる（正しい動作） |
 
-**SAVE ボタン外観:**
+**SAVE CURRENT ボタン外観:**
 | 状態 | スタイル | ラベル |
 |---|---|---|
-| 通常 | zinc ボーダー | `SAVE` |
-| dirty | amber ボーダー / amber 背景 | `SAVE ●` |
+| 通常 | zinc ボーダー | `SAVE CURRENT` |
+| dirty | amber ボーダー / amber 背景 | `SAVE CURRENT ●` |
 | 保存直後 | emerald ボーダー / emerald 背景 | `✓ Saved`（1.8 秒） |
+
+`SAVE AS NEW` は flash なし。成功は projectName 更新 / ACTIVE バッジ / dirty 消失で確認する。
 
 ### Inline Rename の設計（`ProjectListPanel` 内部）
 
@@ -255,11 +262,14 @@ Rename 編集中・Delete 確認中は summary 行を非表示（`!isConfirmingD
 
 ---
 
-## 6. Project Export の詳細（**Export 完了 / Import 未実装**）
+## 6. Project Export / Import の詳細（基本機能完了）
+
+> 上書き Import・差分 Import・Import 前プレビューなどの高度機能は未実装。
 
 ### コミット
 
-`282edf5 feat: add project export and overwrite guard`
+- Export / overwrite guard: `282edf5 feat: add project export and overwrite guard`
+- Import / Import as New: `65d2323 feat: add import as new mode`
 
 ### 単体エクスポート（EXP ボタン）
 
@@ -298,10 +308,48 @@ function toSafeFilename(name: string): string {
 
 Windows / Unix 双方で unsafe な文字をアンダースコアに置換し、連続アンダースコアを圧縮。空文字になった場合は `"untitled"` にフォールバック。
 
-### Import は未実装
+### Import の実装（restore ↑ / as new ↑）
 
-- JSON ファイルの読み込みによる Project の復元は **未実装**
-- 次回候補タスクの最上位（§ 9 参照）
+`ProjectListPanel` ヘッダーに 2 つの Import ボタンを配置（hidden `<input type="file">` を共有）。
+
+#### 共通仕様
+
+- 単体 `.mora.json` / 全件 `mora-projects-YYYY-MM-DD.json` を自動判別（`projects` 配列の有無）
+- `validateAndNormalizeSongProject(entry)` で必須フィールドを検証し、不正エントリはスキップ
+- `saveProject()` 経由で保存するため summary fields（`lyricsContentLines` / `lyricsPreview` / `hasStyle` / `hasNeg`）は自動再生成
+- `currentProjectId` / 現在の作業 state は変更しない
+- 完了後に alert で件数通知（imported / skipped / invalid）
+
+#### `restore ↑`（元 ID 保持）
+
+- JSON 内の `id` をそのまま使用
+- 既存 ID と衝突する場合は skip（上書きしない）
+- 同ファイル内の重複 ID も guard（`existingIds` Set に都度追加）
+- バックアップ復元・環境移行用途
+
+#### `as new ↑`（新 ID 発行）
+
+- `generateProjectId()` で毎回新 UUID を発行
+- 名前に `(copy)` を付与（例: `"My Song"` → `"My Song (copy)"`）
+- 衝突チェックなし — 同じファイルを何度 import しても別 Project として追加される
+- 名前の重複は許可
+
+#### `validateAndNormalizeSongProject`（`lib/songProject.ts`）
+
+必須フィールドのみ型チェック。optional フィールドはデフォルト値で補完：
+
+| フィールド | 検証 | デフォルト補完 |
+|---|---|---|
+| `id`, `name`, `createdAt`, `updatedAt` | string, id は非空 | — |
+| `input` | object | — |
+| `lyrics`, `stylePrompt`, `stylePromptOverride`, `negPrompt`, `regenPrompt` | string | — |
+| `structureMode` | `"preset"` または `"builder"` | — |
+| `builderSteps`, `builderSections`, `libraryIds` | array | — |
+| `worldPreset` | string | `""` |
+| `expansion` | object または null | `null` |
+| `structurePreset` | string | `"verse-first"` |
+| `history` | array | `[]` |
+| `notes` | string | `""` |
 
 ---
 
@@ -337,7 +385,7 @@ NEW プロジェクト（`currentProjectId === null`）では発動しない。
 保存済み名: "${savedProjectName}"
 現在の名前: "${nameToSave}"
 
-・別プロジェクトとして保存するには「save as new project →」を使ってください。
+・別プロジェクトとして保存するには「SAVE AS NEW」を使ってください。
 ・既存プロジェクトの名前を変えるには、プロジェクト一覧の「REN」を使ってください。
 ```
 
@@ -350,6 +398,45 @@ NEW プロジェクト（`currentProjectId === null`）では発動しない。
 | LOAD | `project.name` をセット |
 | REN（プロジェクト一覧から rename） | `newName` をセット（active project のみ） |
 | NEW | `null` にクリア |
+
+---
+
+## 6c. Project Save UI 改善の詳細
+
+### コミット
+
+`c1c505a feat: clarify project save actions`
+
+### ボタン配置変更（`components/Sidebar.tsx`）
+
+```
+変更前:
+[SAVE (flex-1)] [LOAD (flex-1)] [NEW (flex-1)]
+save as new project →   ← text-[11px] 右寄せリンク
+
+変更後:
+[SAVE CURRENT (flex-1)] [SAVE AS NEW (flex-1)]
+[LOAD (flex-1)]         [NEW (flex-1)]
+SAVE CURRENT overwrites · SAVE AS NEW creates a copy  ← hint text
+```
+
+### 各変更の詳細
+
+| 変更 | 内容 |
+|---|---|
+| `SAVE` → `SAVE CURRENT` | 上書き保存であることを明示 |
+| `save as new project →` リンク → `SAVE AS NEW` ボタン | セカンダリリンクからプライマリボタンへ昇格 |
+| dirty ラベル | `SAVE ●` → `SAVE CURRENT ●` |
+| flash | `SAVE CURRENT` のみ `✓ Saved`（1.8 秒）。`SAVE AS NEW` は flash なし — 成功は projectName / ACTIVE バッジ / dirty 消失で確認 |
+| hint text | `SAVE CURRENT overwrites · SAVE AS NEW creates a copy`（常時表示、text-[11px] zinc-400） |
+
+### `app/page.tsx` の変更
+
+| 変更 | 内容 |
+|---|---|
+| mobile `<Sidebar>` | `onSaveAsProject={handleSaveAsProject}` を追加（従来は未接続 → mobile で SAVE AS NEW が動作しないバグの修正） |
+| overwrite guard alert | `「save as new project →」` → `「SAVE AS NEW」` に文言更新 |
+| `handleSaveAsProject` | `setProjectSaveFlash(true)` / `setTimeout` を削除（SAVE AS NEW は flash なし） |
 
 ---
 
@@ -402,11 +489,10 @@ npm.cmd run dev
 
 優先度順（暫定）:
 
-1. **Project Import** — JSON ファイルを読み込んで Project を復元（Export 済み形式に対応）
-2. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
-3. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
-4. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
-5. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+1. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
+2. **lint cleanup** — pre-existing errors の整理（`react-hooks/set-state-in-effect` 等）
+3. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
+4. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
 
 > 完了済みのため次回候補から除外:
 > - ~~Current Project 表示強化~~ → Phase 2-A で完了
@@ -415,17 +501,19 @@ npm.cmd run dev
 > - ~~npm build 確認~~ → 各フェーズで通過確認済み
 > - ~~Project Export~~ → `282edf5` で完了（単体 EXP / 全件 export all / safe filename）
 > - ~~Save name drift overwrite guard~~ → `282edf5` で完了
+> - ~~Project Import（restore / as new）~~ → `65d2323` で完了（`validateAndNormalizeSongProject` + 2 モード）
+> - ~~Project Save UI 改善~~ → `c1c505a` で完了（SAVE CURRENT / SAVE AS NEW 、mobile 修正）
 
 ---
 
 ## 10. 注意事項
 
 - **Auto-save は未実装**: SAVE ボタンの明示的な押下のみで保存される
-- **Project は localStorage 保存**: ブラウザのデータ消去で失われる。Export 未実装のため注意
+- **Project は localStorage 保存**: ブラウザのデータ消去で失われる。Export（EXP / export all ↓）で JSON バックアップを取ること
 - **Builder state のリマウント**: Project LOAD 時に `builderReloadKey` をインクリメントしてリマウント。次フェーズで Builder の controlled 化（state lift up）を検討
 - **DELETE は作業内容を消さない**: 保存済みのスナップショットのみ削除し、現在の作業 state は残る（active の場合は `currentProjectId` / `projectName` / `savedSnapshot` の紐付けを解除）
 - **NEW は CLEAR SESSION 相当**: Builder state / genreLock / subStyles / centerTab などのセッション設定は消えない
-- **Import 機能は未実装**: Export した JSON ファイルの読み込みによる Project 復元は未実装。Export は EXP ボタン（単体）/ `export all ↓` ボタン（全件）で実行可能。Import が必要な場合は DevTools で `mora-project-<id>` / `mora-project-list` を手動操作するか、次フェーズの Import 実装を待つこと
+- **Import は基本機能のみ実装**: `restore ↑`（元 ID 保持）/ `as new ↑`（新 ID）の 2 モードで JSON を読み込める。上書き Import・差分 Import・Import 前プレビューは未実装
 - **lint は exit code 1（pre-existing errors）**: 各 Phase の変更起因の新規エラーはなし。`npm run build` は全フェーズで通過。pre-existing errors は `react-hooks/set-state-in-effect`（mount effect 内 setState）・`react/jsx-no-comment-textnodes`（複数コンポーネント）など
 - **SongProjectMeta の summary は再 SAVE まで更新されない**: 既存 Project は一覧に summary が出ないが壊れない。SAVE / SAVE AS を実行すると `lyricsContentLines` / `hasStyle` / `hasNeg` / `lyricsPreview` が生成される
 
