@@ -247,7 +247,6 @@ npm install
 ### 起動（ブラウザ版）
 
 ```bash
-cd /d C:\Users\ojari\Documents\mora-exe
 npm run dev
 # → http://localhost:3000
 ```
@@ -257,16 +256,10 @@ npm run dev
 
 ### Claude API 設定
 
-プロジェクトルートに `.env.local` を作成：
-
-```
-C:\Users\ojari\Documents\mora-exe\.env.local
-```
-
-内容：
+プロジェクトルート（`mora-exe/` 直下）に `.env.local` を作成：
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxx
+ANTHROPIC_API_KEY=your_api_key_here
 ```
 
 APIキーは [Anthropic Console](https://console.anthropic.com/) で発行。  
@@ -349,10 +342,7 @@ Stop-Process -Id <PID> -Force
 | `No ANTHROPIC_API_KEY` | `.env.local` 未読込またはフォルダ違い | プロジェクトルートで `npm run dev` を実行しているか確認 |
 | `503` | Claude API 不使用または障害 | rule-based フォールバックで動作（Source Alchemy は動作不可） |
 
-`.env.local` の場所：
-```
-C:\Users\ojari\Documents\mora-exe\.env.local
-```
+`.env.local` はプロジェクトルート直下に置くこと。
 
 ### Source Alchemy が動かない
 
