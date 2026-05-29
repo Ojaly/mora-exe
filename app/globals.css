@@ -131,7 +131,7 @@ textarea { caret-color: #2563EB; }
 .pe-tag     { color: #2563EB; font-weight: 700; }
 .pe-val     { color: #1E293B; }
 .pe-section { color: #7C3AED; font-weight: 600; }
-.pe-plain   { color: #475569; }
+.pe-plain   { color: #334155; }
 
 /* ── LyricsEditor token colors ────────────────────────────────────────────── */
 .le-tag {
