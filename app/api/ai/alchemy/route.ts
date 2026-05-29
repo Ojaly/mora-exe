@@ -34,7 +34,7 @@ metaphors must be tactile — texture, smell, weight, temperature, sound.
 chorusHookIdeas = emotional image hooks, not literal statements about the event.
 worldSeed = the one sentence a songwriter needs to enter this world.
 
-OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
+OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \n if a newline is needed.
 {
   "sourceSummary": "1-sentence abstract, zero proper nouns, describes the emotional/structural shape of what happened",
   "reactionCore": ["3-5 raw emotion words distilled from user reaction — JP or EN"],
@@ -47,6 +47,58 @@ OUTPUT: Return ONLY valid JSON (no markdown, no code fences):
   "worldSeed": "1-2 sentence World Seed for World Forge — JP preferred, zero proper nouns, poetic not journalistic"
 }`;
 
+// ─── JSON helpers ────────────────────────────────────────────────────────────
+
+/** JSON string 値内の未エスケープ control character を安全に escape する（状態機械方式） */
+function sanitizeControlChars(json: string): string {
+  const ESC: Record<string, string> = {
+    "\n": "\\n", "\r": "\\r", "\t": "\\t",
+    "\b": "\\b", "\f": "\\f",
+  };
+  let inString = false, escaped = false;
+  const out: string[] = [];
+  for (const c of json) {
+    if (escaped)               { out.push(c); escaped = false; continue; }
+    if (c === "\\" && inString){ out.push(c); escaped = true;  continue; }
+    if (c === '"')             { inString = !inString; out.push(c); continue; }
+    if (inString && c.charCodeAt(0) < 0x20) {
+      out.push(ESC[c] ?? `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+      continue;
+    }
+    out.push(c);
+  }
+  return out.join("");
+}
+
+/** コードフェンス除去 → JSON object 抽出（string-aware） → control char sanitize → parse */
+function extractJson(text: string, meta?: { rawLength: number; finishReason?: string }): Record<string, unknown> {
+  const s = text.trim()
+    .replace(/^```(?:json)?\r?\n?/, "")
+    .replace(/\r?\n?```$/, "");
+  const start = s.indexOf("{");
+  if (start === -1) throw new Error("No JSON object found in Gemini response");
+
+  // string-aware ブラケット深さ探索 — JSON string 内の { } は無視する
+  let depth = 0, end = -1;
+  let inStr = false, esc = false;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (esc)             { esc = false; continue; }
+    if (c === "\\" && inStr) { esc = true; continue; }
+    if (c === '"')       { inStr = !inStr; continue; }
+    if (inStr)           { continue; }
+    if (c === "{")       { depth++; }
+    else if (c === "}") { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end === -1) {
+    const hint = meta
+      ? ` (rawLength=${meta.rawLength}, finishReason=${meta.finishReason ?? "unknown"})`
+      : "";
+    throw new Error(`Unterminated JSON in Gemini response${hint}`);
+  }
+  return JSON.parse(sanitizeControlChars(s.slice(start, end + 1)));
+}
+
 // ─── Gemini REST helper ───────────────────────────────────────────────────────
 
 async function callGemini(
@@ -54,9 +106,9 @@ async function callGemini(
   systemPrompt: string,
   userPrompt: string,
   maxOutputTokens: number,
-): Promise<string> {
+): Promise<{ text: string; finishReason?: string }> {
   const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
     method: "POST",
@@ -67,6 +119,7 @@ async function callGemini(
       generationConfig: {
         maxOutputTokens,
         response_mime_type: "application/json",
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
   });
@@ -77,12 +130,13 @@ async function callGemini(
   }
 
   const data = await res.json() as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[];
   };
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini returned empty content");
-  return text;
+  return { text, finishReason: candidate?.finishReason };
 }
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
@@ -131,8 +185,13 @@ ${desiredTone ? `\nDESIRED TONE: ${desiredTone}` : ""}${avoidNote}
 Transmute this into universal poetic material for music. Return JSON only.`;
 
   try {
-    const raw = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt, 1200);
-    const parsed = JSON.parse(raw) as AlchemyResult;
+    const { text: raw, finishReason } = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt, 2500);
+    if (process.env.NODE_ENV !== "production") {
+      const preview = raw.slice(0, 300).replace(/[\x00-\x1f]/g, (c) => `\\x${c.charCodeAt(0).toString(16).padStart(2, "0")}`);
+      console.log("[mora/alchemy] raw preview:", preview);
+      console.log(`[mora/alchemy] rawLength=${raw.length} finishReason=${finishReason ?? "unknown"}`);
+    }
+    const parsed = extractJson(raw, { rawLength: raw.length, finishReason }) as unknown as AlchemyResult;
     return NextResponse.json(parsed);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -60,6 +60,20 @@
 | rule-based fallback クラッシュ修正 | `91cd434` | `mood: ""` 時に `charCodeAt(0)` が `NaN` → `?? 0` では補正されず `buildThemeLines` でクラッシュ。`lib/lyricsBuilder.ts` を `\|\| 0` に変更、`lib/themeExtractor.ts` に `Number.isFinite` ガードを追加 |
 | Source Alchemy の Gemini API 化 | `6f482a8` | `app/api/ai/alchemy/route.ts` を Anthropic SDK から Gemini REST API（fetch）に切り替え。`GEMINI_API_KEY` を使用。`gemini-2.0-flash` / `response_mime_type: "application/json"` |
 
+#### Gemini 手動テスト結果（2026-05-29）
+
+| 項目 | 結果 |
+|---|---|
+| API call 到達 | ✅ `/api/ai/alchemy` → Google Gemini API まで到達確認 |
+| `GEMINI_API_KEY` 読み込み | ✅ `.env.local` から正常に読み込まれている |
+| レスポンス | ❌ `429 RESOURCE_EXHAUSTED` — prepayment credits 枯渇 |
+| コード不具合 | なし（実装自体は正常）|
+| 次アクション | Google AI Studio / Gemini API でクレジット補充後に再テスト |
+
+> **⚠ 正常 JSON レスポンスの確認（`songWorld` / `metaphors` / `worldSeed` / `chorusHookIdeas` フィールド揃い / FORGE WORLD 連携）は credits 補充後に実施すること。コード修正は不要。**
+
+---
+
 #### Gemini 移行状態
 
 | エンドポイント | プロバイダー | fallback |
@@ -596,7 +610,7 @@ npm.cmd run dev
 
 優先度順（暫定）:
 
-1. **Source Alchemy の Gemini 手動テスト確認** — JSON parse 安定性 / 全フィールド返却確認
+1. **Source Alchemy の Gemini 手動テスト確認** — ⚠ **Gemini credits 枯渇中**（下記参照）。credits 補充後に正常レスポンスを確認すること
 2. **generate / rewrite / forge の Gemini 化検討** — `lib/llmClient.ts` で provider 抽象化してから段階移行
 3. **Sidebar chip 文字サイズ（A/B/C）** — mobile 確認しながら段階的に検討
 4. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
