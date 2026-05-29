@@ -5,7 +5,7 @@
 | 項目 | 状態 |
 |---|---|
 | Branch | `master` |
-| 最新コミット | `1505c50 feat: add project rename and refresh` |
+| 最新コミット | `1ebe94e feat: add inline project delete confirmation` |
 | origin/master | 同期済み |
 | Working tree | clean |
 
@@ -26,6 +26,7 @@
 | CLEAR SESSION | `0368062` | Sidebar 下部に confirm 付きボタン |
 | start-dev.bat | `868733f` | `%~dp0` ベース、Windows 用起動スクリプト |
 | Project保存 Phase 1 | `d7074a2`〜`1505c50` | 下記参照 |
+| Project保存 Phase 2 | `a5857a8`〜`1ebe94e` | 下記参照（**完了**） |
 
 ---
 
@@ -78,17 +79,106 @@ Builder state は `PromptBuilder12Panel` 内部 state として管理されて�
 
 ### Project 操作の挙動まとめ
 
-| 操作 | 作業 state への影響 | localStorage への影響 |
+| 操作 | 作業 state への影響 | localStorage / state への影響 |
 |---|---|---|
-| SAVE | なし（snapshot を書き出すだけ） | `mora-project-<id>` / `mora-project-list` を更新 |
-| LOAD | 全 state を復元 + analyse 再実行 | 個別キーも上書き、Builder は remount |
-| DELETE | 作業 state はそのまま、`currentProjectId` のみ外す | `mora-project-<id>` 削除 + list 更新 |
-| NEW | CLEAR SESSION 相当 + Project 紐付け解除 | 個別キーは persist effect 経由で消える |
-| RENAME | name/updatedAt のみ更新 | payload + list の name を更新 |
+| SAVE | なし（snapshot を書き出すだけ） | `mora-project-<id>` / `mora-project-list` を更新、`savedSnapshot` 更新 |
+| SAVE AS | なし（新規 ID で書き出す） | 新 `mora-project-<id>` 作成、`currentProjectId` / `projectName` / `savedSnapshot` を新 Project に切り替え |
+| LOAD | 全 state を復元 + analyse 再実行 | 個別キーも上書き、Builder は remount、`savedSnapshot` 更新 |
+| DELETE | 作業 state はそのまま | `mora-project-<id>` 削除 + list 更新。active の場合は `currentProjectId` / `projectName` / `savedSnapshot` も解除 |
+| NEW | CLEAR SESSION 相当 + Project 紐付け解除 | 個別キーは persist effect 経由で消える、`savedSnapshot` クリア |
+| RENAME | name/updatedAt のみ更新 | payload + list の name を更新。active の場合は Sidebar の `projectName` も同期 |
 
 ---
 
-## 4. Negative Prompt 周りの詳細
+## 4. Project保存 Phase 2 の詳細（**完了**）
+
+> **⚠ 次に Project 周りを触る場合は Export/Import または Auto-save 以降から着手すること。**
+> **Rename / Delete / Save As はすべて実装済み。重複実装しないこと。**
+
+### フェーズ構成
+
+| Phase | コミット | 内容 |
+|---|---|---|
+| 2-A | `a5857a8` | `ProjectListPanel` に ACTIVE バッジ + LOAD 前 `window.confirm` |
+| 2-B | `a845175` | Unsaved changes indicator（`savedSnapshot` / `isDirty` / SAVE ● amber） |
+| Save As | `7cba51f` | `handleSaveAsProject` + `readBuilderSteps()` 共通化 + Sidebar "save as new project →" |
+| Inline Rename | `3cebe04` | `editingId/editingName` state + Enter/Escape + `onRename(id, newName)` シグネチャ変更 |
+| Inline Delete | `1ebe94e` | `confirmDeleteId` state + YES,DELETE/CANCEL + `setSavedSnapshot(null)` on active delete |
+
+### Unsaved changes の設計（Phase 2-B）
+
+**dirty 判定対象フィールド:**
+```
+input, preset, expansion, lyrics, stylePrompt, stylePromptOverride,
+negPrompt, regenPrompt, structureMode, structurePreset, builderSections, libraryIds
+```
+
+**除外フィールド:**
+| 除外 | 理由 |
+|---|---|
+| `projectName` | 入力中に dirty になると煩わしい |
+| `builderSteps` | `PromptBuilder12Panel` 内部 state で page.tsx から直接読めない |
+| `history` | rewrite ごとに変わる内部履歴 |
+| `notes` | 常に空 |
+
+**実装:**
+```typescript
+// page.tsx
+const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+
+const currentSnapshot = useMemo(() =>
+  JSON.stringify({ input, preset, expansion, lyrics, stylePrompt, stylePromptOverride,
+    negPrompt, regenPrompt, structureMode, structurePreset, builderSections, libraryIds }),
+  [/* 上記フィールド */]
+);
+
+const isDirty = currentProjectId !== null
+  && savedSnapshot !== null
+  && currentSnapshot !== savedSnapshot;
+```
+
+**各操作での `savedSnapshot` 更新:**
+| 操作 | savedSnapshot |
+|---|---|
+| SAVE / SAVE AS | `currentSnapshot` をセット |
+| LOAD | ロードした project フィールドを serialize してセット |
+| NEW | `null` にクリア |
+| DELETE（active） | `null` にクリア |
+| CLEAR SESSION | 変更なし → 自動的に dirty になる（正しい動作） |
+
+**SAVE ボタン外観:**
+| 状態 | スタイル | ラベル |
+|---|---|---|
+| 通常 | zinc ボーダー | `SAVE` |
+| dirty | amber ボーダー / amber 背景 | `SAVE ●` |
+| 保存直後 | emerald ボーダー / emerald 背景 | `✓ Saved`（1.8 秒） |
+
+### Inline Rename の設計（`ProjectListPanel` 内部）
+
+```typescript
+const [editingId,   setEditingId]   = useState<string | null>(null);
+const [editingName, setEditingName] = useState("");
+```
+
+- REN ボタン → `startEditing(id, name)` — 削除確認状態をキャンセル
+- Enter → `commitRename(id)` — 空文字なら保存しない
+- Escape / ✕ → `cancelRename()`
+- `onRename` シグネチャ: `(id: string, newName: string) => void`（page.tsx の `handleRenameProject` で処理）
+
+### Inline Delete の設計（`ProjectListPanel` 内部）
+
+```typescript
+const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+```
+
+- DEL ボタン → `startConfirmDelete(id)` — rename 編集状態をキャンセル
+- `[YES, DELETE]` → `commitDelete(id)` → `onDelete(id)` を呼ぶ
+- `[CANCEL]` → `cancelConfirmDelete()`
+- 削除確認中: 名前テキストが赤色 + 日時部分に "Delete this project? This cannot be undone." を表示
+
+---
+
+## 5. Negative Prompt 周りの詳細
 
 ### Builder Negative preview
 
@@ -117,7 +207,7 @@ return existing ? `${existing}, ${neg}` : neg;
 
 ---
 
-## 5. 現在の起動方法
+## 6. 現在の起動方法
 
 ```bat
 # Windows — ダブルクリック起動
@@ -133,33 +223,36 @@ npm.cmd run dev
 
 ---
 
-## 6. 次回候補タスク
+## 7. 次回候補タスク
 
 優先度順（暫定）:
 
-1. **Current Project 表示強化** — PROJECT セクションに現在ロード中の Project 名バッジを表示
-2. **Unsaved changes 表示** — Save 後に state が変化したら "unsaved" インジケーターを表示
-3. **Save As / Duplicate** — 現在の Project を別名で複製保存
-4. **Project Export / Import** — JSON ファイルとして書き出し / 読み込み
-5. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
-6. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
-7. **npm build 確認** — production build でエラーが出ないか確認
-8. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+1. **Project Export / Import** — JSON ファイルとして書き出し / 読み込み
+2. **Auto-save** — currentProjectId がある場合に debounce で自動上書き保存
+3. **Builder state 持ち上げ** — `PromptBuilder12Panel` の state を page.tsx へ lift up（key リマウント不要に）
+4. **EXE 化調査** — Tauri / Electron との統合調査（`src-tauri` ディレクトリ存在確認済み）
+
+> 完了済みのため次回候補から除外:
+> - ~~Current Project 表示強化~~ → Phase 2-A で完了
+> - ~~Unsaved changes 表示~~ → Phase 2-B で完了
+> - ~~Save As / Duplicate~~ → 完了
+> - ~~npm build 確認~~ → 各フェーズで通過確認済み
 
 ---
 
-## 7. 注意事項
+## 8. 注意事項
 
 - **Auto-save は未実装**: SAVE ボタンの明示的な押下のみで保存される
 - **Project は localStorage 保存**: ブラウザのデータ消去で失われる。Export 未実装のため注意
 - **Builder state のリマウント**: Project LOAD 時に `builderReloadKey` をインクリメントしてリマウント。次フェーズで Builder の controlled 化（state lift up）を検討
-- **DELETE は作業内容を消さない**: 保存済みのスナップショットのみ削除し、現在の作業 state は残る（`currentProjectId` の紐付けのみ解除）
+- **DELETE は作業内容を消さない**: 保存済みのスナップショットのみ削除し、現在の作業 state は残る（active の場合は `currentProjectId` / `projectName` / `savedSnapshot` の紐付けを解除）
 - **NEW は CLEAR SESSION 相当**: Builder state / genreLock / subStyles / centerTab などのセッション設定は消えない
 - **Export 機能は未実装**: `mora-project-list` / `mora-project-<id>` を直接 DevTools で確認可能
+- **lint は exit code 1（pre-existing errors）**: 各 Phase の変更起因の新規エラーはなし。`npm run build` は全フェーズで通過。pre-existing errors は `react-hooks/set-state-in-effect`（mount effect 内 setState）・`react/jsx-no-comment-textnodes`（複数コンポーネント）など
 
 ---
 
-## 8. 既存 localStorage キー一覧
+## 9. 既存 localStorage キー一覧
 
 | キー | 内容 | 管理箇所 |
 |---|---|---|
