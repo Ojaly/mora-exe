@@ -489,6 +489,7 @@ export default function Home() {
   const [showProjectList, setShowProjectList] = useState(false);
   const [builderReloadKey, setBuilderReloadKey] = useState(0);
   const [projectListRefreshKey, setProjectListRefreshKey] = useState(0);
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   // Memory panel
   const [showMemory, setShowMemory] = useState(false);
@@ -604,6 +605,17 @@ export default function Home() {
   const hasOverride = stylePromptOverride.trim().length > 0;
   // Display-time effective style prompt — override takes priority over generated value
   const effectiveStylePrompt = hasOverride ? stylePromptOverride : stylePrompt;
+
+  // Unsaved changes detection — snapshot of fields captured by handleSaveProject
+  const currentSnapshot = useMemo(() =>
+    JSON.stringify({
+      input, preset, expansion, lyrics, stylePrompt, stylePromptOverride,
+      negPrompt, regenPrompt, structureMode, structurePreset, builderSections, libraryIds,
+    }),
+    [input, preset, expansion, lyrics, stylePrompt, stylePromptOverride,
+     negPrompt, regenPrompt, structureMode, structurePreset, builderSections, libraryIds]
+  );
+  const isDirty = currentProjectId !== null && savedSnapshot !== null && currentSnapshot !== savedSnapshot;
 
   /**
    * Returns the structure string to send to the API.
@@ -1025,6 +1037,7 @@ export default function Home() {
 
     saveProject(project);
     setCurrentProjectId(id);
+    setSavedSnapshot(currentSnapshot);
     setProjectSaveFlash(true);
     setTimeout(() => setProjectSaveFlash(false), 1800);
     setProjectListRefreshKey((k) => k + 1);
@@ -1056,6 +1069,7 @@ export default function Home() {
     if (!window.confirm("Start a new project? Current unsaved changes will be cleared.")) return;
     setCurrentProjectId(null);
     setProjectName("");
+    setSavedSnapshot(null);
     handleClearSession();
   };
 
@@ -1087,6 +1101,20 @@ export default function Home() {
       // Update project tracking
       setProjectName(project.name);
       setCurrentProjectId(project.id);
+      setSavedSnapshot(JSON.stringify({
+        input: project.input,
+        preset: project.worldPreset,
+        expansion: project.expansion,
+        lyrics: project.lyrics,
+        stylePrompt: project.stylePrompt,
+        stylePromptOverride: project.stylePromptOverride,
+        negPrompt: project.negPrompt,
+        regenPrompt: project.regenPrompt,
+        structureMode: project.structureMode,
+        structurePreset: project.structurePreset,
+        builderSections: project.builderSections,
+        libraryIds: project.libraryIds,
+      }));
 
       // Write builder steps back to localStorage and remount the panel
       try {
@@ -1365,6 +1393,7 @@ export default function Home() {
             onProjectNameChange={setProjectName}
             onSaveProject={handleSaveProject}
             projectSaveFlash={projectSaveFlash}
+            isProjectDirty={isDirty}
             onOpenProjectList={() => setShowProjectList(true)}
             onNewProject={handleNewProject}
           />
@@ -1646,6 +1675,7 @@ export default function Home() {
               onProjectNameChange={setProjectName}
               onSaveProject={handleSaveProject}
               projectSaveFlash={projectSaveFlash}
+              isProjectDirty={isDirty}
               onOpenProjectList={() => setShowProjectList(true)}
               onNewProject={handleNewProject}
             />

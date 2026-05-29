@@ -59,6 +59,7 @@ interface Props {
   onProjectNameChange?: (name: string) => void;
   onSaveProject?: () => void;
   projectSaveFlash?: boolean;
+  isProjectDirty?: boolean;
   onOpenProjectList?: () => void;
   onNewProject?: () => void;
 }
@@ -380,6 +381,7 @@ export default function Sidebar({
   onProjectNameChange,
   onSaveProject,
   projectSaveFlash = false,
+  isProjectDirty = false,
   onOpenProjectList,
   onNewProject,
 }: Props) {
@@ -504,10 +506,12 @@ export default function Sidebar({
                 className={`flex-1 h-8 text-[12px] font-mono font-bold rounded border transition-all ${
                   projectSaveFlash
                     ? "border-emerald-400 text-emerald-700 bg-emerald-50"
+                    : isProjectDirty
+                    ? "border-amber-400 text-amber-700 bg-amber-50 hover:border-amber-500 hover:bg-amber-100"
                     : "border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
                 }`}
               >
-                {projectSaveFlash ? "✓ Saved" : "SAVE"}
+                {projectSaveFlash ? "✓ Saved" : isProjectDirty ? "SAVE ●" : "SAVE"}
               </button>
               <button
                 onClick={onOpenProjectList}
