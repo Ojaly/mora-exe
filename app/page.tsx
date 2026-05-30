@@ -713,7 +713,7 @@ export default function Home() {
   const [loadingMode, setLoadingMode] = useState<RewriteMode | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [rewriteNotes, setRewriteNotes] = useState<string>("");
-  const [rewriteSource, setRewriteSource] = useState<"claude" | "rule" | null>(null);
+  const [rewriteSource, setRewriteSource] = useState<"gemini" | "rule" | null>(null);
   const [changedLines, setChangedLines] = useState<number[]>([]);
 
   // Rewrite controls
@@ -974,7 +974,7 @@ export default function Home() {
           if (data.lyrics) {
             setLyricsRaw(data.lyrics);
             analyse(data.lyrics);
-            if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("claude"); }
+            if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("gemini"); }
             setIsGenerating(false);
             return;
           }
@@ -1020,7 +1020,7 @@ export default function Home() {
         if (data.lyrics) {
           setLyricsRaw(data.lyrics);
           analyse(data.lyrics);
-          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("claude"); }
+          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("gemini"); }
           setIsGenerating(false);
           return;
         }
@@ -1065,7 +1065,7 @@ export default function Home() {
       setLyricsRaw(merged);
       analyse(merged);
       setRewriteNotes(result.notes ?? "");
-      setRewriteSource("claude");
+      setRewriteSource("gemini");
       // Compute actual diff from original → merged so highlights are always accurate,
       // regardless of whether Claude's changedLines array was for "all" or a sub-section.
       setChangedLines(computeLineDiff(lyrics, merged));
@@ -1126,7 +1126,7 @@ export default function Home() {
         if (data.lyrics) {
           setLyricsRaw(data.lyrics);
           analyse(data.lyrics);
-          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("claude"); }
+          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("gemini"); }
           setIsGenerating(false);
           return;
         }
@@ -1557,11 +1557,11 @@ export default function Home() {
         </button>
         {rewriteSource && (
           <span className={`shrink-0 text-[12px] font-mono font-bold px-2.5 py-0.5 rounded border ${
-            rewriteSource === "claude"
+            rewriteSource === "gemini"
               ? "border-blue-300 text-blue-700 bg-blue-50"
               : "border-[var(--border-muted)] text-zinc-700 bg-zinc-100"
           }`}>
-            {rewriteSource === "claude" ? "Claude AI" : "ルールベース"}
+            {rewriteSource === "gemini" ? "Gemini AI" : "ルールベース"}
           </span>
         )}
       </div>

@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
     const parsed = extractJson(raw, { rawLength: raw.length, finishReason }) as Partial<WorldExpansion>;
 
     if (parsed.musicDirection) {
-      parsed.musicDirection.source = "claude";
+      parsed.musicDirection.source = "gemini";
     } else {
       const desc = extractThemeDescriptors(worldSeed);
       const motifs = extractThemeMotifsForLyrics(worldSeed);

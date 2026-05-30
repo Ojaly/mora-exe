@@ -171,11 +171,11 @@ export default function WorldForge({
             <div className="flex items-center gap-2">
               {source && (
                 <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
-                  source === "claude"
+                  source === "gemini"
                     ? "border-blue-200 text-blue-600 bg-blue-50"
                     : "border-zinc-300 text-zinc-500 bg-zinc-50"
                 }`}>
-                  {source === "claude" ? "AI" : "RULE"}
+                  {source === "gemini" ? "AI" : "RULE"}
                 </span>
               )}
               <button

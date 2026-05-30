@@ -75,7 +75,7 @@ export default function SourceAlchemy({ onSetWorldSeed }: Props) {
       });
 
       if (res.status === 503) {
-        setError("Source Alchemy requires Claude API — .env.local に ANTHROPIC_API_KEY を追加してください");
+        setError("Source Alchemy requires Gemini API — .env.local に GEMINI_API_KEY を追加してください");
         return;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

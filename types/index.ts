@@ -225,7 +225,7 @@ export interface MusicDirection {
   instruments: string[];
   /** 3-5 mood/atmosphere words (EN) */
   moodWords:   string[];
-  source:      "claude" | "rule";
+  source:      "gemini" | "rule";
 }
 
 export interface WorldExpansion {

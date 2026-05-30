@@ -96,7 +96,7 @@ export default function MusicDirectionPanel({ direction, lyricsDirection }: Prop
 
       {direction.source === "rule" && (
         <p className="text-[10px] font-mono text-zinc-400 mt-1 pl-1">
-          rule-based estimate — Claude Forgeでより精密な推論が可能
+          rule-based estimate — World ForgeでGemini AIによる精密な推論が可能
         </p>
       )}
     </div>
