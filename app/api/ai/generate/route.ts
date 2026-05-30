@@ -795,6 +795,11 @@ function chorusLineCounts(lyrics: string): number[] {
   return counts;
 }
 
+const NEAR_DUP_VERB_ENDINGS = [
+  "畳む", "拭く", "飲む", "噛む", "出る", "拾う",
+  "戻す", "鳴る", "見る", "開ける", "数える", "折る",
+];
+
 function detectNearDuplicate(lyrics: string): string | null {
   function keyTokens(line: string): string[] {
     const kanji = line.match(/[一-鿿]{2,}/g) ?? [];
@@ -807,6 +812,12 @@ function detectNearDuplicate(lyrics: string): string | null {
     const shared = keyTokens(lines[i + 1]).filter(w => setA.has(w));
     if (shared.length > 0) {
       return `near duplicate: "${shared[0]}" in [${lines[i].slice(0, 20)}] / [${lines[i + 1].slice(0, 20)}]`;
+    }
+    const verbA = NEAR_DUP_VERB_ENDINGS.filter(v => lines[i].includes(v));
+    const verbB = NEAR_DUP_VERB_ENDINGS.filter(v => lines[i + 1].includes(v));
+    const sharedVerbs = verbA.filter(v => verbB.includes(v));
+    if (sharedVerbs.length > 0) {
+      return `near duplicate (verb): "${sharedVerbs[0]}" in [${lines[i].slice(0, 20)}] / [${lines[i + 1].slice(0, 20)}]`;
     }
   }
   return null;
@@ -961,10 +972,14 @@ async function repairAbstractDrift(
     `  Replace with concrete sensory action: 「丼の底まで タレを拾う」「箸袋を折る」\n` +
     `- NORMALIZE: Replace all 赤提灯 with 赤ちょうちん.\n` +
     `- NEAR DUPLICATE LINES: Do not repeat the same key noun or verb in consecutive lines.\n` +
-    `  If two adjacent lines share 麦茶 / レシート / 畳む / タレ / 山椒 etc., replace one:\n` +
+    `  This includes verb-ending duplicates where both lines end with the same verb.\n` +
+    `  If two adjacent lines share 麦茶 / レシート / タレ / 山椒 etc., replace one.\n` +
+    `  If two adjacent lines end with the same verb (畳む / 拭く / 飲む / 噛む etc.), replace one.\n` +
     `  「水滴残る麦茶を」+「麦茶をひと口飲む」→「麦茶の氷が鳴る」+「おしぼりで首を拭く」\n` +
     `  「カサカサのレシートを畳む」+「割り箸の袋を畳む」→ keep first, replace second:\n` +
     `  「カサカサのレシートを畳む」+「小銭を数えて暖簾を出る」\n` +
+    `  「おしぼりで首を拭く」+「顔を拭く」→ keep first, replace second:\n` +
+    `  「おしぼりで首を拭く」+「麦茶をひと口飲む」\n` +
     `- INCOMPLETE LINES: A line that ends with a dangling particle (が/を/に/で/は as final char)\n` +
     `  must be fixed: either drop the particle (taigen-dome) or complete the phrase.\n` +
     `  「タレの甘い匂いが」→「タレの甘い匂い」(drop particle) or「タレの甘い匂いが漂う」\n` +
@@ -1014,6 +1029,10 @@ async function repairAbstractDrift(
     `  「赤ちょうちんのタレの焦げ目」→「赤ちょうちん」+「タレの焦げ目」(split into 2 lines)\n` +
     `  「レシートまで含めた庶民的な夏の歌」→「レシート七百八十円」\n` +
     `  [Final Chorus extra line]「競馬をみんな絶対に楽しむんだ」→ DELETE this line (cap at 6)\n` +
+    `  [Verb ending duplicate] 「カサカサのレシートを畳む」+「割り箸の袋を畳む」\n` +
+    `    → 「カサカサのレシートを畳む」+「小銭を数えて暖簾を出る」\n` +
+    `  [Verb ending duplicate] 「おしぼりで首を拭く」+「顔を拭く」\n` +
+    `    → 「おしぼりで首を拭く」+「麦茶をひと口飲む」\n` +
     `  Any line whose only function is atmosphere or emotion-label → replace with source evidence.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
     `Return ONLY valid JSON: {"lyrics": "<repaired lyrics with all section tags>"}`;
