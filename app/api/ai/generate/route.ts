@@ -501,16 +501,22 @@ function detectAbstractDrift(lyrics: string): string | null {
   return reasons.length > 0 ? reasons.join("; ") : null;
 }
 
-/** Counts total lyric lines inside [Chorus] and [Final Chorus] sections. */
-function countChorusLines(lyrics: string): number {
+/** Returns per-section line counts for [Chorus] and [Final Chorus] sections. */
+function chorusLineCounts(lyrics: string): number[] {
+  const counts: number[] = [];
   const lines = lyrics.split("\n");
   let inChorus = false, count = 0;
   for (const line of lines) {
     const t = line.trim();
-    if (t.startsWith("[")) { inChorus = /^\[(Chorus|Final Chorus)/i.test(t); continue; }
+    if (t.startsWith("[")) {
+      if (inChorus) { counts.push(count); count = 0; }
+      inChorus = /^\[(Chorus|Final Chorus)/i.test(t);
+      continue;
+    }
     if (inChorus && t) count++;
   }
-  return count;
+  if (inChorus) counts.push(count);
+  return counts;
 }
 
 async function repairAbstractDrift(
@@ -538,6 +544,13 @@ async function repairAbstractDrift(
     `  Do not substitute source vocabulary with generic alternatives.\n` +
     `- Do not use dream, hope, silence, fading, gone, goodbye, quiet, or scenery as the\n` +
     `  emotional payload of a line.\n` +
+    `- Do not keep lines using 報われる, 報われる瞬間, 報われる瞬間がない, or 報われなかった.\n` +
+    `  Replace them with concrete source evidence: a PAT record, a payout amount of 0, a\n` +
+    `  notebook mark, a betting slip, a prediction note, or a quoted phrase from the SOURCE.\n` +
+    `- In Pre-Chorus and Breakdown, do not use 夢, 希望, 報われる, or reward/hope language\n` +
+    `  as the main emotional payload. Use a concrete action or named record instead.\n` +
+    `- After repair, the lyrics must not contain the abstract phrases that were detected.\n` +
+    `  If a detected phrase appears, replace it directly — do not paraphrase around it.\n` +
     `- Do not compress the lyric into a summary or report. Keep it singable.\n` +
     `  A repaired line should still feel like a lyric, not a sentence that explains the theme.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
@@ -642,10 +655,10 @@ export async function POST(req: NextRequest) {
         console.log("[mora/generate] repair skipped — callGemini returned null");
       }
       // Post-repair analysis (log regardless of repair success)
-      const chorusLines = countChorusLines(finalLyrics);
+      const counts = chorusLineCounts(finalLyrics);
       const residualDrift = detectAbstractDrift(finalLyrics);
       console.log(
-        "[mora/generate] post-repair — Chorus lines:", chorusLines,
+        `[mora/generate] post-repair — Chorus count:${counts.length} lines:${JSON.stringify(counts)}`,
         "| residual:", residualDrift ?? "none",
         "| length:", finalLyrics.length,
       );
