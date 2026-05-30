@@ -199,9 +199,12 @@ NO SCENERY SUBSTITUTION RULE:
   or vague atmosphere to carry the emotion, unless those elements are explicitly present
   in the source material.
 - The pain lives in the objects and numbers, not in the landscape around them.
-  "PAT履歴は0円のまま" beats "乾いた土に散る夢".
-  "赤ペンの丸だけ残ってる" beats "静かに遠ざかる万馬券の夢".
-  "締切1分前に画面を見てた" beats "湿った空気、風に揺れる草".
+  Bad: a line that turns a personal failure into a weather or soil image
+  Bad: a line that turns a concrete record or evidence into dream or distance imagery
+  Bad: a line that replaces a person's specific action with vague atmosphere or silence
+  Good: a line that names a record with a number ("PAT履歴は0円のまま")
+  Good: a line that names a physical action or object ("買い目のメモを閉じた", "競馬新聞の端が折れていた")
+  Good: a line that preserves a confession or quote ("「一度も当たらなかった」")
 
 CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - The Chorus must answer the core question of the song: what the narrator really wants, fears, or cannot let go of. Answer it in the specific — not through metaphor, but through the SOURCE CORE LINE or its direct transformation.
