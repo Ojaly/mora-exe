@@ -166,7 +166,7 @@ QUALITY:
 - Match energy and pacing to the structure type: a Dance Drop should feel physically urgent; a Ballad Narrative should breathe slowly.
 - Verse lines accumulate: build a concrete scene line by line. Each line adds a new object, sensation, or angle.
 - Pre-Chorus tightens: emotional pressure rises, perspective narrows, tension is unresolved.
-- Chorus delivers the thesis: 4–6 lines that form a complete emotional statement. Do not reduce the Chorus to compact poetic fragments — build it out. A 3-line chorus is a fragment; a 5-line chorus is a statement. Each Chorus line earns its place by adding a new dimension to the central hook.
+- Chorus delivers the claim: in a full song, aim for 5–6 lines — give the emotional statement room to land. Each line adds a new dimension to the SOURCE CORE LINE. End on the specific (the object, the number, the confession), not on a wide image that opens everything back up.
 - Hook/Drop lines must be short and physically urgent — 3–4 lines, built for repetition.
 - Bridge/Scene Change shifts perspective or time.
 - No over-explanation. Trust the image.
@@ -192,19 +192,14 @@ RAW REALITY RULE:
   "forgotten voice", "under a gray sky" unless directly anchored to a source detail.
 
 CHORUS RULE — applies to [Chorus] and [Final Chorus]:
-- The Chorus must state the core claim of the song: what the narrator really wants, fears, or cannot let go of. Answer that question directly in the Chorus.
-- At least one concrete motif from the Quick Idea must appear in the Chorus — an object, action, place, phrase, or recurring image drawn from the theme.
-- Do not fill the Chorus with generic emotion words (dream, hope, pain, light, darkness) unless each one is directly anchored to a concrete motif from the theme. Generic words alone are not a thesis.
-- A strong Chorus has both: one concrete anchor image AND one emotional thesis line.
-- The Chorus crystallizes the world built in the Verse — it does not escape it into abstraction.
-- The Chorus must carry the SOURCE CORE LINE or its direct transformation — not a paraphrase, not a softened version.
-- A complete Chorus contains all three: the SOURCE CORE LINE (or its direct transformation),
-  at least one ordinary concrete detail from the source (a record, object, habit, or number),
-  and one emotional thesis line. Missing any of the three makes the Chorus incomplete.
-- Do not let the Chorus end after only the SOURCE CORE LINE — use the remaining lines
-  to complete the emotional statement with concrete ordinary detail and thesis.
-- If the Chorus opens with the source quote, follow it with concrete ordinary detail,
-  not generic imagery.
+- The Chorus must answer the core question of the song: what the narrator really wants, fears, or cannot let go of. Answer it in the specific — not through metaphor, but through the SOURCE CORE LINE or its direct transformation.
+- The SOURCE CORE LINE is the non-negotiable anchor. Preserve its rhythm, phrasing, or raw charge. Do not soften, paraphrase, or elevate it into poetry.
+- A strong Chorus weaves all three naturally: the SOURCE CORE LINE, at least one ordinary concrete detail from the source (an object, record, habit, or number), and the emotional claim. These need not occupy separate dedicated lines — they can share a line, overlap across two, or accumulate through the full run.
+- Do not approach the Chorus as a three-slot checklist. Let the SOURCE CORE LINE drive; let concrete detail and emotional weight follow from it organically in the remaining lines.
+- Do not fill the Chorus with generic emotion words (dream, hope, pain, light, darkness) unless each one is directly anchored to a concrete motif from the theme.
+- The Chorus crystallizes the world built in the Verse — it does not escape into abstraction.
+- Avoid abstract poetic closure: the last Chorus line should not open out into a wide, universal image ("the light fades", "silence remains", "the world keeps turning"). End on the specific — the object, the number, the action, the confession.
+- For a full song (Verse + Chorus + Bridge structure), prefer 5–6 lines for the main [Chorus]. A 4-line Chorus risks ending before the emotional statement has room to land.
 
 BILINGUAL RULE (applies whenever English words or lines appear):
 - English phrases must NOT translate or restate the adjacent Japanese line.
