@@ -146,7 +146,10 @@ HARD RULES:
 - [Final Chorus]: 5–6 lines. Emotionally complete. May include one small variation from the main Chorus to mark the close.
 - [Bridge]: 4–6 lines. Shifts perspective or time; stay grounded in source-specific imagery.
 - [Breakdown]: 2–4 lines. Short and concrete — a phrase, object, number, or action. Not atmospheric filler.
-- [Interlude]: 1–2 lines only. Use a minimal lyric fragment tied to the source; do not fill with vague atmosphere.
+- [Interlude]: 1–2 lines only. Use a minimal lyric fragment tied to the source — a number,
+  object, action, or quoted phrase. Do not fill with vague atmosphere. If English appears
+  in an Interlude or Breakdown, it must be a source-specific hook, not atmospheric poetry
+  (no "fading", "slowly", "quietly", "silence", "goodbye", "distant", "dream").
 - [Drop] [Hook] [Final Hook]: 3–4 lines. Short, physically urgent, built for repetition.
 - [Spoken Intro]: narrative, atmospheric, no melody required; 2–3 lines.
 - [Scene Change]: 2–3 lines, shifts perspective or time.
@@ -171,8 +174,12 @@ QUALITY:
 - Concrete > abstract. Name the thing. "うどんの麺が震える" beats "何かが溢れる".
 - Obsessive, abnormal, or absurd themes need MATCHING imagery — lean into the weirdness.
 - Match energy and pacing to the structure type: a Dance Drop should feel physically urgent; a Ballad Narrative should breathe slowly.
-- Verse lines accumulate: build a concrete scene line by line. Each line adds a new object, sensation, or angle.
-- Pre-Chorus tightens: emotional pressure rises, perspective narrows, tension is unresolved.
+- Verse lines accumulate: build a concrete scene line by line. A Verse must contain at
+  least two distinct source details — named objects, records, numbers, or actions. Lines
+  that only set atmosphere without naming anything from the source fail this standard.
+- Pre-Chorus tightens: build tension from a concrete action, record, or named detail from
+  the source. End on unresolved tension. Do not use abstract passion, distance, or vague
+  atmosphere as the primary driver.
 - Chorus delivers the claim: in a full song, aim for 5–6 lines — give the emotional statement room to land. Each line adds a new dimension to the SOURCE CORE LINE. End on the specific (the object, the number, the confession), not on a wide image that opens everything back up.
 - Hook/Drop lines must be short and physically urgent — 3–4 lines, built for repetition.
 - Bridge/Scene Change shifts perspective or time.
@@ -215,6 +222,14 @@ NO SCENERY SUBSTITUTION RULE:
   Good: a line that names a record with a number ("PAT履歴は0円のまま")
   Good: a line that names a physical action or object ("買い目のメモを閉じた", "競馬新聞の端が折れていた")
   Good: a line that preserves a confession or quote ("「一度も当たらなかった」")
+- Do not invent scenic domain imagery just because the topic suggests it. If the source
+  evidence consists of records, notes, screens, habits, and quoted speech — stay there.
+  Do not add topically typical atmosphere (racetrack soil, wind in the stands, distant
+  weather, stadium sounds) unless the source explicitly contains those elements.
+- For any domain-specific topic, the source's actual evidence defines the imagery.
+  A source may be about horse racing yet contain only PAT records, red pen marks,
+  prediction notebooks, payout amounts, and a confession. Write from those — not from
+  what the domain "typically" looks and feels like.
 - For Breakdown, Interlude, Bridge, and Outro: close with a concrete object, number,
   repeated action, quoted phrase, or unresolved human gesture — not with scenery,
   silence, fading, goodbye, wind, sky, soil, rain, or dream imagery.
@@ -261,6 +276,10 @@ Also check section balance:
 - If a Verse is shorter than the Pre-Chorus or Chorus without a clear reason, expand it with concrete source details.
 - If an Interlude, Breakdown, or Outro exceeds its target length with vague atmosphere, shorten it or replace with a concrete phrase or action.
 - If [Chorus] repeats in the structure, keep lyrics mostly consistent across repetitions — allow small variation only in [Final Chorus].
+Also scan for invented scenic domain imagery: if a line adds topically typical scenery
+(weather, soil, wind, crowd, stadium atmosphere) that is not present in the source
+evidence, replace it with something the source actually contains — a record, object,
+number, quoted phrase, or named action.
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
