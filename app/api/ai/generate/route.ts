@@ -181,6 +181,13 @@ BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me 
   Explanatory-prose patterns (banned — convert to scene or action):
   "ただの〜じゃなく" "と思わせる" "という理由" "〜の理由がある"
   These read as analysis or essay prose, not lyrics. Convert to a concrete scene or action.
+  Abstract-summary convenience labels (banned — replace with price, object, physical action):
+  "質素な贅沢" "ささやかな贅沢" "小さな満足" "ささやかな満足" "小さな喜び"
+  "日常の儀式" "いつもの儀式" "儀式" (as generic habit label)
+  These describe experience from outside. Replace: 「タレ多めの並ひとつ」「レシート七百八十円」
+  Seasonal / poetic filler (banned — replace with source-specific concrete detail):
+  "夏の終わり" "熱い日々" "また来年も" "過ぎ去る季節" "惜しむように"
+  "胸に広がる" "ぼやけて見えた" "目に滲む"
 
 VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
   lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
@@ -201,6 +208,12 @@ QUALITY:
 - Hook/Drop lines must be short and physically urgent — 3–4 lines, built for repetition.
 - Bridge/Scene Change shifts perspective or time.
 - No over-explanation. Trust the image.
+- In the Chorus, a short declarative hook of 3–5 morae anchors the section harder than a full
+  explanation. Lead with the concrete verdict, then expand: 「養殖でいい」「並でいい」「タレでいい」
+  「今日これでいい」「払い戻しは0円」. This lands before the listener's brain can reject it.
+- Verse and Bridge must close on a physical action or object, not an introspective summary.
+  Bad: 「今日の味覚を記憶する」「また来る理由を探してる」「何を探してるか分からない」
+  Good: 「割り箸の袋を畳んでる」「ポイントカードを財布に戻す」「小銭を数えて暖簾を出る」
 
 META-LANGUAGE RULE:
 - Do not use analytical meta-words in the final lyrics: core, thesis, theme, claim,
@@ -209,6 +222,18 @@ META-LANGUAGE RULE:
 - Express the emotional center as an image, confession, action, or concrete phrase.
 - Lines like "that's the core of it all" or "this is the theme" are analysis, not poetry.
 - Avoid any line that reads like a lyricist explaining what the song is about.
+
+ABSTRACT SUMMARY RULE:
+- Do not describe the experience from the outside using editorial convenience labels.
+  「質素な贅沢」「ささやかな満足」「日常の儀式」are how a journalist summarizes an experience —
+  not how the narrator lives it. Replace with the specific price, object, or action.
+  Bad: 「質素な贅沢、夏の終わり」→ editorial label
+  Good: 「タレ多めの並ひとつ」「レシート七百八十円」→ the experience itself
+- Do not close a section with an introspective question or unresolved search that reads like
+  the lyricist's commentary: 「また来る理由を探してる」「何を探してるか分からない」「この味が忘れられない」
+  End instead on a physical gesture, object, or action: 「ポイントカードを財布に戻す」「小銭を数えて暖簾を出る」
+- 「儀式」is a meta-label. Do not use it to describe a habit. Name the habit directly:
+  the object handled, the price paid, the sequence of small actions.
 
 RAW REALITY RULE:
 - Do not polish the source wound into generic literary sadness.
@@ -518,6 +543,29 @@ const WEAK_POETIC_JP: RegExp[] = [
   /静かに.*離れていく/,
   /夢を見せ/,
   /一言だけ残して/,
+  /夏の終わり/,
+  /熱い日々/,
+  /また来年も/,
+  /過ぎ去る季節/,
+  /惜しむように/,
+  /胸に広がる/,
+  /ぼやけて見えた/,
+  /目に滲む/,
+  /また来る理由.*探して/,
+  /何を探してる.*分からない/,
+  /今日の.*味覚.*記憶/,
+  /この味.*残るだろう/,
+];
+
+const ABSTRACT_SUMMARY_JP: RegExp[] = [
+  /質素な贅沢/,
+  /ささやかな贅沢/,
+  /ささやかな満足/,
+  /小さな満足/,
+  /小さな喜び/,
+  /日常の儀式/,
+  /いつもの儀式/,
+  /の儀式/,
 ];
 
 const SLOGANY_ENDING_JP: RegExp[] = [
@@ -584,6 +632,11 @@ function detectAbstractDrift(lyrics: string): string | null {
     // Explanatory prose check: applies to all sections
     for (const pat of EXPLANATORY_PROSE_JP) {
       if (pat.test(t)) { reasons.push(`explanatory prose: "${t.slice(0, 40)}"`); break; }
+    }
+
+    // Abstract summary convenience label check: applies to all sections
+    for (const pat of ABSTRACT_SUMMARY_JP) {
+      if (pat.test(t)) { reasons.push(`abstract summary: "${t.slice(0, 40)}"`); break; }
     }
 
     if (kind === "final_chorus") {
@@ -737,6 +790,23 @@ async function repairAbstractDrift(
     `  「その一言が響く」→「一度も当たらなかった、とだけ書いてあった」\n` +
     `  「負け慣れた背中」→「ハズレ券を引き出しに入れた」\n` +
     `  「人は去っていく」→「PAT口座の残高を確認した」\n\n` +
+    `- ABSTRACT SUMMARY REPLACEMENT: Lines using editorial convenience labels must be replaced\n` +
+    `  with the specific price, object, or physical action from the SOURCE.\n` +
+    `  「質素な贅沢」「ささやかな贅沢」「小さな満足」「ささやかな満足」「日常の儀式」「いつもの儀式」\n` +
+    `  are all banned. Replace each with what the narrator actually touches, pays, or does.\n` +
+    `  Example replacements from the source world:\n` +
+    `  「質素な贅沢、夏の終わり」→「タレ多めの並ひとつ」\n` +
+    `  「ささやかな満足、また来週」→「レシート七百八十円」\n` +
+    `  「日常の儀式、日が暮れて」→「割り箸の袋を畳んでる」\n` +
+    `  「この味だけは残るだろう」→「山椒の袋だけポケットに入れた」\n` +
+    `- SECTION ENDINGS: Verse and Bridge must not close on introspective summary or open question.\n` +
+    `  Replace with a concrete physical action the narrator performs:\n` +
+    `  「今日の味覚を記憶する」→「割り箸の袋を畳んでる」\n` +
+    `  「また来る理由を探してる」→「ポイントカードを財布に戻す」\n` +
+    `  「何を探してるか分からない」→「小銭を数えて暖簾を出る」\n` +
+    `  「この味が忘れられない」→「空の重箱に山椒だけ残った」\n` +
+    `- SEASONAL FILLER: Replace weather/season filler with source-specific concrete details.\n` +
+    `  「夏の終わり」「熱い日々」「また来年も」「過ぎ去る季節」→ an object, number, or action.\n\n` +
     `FEW-SHOT REPAIR EXAMPLES (apply the same logic to similar lines):\n` +
     `  「その声が響く」→「払い戻しは0円のまま」\n` +
     `  「その一言が響く」→「一度も当たらなかった、と画面に出た」\n` +
@@ -750,6 +820,11 @@ async function repairAbstractDrift(
     `  「万馬券はただの高配当じゃなく」→「赤い的中表示が欲しかった」\n` +
     `  「また来週も競馬したいと思わせる」→「日曜の夜にまた印を打つ」\n` +
     `  「また来週の夢」→「また来週の買い目」\n` +
+    `  「質素な贅沢、夏の終わり」→「タレ多めの並ひとつ」\n` +
+    `  「ささやかな満足、また来週」→「レシート七百八十円」\n` +
+    `  「日常の儀式、日が暮れて」→「割り箸の袋を畳んでる」\n` +
+    `  「この味だけは残るだろう」→「山椒の袋だけポケットに入れた」\n` +
+    `  「養殖うなぎ、それで十分」→「養殖でいい」\n` +
     `  [Final Chorus extra line]「競馬をみんな絶対に楽しむんだ」→ DELETE this line (cap at 6)\n` +
     `  Any line whose only function is atmosphere or emotion-label → replace with source evidence.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
@@ -864,6 +939,7 @@ export async function POST(req: NextRequest) {
       const residualWeak          = residualDrift?.includes("weak poetic")           ? "detected" : "none";
       const residualGenericPos    = residualDrift?.includes("generic positive")      ? "detected" : "none";
       const residualExplanatory   = residualDrift?.includes("explanatory prose")     ? "detected" : "none";
+      const residualAbstractSum   = residualDrift?.includes("abstract summary")      ? "detected" : "none";
       const residualKaikan        = residualDrift?.includes("快感 overuse")          ? "detected" : "none";
       const finalChorusOverflow   = detectFinalChorusOverflow(finalLyrics)           ? "detected" : "none";
       console.log(
@@ -872,6 +948,7 @@ export async function POST(req: NextRequest) {
         `| en_slogan:${residualEnSlogan}`,
         `| weird_mixed_lang:${residualMixed}`,
         `| weak_poetic:${residualWeak}`,
+        `| abstract_summary:${residualAbstractSum}`,
         `| generic_positive_ending:${residualGenericPos}`,
         `| explanatory_prose:${residualExplanatory}`,
         `| kaikan_overuse:${residualKaikan}`,
