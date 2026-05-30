@@ -100,7 +100,7 @@ async function callGemini(
 function langInstruction(ratio: string): string {
   if (ratio === "high") return "Write mostly in English (80%+). Japanese words ok as texture or flavor. Each English line must carry its own image or hook — not restate adjacent content in another language.";
   if (ratio === "mixed") return "Mix Japanese and English. English must NOT translate or restate the Japanese line — use English as hooks, inner voice, sonic texture, or rhythmic fragments that add a new image or emotional angle. Avoid bilingual mirror lines where both languages say the same thing.";
-  return "Write mostly in Japanese (80%+). English phrases ok for flavor.";
+  return "Write entirely in Japanese. Do not use English words, phrases, or fragments anywhere in the lyrics — including Verse, Chorus, Interlude, Breakdown, Outro, and Bridge. Every line must be in Japanese.";
 }
 
 const SYSTEM_PROMPT = `You are a Suno AI lyricist writing for professional music production.
@@ -164,6 +164,10 @@ BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me 
   "loneliness in the crowd" "city lights below" "tears in the rain"
   "街の灯り" "光の海" "君の笑顔" "翼を広げて" "空に向かって"
   "蛍光灯" "滲んだ街明かり" "雨に濡れた街" "夜明け前" "光と影" "誰もいない部屋" (generic AI filler)
+  Japanese weak-poetic fillers (banned — replace with source-specific evidence):
+  "声が響く" "熱が冷めていく" "静かに閉じた" "胸に残る" "指先の熱" "光を探す"
+  "その声が響" "胸が痛い" "心が揺れる" "魂が叫ぶ" "未来へ向かう" "報われる瞬間"
+  These are emotional labels, not evidence. Replace with source records, numbers, objects, actions.
 
 VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
   lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
@@ -285,6 +289,16 @@ BILINGUAL RULE (applies whenever English words or lines appear):
   just silence", or any construction that reduces the source to an abstract lesson or
   feeling. If English appears in these sections, make it source-tied: a number, a
   fragment of the source confession, or a specific physical action.
+
+JAPANESE-ONLY RULE:
+- When the LANGUAGE parameter says "Write entirely in Japanese", every lyric line must be in
+  Japanese — Verse, Pre-Chorus, Chorus, Bridge, Breakdown, Interlude, Outro, and all others.
+- Do not add English hooks, slogans, summary phrases, or texture fragments in any section.
+- Interlude and Breakdown are not places for English commentary or motivational slogans.
+  Bad: "Winning is the快感" / "Not just money" / "fading out" / "just silence"
+  Good: 「当たりの画面が見たかった」 / 「金だけじゃなかった」 / 「買い目のメモを閉じた」
+- If the source material contains specific English quotations or proper nouns, use them exactly
+  as quoted. Do not invent English phrases as "flavor" or "texture".
 
 PRE-FINALIZE SCAN — do this before writing the JSON output:
 Scan every line of every section. If any line's only function is mood, scenery,
@@ -452,6 +466,24 @@ const ABSTRACT_LINE_JP: RegExp[] = [
   /^でも夢が/,
 ];
 
+const WEAK_POETIC_JP: RegExp[] = [
+  /声が響く/,
+  /熱が冷めていく/,
+  /静かに閉じた/,
+  /胸に残る/,
+  /光を探す/,
+  /指先の熱/,
+  /その声が響/,
+  /心が揺れ/,
+  /魂が叫/,
+  /未来へ向か/,
+];
+
+const MIXED_LANG_WEIRD: RegExp[] = [
+  /[A-Za-z]{2,}\s+is\s+(the\s+)?[぀-ヿ一-鿿]/i,
+  /^Not\s+just\s+[A-Za-z]+$/i,
+];
+
 /** Returns a reason string if abstract drift is detected, null if clean. */
 function detectAbstractDrift(lyrics: string): string | null {
   const reasons: string[] = [];
@@ -482,13 +514,26 @@ function detectAbstractDrift(lyrics: string): string | null {
     }
     if (!t) continue;
 
+    // Mixed-language weirdness check: applies to all sections
+    for (const pat of MIXED_LANG_WEIRD) {
+      if (pat.test(t)) { reasons.push(`weird mixed-lang: "${t.slice(0, 40)}"`); break; }
+    }
+
     if (kind === "chorus_etc") {
       for (const pat of ABSTRACT_LINE_JP) {
         if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
       }
+      for (const pat of WEAK_POETIC_JP) {
+        if (pat.test(t)) { reasons.push(`weak poetic: "${t.slice(0, 40)}"`); break; }
+      }
     } else if (kind === "verse_pre") {
       const m = t.match(/夢|希望|報われる|報われた/g);
       if (m) verseAbstractCount += m.length;
+    } else {
+      // "other" sections (Bridge etc) — check weak poetic
+      for (const pat of WEAK_POETIC_JP) {
+        if (pat.test(t)) { reasons.push(`weak poetic: "${t.slice(0, 40)}"`); break; }
+      }
     }
 
     if (reasons.length >= 3) break;
@@ -517,6 +562,29 @@ function chorusLineCounts(lyrics: string): number[] {
   }
   if (inChorus) counts.push(count);
   return counts;
+}
+
+function analyzeRepairDiff(before: string, after: string): { repairedLines: number; repairedSections: string[] } {
+  const beforeSet = new Set(
+    before.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("["))
+  );
+  const sectionSet = new Set<string>();
+  let currentSection = "Unknown";
+  let repairedLines = 0;
+  for (const line of after.split("\n")) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t.startsWith("[")) {
+      const m = t.match(/^\[([^\]]+)\]/);
+      if (m) currentSection = m[1];
+      continue;
+    }
+    if (!beforeSet.has(t)) {
+      repairedLines++;
+      sectionSet.add(currentSection);
+    }
+  }
+  return { repairedLines, repairedSections: [...sectionSet] };
 }
 
 async function repairAbstractDrift(
@@ -552,7 +620,21 @@ async function repairAbstractDrift(
     `- After repair, the lyrics must not contain the abstract phrases that were detected.\n` +
     `  If a detected phrase appears, replace it directly — do not paraphrase around it.\n` +
     `- Do not compress the lyric into a summary or report. Keep it singable.\n` +
-    `  A repaired line should still feel like a lyric, not a sentence that explains the theme.\n\n` +
+    `  A repaired line should still feel like a lyric, not a sentence that explains the theme.\n` +
+    `- Replace weak poetic Japanese phrases with source evidence:\n` +
+    `  「声が響く」「熱が冷めていく」「静かに閉じた」「胸に残る」「指先の熱」「光を探す」\n` +
+    `  These are emotional labels. Replace with a record, object, number, or action from SOURCE.\n` +
+    `- Replace mixed-language lines where English and Japanese are grammatically fused unnaturally.\n` +
+    `  If the surrounding lyrics are Japanese-dominant, translate the entire line into Japanese.\n\n` +
+    `FEW-SHOT REPAIR EXAMPLES (apply the same logic to similar lines):\n` +
+    `  「その声が響く」→「払い戻しは0円のまま」\n` +
+    `  「指先の熱が冷めていく」→「締切前の画面を閉じた」\n` +
+    `  「静かに閉じた」→「買い目のメモを消した」\n` +
+    `  「胸に残る」→「ハズレ券だけが残った」\n` +
+    `  "Winning is the快感"→「当たりの画面が見たかった」\n` +
+    `  "Not just money"→「金だけじゃなかった」\n` +
+    `  「また来週の夢」→「また来週の買い目」\n` +
+    `  Any line whose only function is atmosphere or emotion-label → replace with source evidence.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
     `Return ONLY valid JSON: {"lyrics": "<repaired lyrics with all section tags>"}`;
 
@@ -634,6 +716,7 @@ export async function POST(req: NextRequest) {
       const quickIdea = input.theme?.trim() || input.title?.trim() || "";
       console.log("[mora/generate] abstract drift detected:", driftReason);
       console.log("[mora/generate] repair start — pre-length:", finalLyrics.length);
+      const preRepairLyrics = finalLyrics;
       const repairResult = await repairAbstractDrift(apiKey, finalLyrics, quickIdea);
       if (repairResult) {
         try {
@@ -654,14 +737,26 @@ export async function POST(req: NextRequest) {
       } else {
         console.log("[mora/generate] repair skipped — callGemini returned null");
       }
-      // Post-repair analysis (log regardless of repair success)
+      // Post-repair analysis
       const counts = chorusLineCounts(finalLyrics);
       const residualDrift = detectAbstractDrift(finalLyrics);
+      const { repairedLines, repairedSections } = analyzeRepairDiff(preRepairLyrics, finalLyrics);
+      const residualJpAbstract = residualDrift?.includes("JP abstract") ? "detected" : "none";
+      const residualEnSlogan   = residualDrift?.includes("EN slogan")   ? "detected" : "none";
+      const residualMixed      = residualDrift?.includes("weird mixed")  ? "detected" : "none";
+      const residualWeak       = residualDrift?.includes("weak poetic")  ? "detected" : "none";
       console.log(
         `[mora/generate] post-repair — Chorus count:${counts.length} lines:${JSON.stringify(counts)}`,
-        "| residual:", residualDrift ?? "none",
-        "| length:", finalLyrics.length,
+        `| jp_abstract:${residualJpAbstract}`,
+        `| en_slogan:${residualEnSlogan}`,
+        `| weird_mixed_lang:${residualMixed}`,
+        `| weak_poetic:${residualWeak}`,
+        `| repaired_lines:${repairedLines}`,
+        `| sections:${repairedSections.join(",") || "none"}`,
       );
+      if (residualDrift) {
+        console.log("[mora/generate] post-repair residual detail:", residualDrift);
+      }
     }
 
     return NextResponse.json({
