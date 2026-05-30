@@ -640,6 +640,7 @@ const EXPLANATORY_PROSE_JP: RegExp[] = [
   /十分うまい/,
   /高い天然/,
   /庶民的な/,
+  /最高級/,
 ];
 
 const META_LYRIC_JP: RegExp[] = [
@@ -647,6 +648,7 @@ const META_LYRIC_JP: RegExp[] = [
   /庶民的な.*歌/,
   /これは.*歌/,
   /まで含めた.*歌/,
+  /.*まで.*歌/,
   /夏の歌/,
 ];
 
@@ -902,10 +904,14 @@ async function repairAbstractDrift(
     `  Compress explanatory contrast sentences into short hook phrases.\n` +
     `  Bad: 「高い天然うなぎじゃなくても養殖うなぎで十分うまい」(prose copy)\n` +
     `  Good: 「養殖でいい」「タレでいい」(compressed hook)\n` +
-    `  Pattern to fix: any line containing 「じゃなくても」「十分うまい」「高い天然」「庶民的な」\n` +
+    `  Pattern to fix: any line containing 「じゃなくても」「十分うまい」「高い天然」「庶民的な」「最高級」\n` +
+    `  These MUST be replaced — do not leave them in the output even if the rest of the line is OK.\n` +
+    `  「最高級じゃなくても」→「並の札を裏返す」\n` +
+    `  「高い天然うなぎじゃなくても」→「養殖でいい」\n` +
     `- META LYRIC: Lines that describe the song rather than living inside it must be replaced.\n` +
-    `  「夏の歌」「庶民的な夏の歌」「レシートまで含めた夏の歌」→ replace with the specific\n` +
-    `  object or action: 「レシート七百八十円」「並の札が裏返る」\n` +
+    `  These MUST be replaced — leaving them is not acceptable.\n` +
+    `  「夏の歌」「庶民的な夏の歌」「レシートまで夏の歌」「レシートまで含めた夏の歌」\n` +
+    `  → replace with the specific object or action: 「レシート七百八十円」「並の札が裏返る」\n` +
     `- WEAK SENSORY FILLER: 「心を撫でる」「撫でる」「静かな笑顔」「ふわり」「の」(line-end).\n` +
     `  Replace with concrete sensory action: 「丼の底まで タレを拾う」「箸袋を折る」\n` +
     `- NORMALIZE: Replace all 赤提灯 with 赤ちょうちん.\n\n` +
@@ -928,8 +934,12 @@ async function repairAbstractDrift(
     `  「この味だけは残るだろう」→「山椒の袋だけポケットに入れた」\n` +
     `  「養殖うなぎ、それで十分」→「養殖でいい」\n` +
     `  「高い天然うなぎじゃなくても」→「養殖でいい」\n` +
+    `  「最高級じゃなくても」→「並の札を裏返す」\n` +
     `  「養殖うなぎで十分うまい」→「タレでいい」\n` +
+    `  「レシートまで夏の歌」→「レシート七百八十円」\n` +
     `  「レシートまで含めた夏の歌」→「レシート七百八十円」\n` +
+    `  「冷たいおしぼり首筋に」→「おしぼりで首を拭く」\n` +
+    `  「山椒ひと振り 舌が痺れ」→「山椒ひと振り 舌が痺れる」\n` +
     `  「庶民的な夏の歌」→「並の札が裏返る」\n` +
     `  「ただこの焦げ目が 心を撫でる」→「丼の底まで タレを拾う」\n` +
     `  「隣の席では 静かな笑顔」→「隣の席で 箸袋を折る」\n` +
@@ -949,6 +959,25 @@ async function repairAbstractDrift(
     );
     return null;
   }
+}
+
+// ─── Deterministic cleanup ───────────────────────────────────────────────────
+
+const DETERMINISTIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
+  [/最高級じゃなくても/g,              "並の札を裏返す"],
+  [/冷たいおしぼり首筋に[ \t]*$/gm,    "おしぼりで首を拭く"],
+  [/舌が痺れ[ \t]*$/gm,               "舌が痺れる"],
+  [/赤提灯/g,                         "赤ちょうちん"],
+];
+
+function applyDeterministicCleanup(lyrics: string): { text: string; replacedCount: number } {
+  let text = lyrics;
+  let replacedCount = 0;
+  for (const [pat, replacement] of DETERMINISTIC_REPLACEMENTS) {
+    const next = text.replace(pat, replacement);
+    if (next !== text) { replacedCount++; text = next; }
+  }
+  return { text, replacedCount };
 }
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
@@ -1073,6 +1102,23 @@ export async function POST(req: NextRequest) {
       if (residualDrift) {
         console.log("[mora/generate] post-repair residual detail:", residualDrift);
       }
+    }
+
+    // Always apply deterministic cleanup as final pass
+    const { text: cleanedLyrics, replacedCount: cleanCount } = applyDeterministicCleanup(finalLyrics);
+    if (cleanCount > 0) {
+      console.log(`[mora/generate] deterministic cleanup — ${cleanCount} pattern(s) replaced`);
+      finalLyrics = cleanedLyrics;
+    }
+
+    // Final quality check (always runs)
+    const finalResidual = detectAbstractDrift(finalLyrics);
+    console.log(
+      `[mora/generate] final — quality_warning:${finalResidual ? "detected" : "none"}`,
+      cleanCount > 0 ? `| deterministic_replacements:${cleanCount}` : "",
+    );
+    if (finalResidual) {
+      console.log("[mora/generate] final residual detail:", finalResidual);
     }
 
     return NextResponse.json({
