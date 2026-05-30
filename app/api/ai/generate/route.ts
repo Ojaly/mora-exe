@@ -452,30 +452,65 @@ const ABSTRACT_LINE_JP: RegExp[] = [
   /^でも夢が/,
 ];
 
-const REPAIR_TARGET_RE = /^\[(Chorus|Final Chorus|Outro|Finale|Breakdown|Interlude)/i;
-
 /** Returns a reason string if abstract drift is detected, null if clean. */
 function detectAbstractDrift(lyrics: string): string | null {
   const reasons: string[] = [];
 
+  // 1. English slogan check (whole-lyrics)
   for (const pat of ABSTRACT_SIGNALS_EN) {
     if (pat.test(lyrics)) { reasons.push(`EN slogan: /${pat.source}/`); break; }
   }
 
+  // 2. Section-aware scan: strict check for Chorus/Outro/Breakdown/Interlude,
+  //    lighter count-based check for Verse/Pre-Chorus
   const lines = lyrics.split("\n");
-  let inTarget = false;
+  type SectionKind = "chorus_etc" | "verse_pre" | "other";
+  let kind: SectionKind = "other";
+  let verseAbstractCount = 0;
+
   for (const line of lines) {
     const t = line.trim();
-    if (t.startsWith("[")) { inTarget = REPAIR_TARGET_RE.test(t); continue; }
-    if (inTarget && t) {
+    if (t.startsWith("[")) {
+      if (/^\[(Chorus|Final Chorus|Outro|Finale|Breakdown|Interlude)/i.test(t)) {
+        kind = "chorus_etc";
+      } else if (/^\[(Verse|Pre-Chorus)/i.test(t)) {
+        kind = "verse_pre";
+      } else {
+        kind = "other";
+      }
+      continue;
+    }
+    if (!t) continue;
+
+    if (kind === "chorus_etc") {
       for (const pat of ABSTRACT_LINE_JP) {
         if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
       }
+    } else if (kind === "verse_pre") {
+      const m = t.match(/夢|希望|報われる|報われた/g);
+      if (m) verseAbstractCount += m.length;
     }
+
     if (reasons.length >= 3) break;
   }
 
+  if (verseAbstractCount >= 2) {
+    reasons.push(`Verse/Pre-Chorus abstract terms ×${verseAbstractCount}`);
+  }
+
   return reasons.length > 0 ? reasons.join("; ") : null;
+}
+
+/** Counts total lyric lines inside [Chorus] and [Final Chorus] sections. */
+function countChorusLines(lyrics: string): number {
+  const lines = lyrics.split("\n");
+  let inChorus = false, count = 0;
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith("[")) { inChorus = /^\[(Chorus|Final Chorus)/i.test(t); continue; }
+    if (inChorus && t) count++;
+  }
+  return count;
 }
 
 async function repairAbstractDrift(
@@ -487,16 +522,24 @@ async function repairAbstractDrift(
     "You are a lyrics repair specialist. Fix abstract emotional drift. Return only valid JSON.";
   const userPrompt =
     `Revise the following song lyrics without changing the section order or section tags.\n\n` +
-    `SOURCE (Quick Idea — use this vocabulary as the preferred evidence pool):\n${quickIdea || "(none)"}\n\n` +
+    `SOURCE (Quick Idea — this is your evidence pool; use its actual vocabulary and objects):\n${quickIdea || "(none)"}\n\n` +
     `REPAIR RULES:\n` +
     `- Keep ALL [Section Tag] lines exactly as they appear.\n` +
     `- Keep the source core confession line in the Chorus.\n` +
     `- Keep the Chorus hook mostly consistent across repetitions.\n` +
-    `- Replace abstract emotional summaries with concrete evidence from the source:\n` +
-    `  records, numbers, objects, repeated actions, or quoted phrases.\n` +
+    `- Do not shorten sections aggressively. Keep each section close to its original line count.\n` +
+    `- For Chorus sections in a full song, keep 5–6 lines. Do not compress a Chorus to 4 lines\n` +
+    `  unless the original Chorus was already 4 lines and emotionally complete.\n` +
+    `- Each Chorus must include at least two concrete evidence items from the SOURCE:\n` +
+    `  records, numbers, notes, marks, tickets, screens, actions, or quoted phrases.\n` +
+    `- Replace abstract emotional summaries with concrete evidence: records, numbers, objects,\n` +
+    `  repeated actions, or quoted phrases drawn from the SOURCE above.\n` +
+    `- Read the SOURCE carefully and use the actual words, objects, and phrases it contains.\n` +
+    `  Do not substitute source vocabulary with generic alternatives.\n` +
     `- Do not use dream, hope, silence, fading, gone, goodbye, quiet, or scenery as the\n` +
     `  emotional payload of a line.\n` +
-    `- Prefer the specific vocabulary the source actually contains.\n\n` +
+    `- Do not compress the lyric into a summary or report. Keep it singable.\n` +
+    `  A repaired line should still feel like a lyric, not a sentence that explains the theme.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
     `Return ONLY valid JSON: {"lyrics": "<repaired lyrics with all section tags>"}`;
 
@@ -598,6 +641,14 @@ export async function POST(req: NextRequest) {
       } else {
         console.log("[mora/generate] repair skipped — callGemini returned null");
       }
+      // Post-repair analysis (log regardless of repair success)
+      const chorusLines = countChorusLines(finalLyrics);
+      const residualDrift = detectAbstractDrift(finalLyrics);
+      console.log(
+        "[mora/generate] post-repair — Chorus lines:", chorusLines,
+        "| residual:", residualDrift ?? "none",
+        "| length:", finalLyrics.length,
+      );
     }
 
     return NextResponse.json({
