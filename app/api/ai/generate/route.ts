@@ -347,6 +347,10 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
   Line 1–2: short declarative hook (「養殖でいい」「タレでいい」)
   Line 3–4: concrete noun or sensory object (「山椒ひと振り」「赤ちょうちん」)
   Line 5: concrete action or price (「麦茶で流す」「レシート七百八十円」)
+- The final line of the Chorus should land with weight. Prefer a completed action or
+  price over a bare noun fragment. A noun alone does not close the image.
+  Bad final line: 「冷たいおしぼり」
+  Good final line: 「おしぼりで首を拭く」「レシート七百八十円」「小銭を数えて暖簾を出る」
 
 FINAL CHORUS RULE — applies only to [Final Chorus]:
 - The Final Chorus is essentially a repeat of the main Chorus with at most ONE line changed.
@@ -625,6 +629,8 @@ const WEAK_POETIC_JP: RegExp[] = [
   /視線/,
   /見つめる/,
   /外へ$/,
+  /衣纏う/,
+  /まとう/,
 ];
 
 const ABSTRACT_SUMMARY_JP: RegExp[] = [
@@ -740,6 +746,11 @@ function detectAbstractDrift(lyrics: string): string | null {
       if (pat.test(t)) { reasons.push(`meta lyric: "${t.slice(0, 40)}"`); break; }
     }
 
+    // Weak poetic filler check: applies to ALL sections
+    for (const pat of WEAK_POETIC_JP) {
+      if (pat.test(t)) { reasons.push(`weak poetic: "${t.slice(0, 40)}"`); break; }
+    }
+
     // Dangling particle: applies to ALL sections (line ends with raw particle, length > 3)
     if (t.length > 3 && /[がをにでは]$/.test(t)) {
       reasons.push(`dangling particle: "${t.slice(0, 40)}"`);
@@ -754,17 +765,9 @@ function detectAbstractDrift(lyrics: string): string | null {
       for (const pat of ABSTRACT_LINE_JP) {
         if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
       }
-      for (const pat of WEAK_POETIC_JP) {
-        if (pat.test(t)) { reasons.push(`weak poetic: "${t.slice(0, 40)}"`); break; }
-      }
     } else if (kind === "verse_pre") {
       const m = t.match(/夢|希望|報われる|報われた/g);
       if (m) verseAbstractCount += m.length;
-    } else {
-      // "other" sections (Bridge etc) — check weak poetic
-      for (const pat of WEAK_POETIC_JP) {
-        if (pat.test(t)) { reasons.push(`weak poetic: "${t.slice(0, 40)}"`); break; }
-      }
     }
 
     if (reasons.length >= 3) break;
@@ -943,6 +946,11 @@ async function repairAbstractDrift(
     `  「店先に滲む」→「店先まで流れる」\n` +
     `  「おしぼり 滲んでゆく」→「おしぼりで首を拭く」\n` +
     `  「夕暮れが滲む窓辺」→「曇った窓に提灯が映る」\n` +
+    `- CHORUS FINAL LINE: The last line of each Chorus is the emotional landing point.\n` +
+    `  Prefer a concrete action, price, or physical evidence over a bare noun fragment.\n` +
+    `  Bad final line: 「冷たいおしぼり」(noun only — does not complete the image)\n` +
+    `  Good final line: 「おしぼりで首を拭く」「レシート七百八十円」「小銭を数えて暖簾を出る」\n` +
+    `  If the last Chorus line is a bare noun fragment with no action or price, replace it.\n` +
     `- CHORUS SELF-CONTAINED LINES: If a Chorus line ends with a dangling particle (が/を/に/で/は\n` +
     `  as the final character), fix it so the line stands alone grammatically.\n` +
     `  Bad: 「タレの焦げ目が」→ particle dangles\n` +
@@ -980,6 +988,12 @@ async function repairAbstractDrift(
     `  「カサカサのレシートを畳む」+「小銭を数えて暖簾を出る」\n` +
     `  「おしぼりで首を拭く」+「顔を拭く」→ keep first, replace second:\n` +
     `  「おしぼりで首を拭く」+「麦茶をひと口飲む」\n` +
+    `  Also check cross-section: if a Chorus ends with 麦茶/山椒/タレ/レシート and the next\n` +
+    `  section's first line repeats the same noun, replace the second occurrence:\n` +
+    `  Chorus: 「山椒ひと振り 麦茶で流す」+ next section: 「麦茶の氷が鳴る」\n` +
+    `  → Keep Chorus line; change next section opener: 「おしぼりで首を拭く」\n` +
+    `  Chorus: 「麦茶で流す」+ next section: 「麦茶の氷が鳴る」\n` +
+    `  → Keep Chorus line; change next section opener: 「レシートを財布に戻す」\n` +
     `- INCOMPLETE LINES: A line that ends with a dangling particle (が/を/に/で/は as final char)\n` +
     `  must be fixed: either drop the particle (taigen-dome) or complete the phrase.\n` +
     `  「タレの甘い匂いが」→「タレの甘い匂い」(drop particle) or「タレの甘い匂いが漂う」\n` +
@@ -1033,6 +1047,15 @@ async function repairAbstractDrift(
     `    → 「カサカサのレシートを畳む」+「小銭を数えて暖簾を出る」\n` +
     `  [Verb ending duplicate] 「おしぼりで首を拭く」+「顔を拭く」\n` +
     `    → 「おしぼりで首を拭く」+「麦茶をひと口飲む」\n` +
+    `  [Domain leakage — racing terms in non-racing source] 「また来週の買い目」→「タレ多めの並ひとつ」\n` +
+    `  [Domain leakage] 「馬券を握る」→「割り箸の袋を畳む」\n` +
+    `  [Chorus final line weak] 「冷たいおしぼり」(line is final, noun only) → 「おしぼりで首を拭く」\n` +
+    `  [Chorus final line weak] 「山椒ひと振り」(line is final) → 「山椒ひと振り 舌が痺れる」\n` +
+    `- DOMAIN INTEGRITY: If the SOURCE is about food/eel/restaurant and the lyrics contain\n` +
+    `  racing-domain terms (買い目/馬券/PAT履歴/万馬券/パドック/穴馬/ハズレ券), replace them:\n` +
+    `  「また来週の買い目」→「タレ多めの並ひとつ」or「レシート七百八十円」\n` +
+    `  「ハズレ券を引き出しに入れた」→「割り箸の袋を畳む」\n` +
+    `  These are vocabulary that leaked from prior racing prompts — remove them.\n` +
     `  Any line whose only function is atmosphere or emotion-label → replace with source evidence.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
     `Return ONLY valid JSON: {"lyrics": "<repaired lyrics with all section tags>"}`;
@@ -1052,7 +1075,7 @@ async function repairAbstractDrift(
 
 const DETERMINISTIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
   // Exact-phrase replacements (order matters: more specific first)
-  [/レシートまで含めた庶民的な夏の歌/g,  "レシート七百八十円"],
+  [/レシートまで含めた.*歌/g,             "レシート七百八十円"],
   [/最高級じゃなくても/g,               "並の札を裏返す"],
   [/あの夏の日と同じ/g,                 "麦茶の氷が鳴る"],
   [/このままの夏/g,                     "タレ多めの並ひとつ"],
@@ -1073,6 +1096,21 @@ function applyDeterministicCleanup(lyrics: string): { text: string; replacedCoun
     if (next !== text) { replacedCount++; text = next; }
   }
   return { text, replacedCount };
+}
+
+// ─── Domain leakage detection ────────────────────────────────────────────────
+
+const RACING_DOMAIN_TERMS = [
+  "買い目", "馬券", "PAT履歴", "万馬券", "パドック", "穴馬", "ハズレ券",
+];
+const RACING_INPUT_SIGNALS = ["競馬", "馬券", "PAT", "万馬券", "パドック", "穴馬", "競走馬"];
+
+function detectDomainLeakage(lyrics: string, quickIdea: string): string | null {
+  if (RACING_INPUT_SIGNALS.some(s => quickIdea.includes(s))) return null;
+  for (const term of RACING_DOMAIN_TERMS) {
+    if (lyrics.includes(term)) return `racing domain leakage: "${term}"`;
+  }
+  return null;
 }
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
@@ -1136,10 +1174,12 @@ export async function POST(req: NextRequest) {
     }
 
     let finalLyrics = typeof parsed.lyrics === "string" ? parsed.lyrics : "";
-    const driftReason = finalLyrics ? detectAbstractDrift(finalLyrics) : null;
+    const quickIdea = input.theme?.trim() || input.title?.trim() || "";
+    const driftReason = finalLyrics
+      ? (detectAbstractDrift(finalLyrics) ?? detectDomainLeakage(finalLyrics, quickIdea))
+      : null;
 
     if (driftReason) {
-      const quickIdea = input.theme?.trim() || input.title?.trim() || "";
       console.log("[mora/generate] abstract drift detected:", driftReason);
       console.log("[mora/generate] repair start — pre-length:", finalLyrics.length);
       const preRepairLyrics = finalLyrics;
@@ -1207,15 +1247,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Final quality check (always runs)
-    const finalResidual   = detectAbstractDrift(finalLyrics);
-    const nearDupResult   = detectNearDuplicate(finalLyrics);
+    const finalResidual    = detectAbstractDrift(finalLyrics);
+    const nearDupResult    = detectNearDuplicate(finalLyrics);
+    const domainLeakResult = detectDomainLeakage(finalLyrics, quickIdea);
     console.log(
       `[mora/generate] final — quality_warning:${finalResidual ? "detected" : "none"}`,
+      `| domain_leakage:${domainLeakResult ? "detected" : "none"}`,
       `| near_duplicate:${nearDupResult ? "detected" : "none"}`,
       `| deterministic_replacements:${cleanCount}`,
     );
     if (finalResidual) {
       console.log("[mora/generate] final residual detail:", finalResidual);
+    }
+    if (domainLeakResult) {
+      console.log("[mora/generate] domain leakage detail:", domainLeakResult);
     }
     if (nearDupResult) {
       console.log("[mora/generate] near duplicate detail:", nearDupResult);
