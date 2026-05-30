@@ -192,6 +192,9 @@ RAW REALITY RULE:
   "forgotten voice", "under a gray sky" unless directly anchored to a source detail.
 
 NO SCENERY SUBSTITUTION RULE:
+- This rule applies to every section — Verse, Pre-Chorus, Chorus, Breakdown,
+  Interlude, Bridge, Outro, and Finale. Do not use any section as a place to
+  dump vague atmosphere, weather, or poetic distance.
 - Do not convert emotional pain into scenery. When the source is about a person's actions,
   failures, habits, or records, keep the camera close — near their hands, screen, notes,
   receipts, numbers, tools, and repeated actions.
@@ -205,6 +208,12 @@ NO SCENERY SUBSTITUTION RULE:
   Good: a line that names a record with a number ("PAT履歴は0円のまま")
   Good: a line that names a physical action or object ("買い目のメモを閉じた", "競馬新聞の端が折れていた")
   Good: a line that preserves a confession or quote ("「一度も当たらなかった」")
+- For Breakdown, Interlude, Bridge, and Outro: close with a concrete object, number,
+  repeated action, quoted phrase, or unresolved human gesture — not with scenery,
+  silence, fading, goodbye, wind, sky, soil, rain, or dream imagery.
+  Good closings: "鉛筆の跡だけ残ってる" / "また来週、とは言わなかった" /
+    a tool or document still sitting there / a number that didn't change /
+    an action the narrator did not complete.
 
 CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - The Chorus must answer the core question of the song: what the narrator really wants, fears, or cannot let go of. Answer it in the specific — not through metaphor, but through the SOURCE CORE LINE or its direct transformation.
@@ -226,6 +235,21 @@ BILINGUAL RULE (applies whenever English words or lines appear):
 - Prefer short English phrases — hook words, inner voice, texture fragments — over full explanatory sentences.
 - Avoid bilingual mirror lines: writing the same meaning in Japanese and English side by side.
 - Concrete English nouns and verbs beat abstract English sentiment words.
+- English fragments must not become generic outro poetry. Avoid constructions like
+  "quiet goodbye", "just silence", "fade out", "faint hope", "the world moves on",
+  "it ends here", "nothing left". English must be a hook, texture, inner voice,
+  or rhythmic fragment tied to the source evidence — not a poetic closing statement.
+
+PRE-FINALIZE SCAN — do this before writing the JSON output:
+Scan every line of every section. If any line's only function is mood, scenery,
+weather, silence, fading, distance, dream imagery, or abstract loss — replace it with:
+  • a quoted phrase or confession from the source
+  • a concrete object, tool, or document from the source world
+  • a record, number, or measurable fact
+  • a repeated action or habit
+  • a specific human gesture or incomplete action
+  • a plain emotional sentence in the narrator's own voice
+A line that could appear in any song about any topic fails this check.
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
