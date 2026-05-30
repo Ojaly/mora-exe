@@ -983,6 +983,7 @@ const sharedVerbs = verbA.filter(v => verbB.includes(v));
 |---|---|
 | Chorus バリエーション固定化 | `赤ちょうちん タレの焦げ目` が毎回同じ並びになりやすい。few-shot で複数パターンを示す |
 | `染み渡る` 等が repair 後も残るケース | WEAK_POETIC_JP で検出はできているが repair で消えない場合は deterministic 追加を検討 |
+| `identical_section_reuse` 検出（将来） | Chorus 以外のセクション（Pre-Chorus / Verse / Bridge）が同じ lyrics で2回以上完全一致した場合に `identical_section_reuse:detected` をログに出す。Chorus は反復OK。現状は未実装。 |
 
 ---
 
@@ -1009,9 +1010,12 @@ localhost:3000
 サーバーログ（`npm run dev` の出力）に `[mora/generate]` プレフィックスのログが出る。
 
 **合格条件:**
-- `quality_warning:none`
+- `quality_warning:none`（near_duplicate を含む）
+- `domain_leakage:none`
 - `near_duplicate:none`
 - `deterministic_replacements:N`（N は0でも正常）
 - 実際の歌詞に `贅沢` / `充足` / `安らぎ` / `染み渡る` 等が残っていない
 - `養殖でいい` 系の短フックが Chorus に出る
 - `レシート七百八十円` / `小銭を数えて暖簾を出る` 等が自然に出る
+- `この味でいい` / `これでいい` が出ない
+- Chorus 末尾の価格を Interlude が単純反復しない
