@@ -112,6 +112,13 @@ QUALITY TARGETS:
 - Rhythmic readability for Suno singing
 - Lines should feel singable in one breath
 
+BILINGUAL RULE (applies whenever English words or lines appear):
+- English phrases must NOT translate or restate the adjacent Japanese line.
+- English must add something new: a different image, emotional angle, sonic texture, or rhythmic hook.
+- Prefer short English phrases — hook words, inner voice, texture fragments — over full explanatory sentences.
+- Avoid bilingual mirror lines: writing the same meaning in Japanese and English side by side.
+- Concrete English nouns and verbs beat abstract English sentiment words.
+
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
   "rewrittenLyrics": "<complete lyrics with all section tags and blank lines>",
@@ -175,7 +182,10 @@ function modeInstruction(mode: RewriteMode, moraWarnings: number[]): string {
     "more-japanese":
       "Replace English with natural Japanese that preserves meaning, rhythm, and emotional register. Avoid literal translation — find the Japanese that feels right, not just correct.",
     "more-english":
-      "Replace Japanese with natural English that preserves meaning, rhythm, and emotional register. Avoid literal translation — find the English that lands.",
+      "Add English phrases and lines to the lyrics. English must NOT translate or restate the Japanese — use it to add a new image, emotional angle, sonic texture, or rhythmic hook. " +
+      "Prefer short, memorable English phrases over full explanatory sentences. " +
+      "Avoid bilingual mirror lines (Japanese meaning → same English meaning). " +
+      "English expands the world and emotional register; it does not echo it.",
     darker:
       "Deepen the shadow. Replace hope or neutrality with dread, desperation, or melancholic beauty. Don't just swap words — shift the emotional temperature of the whole piece.",
     danceable:

@@ -98,8 +98,8 @@ async function callGemini(
 // ─── System prompt ────────────────────────────────────────────────────────────
 
 function langInstruction(ratio: string): string {
-  if (ratio === "high") return "Write mostly in English (80%+). Japanese phrases ok for flavor.";
-  if (ratio === "mixed") return "Mix Japanese and English roughly half/half. Alternate lines or sections.";
+  if (ratio === "high") return "Write mostly in English (80%+). Japanese words ok as texture or flavor. Each English line must carry its own image or hook — not restate adjacent content in another language.";
+  if (ratio === "mixed") return "Mix Japanese and English. English must NOT translate or restate the Japanese line — use English as hooks, inner voice, sonic texture, or rhythmic fragments that add a new image or emotional angle. Avoid bilingual mirror lines where both languages say the same thing.";
   return "Write mostly in Japanese (80%+). English phrases ok for flavor.";
 }
 
@@ -157,6 +157,13 @@ QUALITY:
 - Chorus/Hook/Drop lines must be memorable in isolation — singable, repeatable, unforgettable.
 - Verse lines build a scene. Pre-chorus/Build raises tension. Bridge/Scene Change shifts perspective.
 - No over-explanation. Trust the image.
+
+BILINGUAL RULE (applies whenever English words or lines appear):
+- English phrases must NOT translate or restate the adjacent Japanese line.
+- English must add something new: a different image, emotional angle, sonic texture, or rhythmic hook.
+- Prefer short English phrases — hook words, inner voice, texture fragments — over full explanatory sentences.
+- Avoid bilingual mirror lines: writing the same meaning in Japanese and English side by side.
+- Concrete English nouns and verbs beat abstract English sentiment words.
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
