@@ -162,6 +162,13 @@ QUALITY:
 - Bridge/Scene Change shifts perspective or time.
 - No over-explanation. Trust the image.
 
+CHORUS RULE — applies to [Chorus] and [Final Chorus]:
+- The Chorus must state the core claim of the song: what the narrator really wants, fears, or cannot let go of. Answer that question directly in the Chorus.
+- At least one concrete motif from the Quick Idea must appear in the Chorus — an object, action, place, phrase, or recurring image drawn from the theme.
+- Do not fill the Chorus with generic emotion words (dream, hope, pain, light, darkness) unless each one is directly anchored to a concrete motif from the theme. Generic words alone are not a thesis.
+- A strong Chorus has both: one concrete anchor image AND one emotional thesis line.
+- The Chorus crystallizes the world built in the Verse — it does not escape it into abstraction.
+
 BILINGUAL RULE (applies whenever English words or lines appear):
 - English phrases must NOT translate or restate the adjacent Japanese line.
 - English must add something new: a different image, emotional angle, sonic texture, or rhythmic hook.
