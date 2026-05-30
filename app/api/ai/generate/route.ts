@@ -179,6 +179,18 @@ META-LANGUAGE RULE:
 - Lines like "that's the core of it all" or "this is the theme" are analysis, not poetry.
 - Avoid any line that reads like a lyricist explaining what the song is about.
 
+RAW REALITY RULE:
+- Do not polish the source wound into generic literary sadness.
+- Keep the rough, ordinary, specific reality of the source.
+- Prefer mundane concrete details over elegant abstract grief.
+  Everyday records, numbers, receipts, screens, habits, and repeated small actions
+  carry the emotion — do not elevate them into poetic equivalents.
+- If the source contains ordinary objects (a red pen, a printed slip, a can of coffee,
+  a screen, a receipt, a zero), let those objects carry the emotion as they are.
+- Ordinary pain expressed in ordinary words hits harder than beautiful grief.
+- Avoid beautiful but generic phrases like "fading dream", "silent ending",
+  "forgotten voice", "under a gray sky" unless directly anchored to a source detail.
+
 CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - The Chorus must state the core claim of the song: what the narrator really wants, fears, or cannot let go of. Answer that question directly in the Chorus.
 - At least one concrete motif from the Quick Idea must appear in the Chorus — an object, action, place, phrase, or recurring image drawn from the theme.
