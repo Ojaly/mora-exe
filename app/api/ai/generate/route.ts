@@ -656,6 +656,8 @@ const ABSTRACT_SUMMARY_JP: RegExp[] = [
   /生きるただそれだけ/,
   /この味でいい/,
   /これでいい/,
+  /この場所だけは/,
+  /変わらないまま/,
 ];
 
 const SLOGANY_ENDING_JP: RegExp[] = [
@@ -712,6 +714,22 @@ function detectAbstractDrift(lyrics: string): string | null {
   let kind: SectionKind = "other";
   let verseAbstractCount = 0;
 
+  // Pre-compute が-endings that are valid enjambments:
+  // if the next content line in the same section completes the clause (doesn't end with a particle),
+  // the が is intentional (e.g. 「古びた扇風機が」+「首振る」).
+  const validGaEnjambments = new Set<string>();
+  for (let ei = 0; ei < lines.length; ei++) {
+    const et = lines[ei].trim();
+    if (!et || et.startsWith("[") || !/が$/.test(et)) continue;
+    for (let ej = ei + 1; ej < lines.length; ej++) {
+      const ent = lines[ej].trim();
+      if (!ent) continue;
+      if (ent.startsWith("[")) break; // section boundary — treat as dangling
+      if (!/[がをにでは]$/.test(ent)) validGaEnjambments.add(et);
+      break;
+    }
+  }
+
   for (const line of lines) {
     const t = line.trim();
     if (t.startsWith("[")) {
@@ -754,8 +772,13 @@ function detectAbstractDrift(lyrics: string): string | null {
     }
 
     // Dangling particle: applies to ALL sections (line ends with raw particle, length > 3)
+    // Exception: が-ending lines where the next content line in the same section completes the clause
     if (t.length > 3 && /[がをにでは]$/.test(t)) {
-      reasons.push(`dangling particle: "${t.slice(0, 40)}"`);
+      if (/が$/.test(t) && validGaEnjambments.has(t)) {
+        // valid enjambment (e.g. 「古びた扇風機が」+「首振る」) — skip
+      } else {
+        reasons.push(`dangling particle: "${t.slice(0, 40)}"`);
+      }
     }
 
     if (kind === "final_chorus" || kind === "chorus_etc") {
@@ -964,6 +987,13 @@ async function repairAbstractDrift(
     `  「また来る理由を探してる」→「ポイントカードを財布に戻す」\n` +
     `  「何を探してるか分からない」→「小銭を数えて暖簾を出る」\n` +
     `  「この味が忘れられない」→「空の重箱に山椒だけ残った」\n` +
+    `- BREAKDOWN / OUTRO: Do not fill with Chorus elements repeated verbatim (タレ多めの並ひとつ\n` +
+    `  / 麦茶で流す etc.) if those lines already appeared in a Chorus. Shift to departure,\n` +
+    `  payment, or body sensation instead:\n` +
+    `  「タレ多めの並ひとつ」(if already in Chorus) → 「レジ横の小銭皿が鳴る」\n` +
+    `  「麦茶で流す」(if already in Chorus) → 「暖簾の外で煙を吸う」\n` +
+    `  Good Outro closings: 「小銭を数えて暖簾を出る」「袖口にタレの匂いが残る」\n` +
+    `  「レシートを折って財布に戻す」「指先にタレの匂いが残る」\n` +
     `- SEASONAL FILLER: Replace weather/season filler with source-specific concrete details.\n` +
     `  「夏の終わり」「熱い日々」「また来年も」「過ぎ去る季節」→ an object, number, or action.\n` +
     `- NO PROMPT COPY: Do not reproduce user input prose verbatim as lyrics.\n` +
@@ -1003,6 +1033,10 @@ async function repairAbstractDrift(
     `  「割り箸の袋を畳む」(if 畳む already used nearby) → 「山椒の袋をポケットに入れる」\n` +
     `  「カサカサのレシートを畳む」(if 畳む already used nearby) → 「レシートを財布に戻す」\n` +
     `  「おしぼりで顔を拭く」(if 拭く already used nearby) → 「麦茶をひと口飲む」\n` +
+    `  When 麦茶 appears more than once in nearby lines, replace one occurrence:\n` +
+    `  「冷たい麦茶をひと口飲む」→「湯気の向こうで箸を割る」\n` +
+    `  「麦茶の氷が鳴る」→「レジ横の小銭皿が鳴る」\n` +
+    `  「麦茶で流す」→「焦げた皮を奥歯で噛む」\n` +
     `- INCOMPLETE LINES: A line that ends with a dangling particle (が/を/に/で/は as final char)\n` +
     `  must be fixed: either drop the particle (taigen-dome) or complete the phrase.\n` +
     `  「タレの甘い匂いが」→「タレの甘い匂い」(drop particle) or「タレの甘い匂いが漂う」\n` +
@@ -1056,6 +1090,9 @@ async function repairAbstractDrift(
     `    → 「カサカサのレシートを畳む」+「小銭を数えて暖簾を出る」\n` +
     `  [Verb ending duplicate] 「おしぼりで首を拭く」+「顔を拭く」\n` +
     `    → 「おしぼりで首を拭く」+「麦茶をひと口飲む」\n` +
+    `  「それでもこの場所だけは」→「レシートの日付を親指でなぞる」\n` +
+    `  「この場所だけは」→「カウンターの端に箸袋が積まれる」\n` +
+    `  「変わらないまま」→「湿った暖簾が肩に触れる」\n` +
     `  [Domain leakage — racing terms in non-racing source] 「また来週の買い目」→「タレ多めの並ひとつ」\n` +
     `  [Domain leakage] 「馬券を握る」→「割り箸の袋を畳む」\n` +
     `  [Chorus final line weak] 「冷たいおしぼり」(line is final, noun only) → 「おしぼりで首を拭く」\n` +
