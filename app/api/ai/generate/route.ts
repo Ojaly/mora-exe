@@ -203,6 +203,10 @@ BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me 
   Good: 「養殖でいい」「タレでいい」
   Weak-sensory filler (banned — replace with concrete action):
   "心を撫でる" "心を" (as abstract warmth phrase) "撫でる" "静かな笑顔" "ふわり"
+  Seasonal day filler (banned — replace with object or action):
+  "あの夏の日" "このままの夏" "夏の日" (as poetic time filler)
+  Pseudo-sensory memory (banned — replace with physical action):
+  "静かに潤す" "この舌は知ってる" "舌の記憶" "喉を静かに潤す" "ざらざらした舌の記憶"
 
 VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
   lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
@@ -333,6 +337,16 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
   Good: 「養殖でいい」「タレの焦げ目」「冷たいおしぼり」「首筋を拭く」 — each stands alone
   Short incomplete noun fragments (「タレの焦げ目」「山椒ひと振り」) are acceptable as Chorus
   lines — they are imagistic, not syntactically dangling.
+- ABSOLUTE BANS in any Chorus or Final Chorus line:
+  「の歌」「夏の歌」「庶民的な」 — these are editorial labels that describe the song from outside.
+  A Chorus line must live INSIDE the world, not comment on it from above.
+- Do not cram multiple nouns together with の-connectors into one Chorus line.
+  Bad: 「赤ちょうちんのタレの焦げ目」(unnatural chain — three nouns welded with の)
+  Good: 「赤ちょうちん」 on one line, 「タレの焦げ目」 on the next
+- Preferred Chorus structure for a food/place/experience theme:
+  Line 1–2: short declarative hook (「養殖でいい」「タレでいい」)
+  Line 3–4: concrete noun or sensory object (「山椒ひと振り」「赤ちょうちん」)
+  Line 5: concrete action or price (「麦茶で流す」「レシート七百八十円」)
 
 FINAL CHORUS RULE — applies only to [Final Chorus]:
 - The Final Chorus is essentially a repeat of the main Chorus with at most ONE line changed.
@@ -598,6 +612,12 @@ const WEAK_POETIC_JP: RegExp[] = [
   /静かな笑顔/,
   /ふわり/,
   /の$/,
+  /あの夏の日/,
+  /このままの夏/,
+  /夏の日/,
+  /静かに潤す/,
+  /この舌は知ってる/,
+  /舌の記憶/,
 ];
 
 const ABSTRACT_SUMMARY_JP: RegExp[] = [
@@ -945,6 +965,13 @@ async function repairAbstractDrift(
     `  「隣の席では 静かな笑顔」→「隣の席で 箸袋を折る」\n` +
     `  「ふわり うなぎの」→「湯気が丼から上がる」\n` +
     `  「赤提灯 路地裏に映る」→「赤ちょうちん 路地裏に映る」\n` +
+    `  「あの夏の日と同じ」→「麦茶の氷が鳴る」\n` +
+    `  「このままの夏」→「タレ多めの並ひとつ」\n` +
+    `  「喉を静かに潤す」→「麦茶をひと口飲む」\n` +
+    `  「この舌は知ってる」→「山椒ひと振り」\n` +
+    `  「ざらざらした舌の記憶」→「焦げ目を奥歯で噛む」\n` +
+    `  「赤ちょうちんのタレの焦げ目」→「赤ちょうちん」+「タレの焦げ目」(split into 2 lines)\n` +
+    `  「レシートまで含めた庶民的な夏の歌」→「レシート七百八十円」\n` +
     `  [Final Chorus extra line]「競馬をみんな絶対に楽しむんだ」→ DELETE this line (cap at 6)\n` +
     `  Any line whose only function is atmosphere or emotion-label → replace with source evidence.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
@@ -964,10 +991,18 @@ async function repairAbstractDrift(
 // ─── Deterministic cleanup ───────────────────────────────────────────────────
 
 const DETERMINISTIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
-  [/最高級じゃなくても/g,              "並の札を裏返す"],
-  [/冷たいおしぼり首筋に[ \t]*$/gm,    "おしぼりで首を拭く"],
-  [/舌が痺れ[ \t]*$/gm,               "舌が痺れる"],
-  [/赤提灯/g,                         "赤ちょうちん"],
+  // Exact-phrase replacements (order matters: more specific first)
+  [/レシートまで含めた庶民的な夏の歌/g,  "レシート七百八十円"],
+  [/最高級じゃなくても/g,               "並の札を裏返す"],
+  [/あの夏の日と同じ/g,                 "麦茶の氷が鳴る"],
+  [/このままの夏/g,                     "タレ多めの並ひとつ"],
+  [/喉を静かに潤す/g,                   "麦茶をひと口飲む"],
+  [/この舌は知ってる/g,                 "山椒ひと振り"],
+  [/ざらざらした舌の記憶/g,             "焦げ目を奥歯で噛む"],
+  // Pattern replacements
+  [/冷たいおしぼり首筋に[ \t]*$/gm,     "おしぼりで首を拭く"],
+  [/舌が痺れ[ \t]*$/gm,                "舌が痺れる"],
+  [/赤提灯/g,                          "赤ちょうちん"],
 ];
 
 function applyDeterministicCleanup(lyrics: string): { text: string; replacedCount: number } {
