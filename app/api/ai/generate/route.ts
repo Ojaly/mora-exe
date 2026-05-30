@@ -714,18 +714,19 @@ function detectAbstractDrift(lyrics: string): string | null {
   let kind: SectionKind = "other";
   let verseAbstractCount = 0;
 
-  // Pre-compute が-endings that are valid enjambments:
-  // if the next content line in the same section completes the clause (doesn't end with a particle),
-  // the が is intentional (e.g. 「古びた扇風機が」+「首振る」).
-  const validGaEnjambments = new Set<string>();
+  // Pre-compute が/を-endings that are valid enjambments:
+  // if the next content line in the SAME section completes the clause (doesn't end with a particle),
+  // the particle is intentional.
+  // e.g. 「古びた扇風機が」+「首振る」, 「カサカサのレシートを」+「財布に戻す」
+  const validEnjambments = new Set<string>();
   for (let ei = 0; ei < lines.length; ei++) {
     const et = lines[ei].trim();
-    if (!et || et.startsWith("[") || !/が$/.test(et)) continue;
+    if (!et || et.startsWith("[") || !/[がを]$/.test(et)) continue;
     for (let ej = ei + 1; ej < lines.length; ej++) {
       const ent = lines[ej].trim();
       if (!ent) continue;
       if (ent.startsWith("[")) break; // section boundary — treat as dangling
-      if (!/[がをにでは]$/.test(ent)) validGaEnjambments.add(et);
+      if (!/[がをにでは]$/.test(ent)) validEnjambments.add(et);
       break;
     }
   }
@@ -774,8 +775,8 @@ function detectAbstractDrift(lyrics: string): string | null {
     // Dangling particle: applies to ALL sections (line ends with raw particle, length > 3)
     // Exception: が-ending lines where the next content line in the same section completes the clause
     if (t.length > 3 && /[がをにでは]$/.test(t)) {
-      if (/が$/.test(t) && validGaEnjambments.has(t)) {
-        // valid enjambment (e.g. 「古びた扇風機が」+「首振る」) — skip
+      if (/[がを]$/.test(t) && validEnjambments.has(t)) {
+        // valid enjambment (e.g. 「古びた扇風機が」+「首振る」, 「カサカサのレシートを」+「財布に戻す」) — skip
       } else {
         reasons.push(`dangling particle: "${t.slice(0, 40)}"`);
       }
@@ -848,6 +849,23 @@ function detectNearDuplicate(lyrics: string): string | null {
       return `near duplicate (verb): "${sharedVerbs[0]}" in [${lines[i].slice(0, 20)}] / [${lines[i + 1].slice(0, 20)}]`;
     }
   }
+
+  // Pass 2: repeated full-line check — same line text in non-Chorus sections 2+ times
+  const allLines = lyrics.split("\n");
+  const lineCounts = new Map<string, number>();
+  let inChorusSect = false;
+  for (const l of allLines) {
+    const lt = l.trim();
+    if (lt.startsWith("[")) {
+      inChorusSect = /^\[(Chorus|Final Chorus)/i.test(lt);
+      continue;
+    }
+    if (!lt || inChorusSect || lt.length < 5) continue;
+    const cnt = (lineCounts.get(lt) ?? 0) + 1;
+    lineCounts.set(lt, cnt);
+    if (cnt >= 2) return `repeated line: "${lt.slice(0, 30)}" (×${cnt})`;
+  }
+
   return null;
 }
 
@@ -974,8 +992,12 @@ async function repairAbstractDrift(
     `- CHORUS FINAL LINE: The last line of each Chorus is the emotional landing point.\n` +
     `  Prefer a concrete action, price, or physical evidence over a bare noun fragment.\n` +
     `  Bad final line: 「冷たいおしぼり」(noun only — does not complete the image)\n` +
-    `  Good final line: 「おしぼりで首を拭く」「レシート七百八十円」「小銭を数えて暖簾を出る」\n` +
-    `  If the last Chorus line is a bare noun fragment with no action or price, replace it.\n` +
+    `  Weak final lines (too routine — replace if Chorus last): 「麦茶をひと口飲む」\n` +
+    `  「おしぼりで首を拭く」「割り箸の袋を畳む」「レシートを財布に戻す」\n` +
+    `  These belong in Verse/Pre-Chorus/Interlude, not as Chorus closings.\n` +
+    `  Good final line: 「レシート七百八十円」「焦げたタレが袖に残る」「山椒の粉が舌に残る」\n` +
+    `  「小銭を数えて暖簾を出る」\n` +
+    `  If the last Chorus line is a bare noun or routine daily action, replace it.\n` +
     `- CHORUS SELF-CONTAINED LINES: If a Chorus line ends with a dangling particle (が/を/に/で/は\n` +
     `  as the final character), fix it so the line stands alone grammatically.\n` +
     `  Bad: 「タレの焦げ目が」→ particle dangles\n` +
@@ -987,12 +1009,16 @@ async function repairAbstractDrift(
     `  「また来る理由を探してる」→「ポイントカードを財布に戻す」\n` +
     `  「何を探してるか分からない」→「小銭を数えて暖簾を出る」\n` +
     `  「この味が忘れられない」→「空の重箱に山椒だけ残った」\n` +
-    `- BREAKDOWN / OUTRO: Do not fill with Chorus elements repeated verbatim (タレ多めの並ひとつ\n` +
-    `  / 麦茶で流す etc.) if those lines already appeared in a Chorus. Shift to departure,\n` +
-    `  payment, or body sensation instead:\n` +
-    `  「タレ多めの並ひとつ」(if already in Chorus) → 「レジ横の小銭皿が鳴る」\n` +
-    `  「麦茶で流す」(if already in Chorus) → 「暖簾の外で煙を吸う」\n` +
-    `  Good Outro closings: 「小銭を数えて暖簾を出る」「袖口にタレの匂いが残る」\n` +
+    `- BREAKDOWN / OUTRO: Do not place Chorus climax lines as standalone Breakdown/Outro content.\n` +
+    `  NG in Breakdown/Outro (these are Chorus territory): 「レシート七百八十円」\n` +
+    `  「タレ多めの並ひとつ」「赤ちょうちん」「麦茶で流す」「養殖でいい タレでいい」\n` +
+    `  Replace with perspective shift — sound, sensation, departure, or payment:\n` +
+    `  「タレ多めの並ひとつ」→ 「レジ横の小銭皿が鳴る」\n` +
+    `  「レシート七百八十円」→ 「焦げた皮を奥歯で噛む」\n` +
+    `  「麦茶で流す」→ 「暖簾の外で煙を吸う」\n` +
+    `  Good Breakdown: 「レジ横の小銭皿が鳴る」「焦げた皮を奥歯で噛む」「店の奥で換気扇が止まる」\n` +
+    `  「湯気の向こうで箸を割る」「指先に山椒の粉が残る」\n` +
+    `  Good Outro: 「小銭を数えて暖簾を出る」「袖口にタレの匂いが残る」\n` +
     `  「レシートを折って財布に戻す」「指先にタレの匂いが残る」\n` +
     `- SEASONAL FILLER: Replace weather/season filler with source-specific concrete details.\n` +
     `  「夏の終わり」「熱い日々」「また来年も」「過ぎ去る季節」→ an object, number, or action.\n` +
@@ -1033,6 +1059,11 @@ async function repairAbstractDrift(
     `  「割り箸の袋を畳む」(if 畳む already used nearby) → 「山椒の袋をポケットに入れる」\n` +
     `  「カサカサのレシートを畳む」(if 畳む already used nearby) → 「レシートを財布に戻す」\n` +
     `  「おしぼりで顔を拭く」(if 拭く already used nearby) → 「麦茶をひと口飲む」\n` +
+    `  SAME-LINE REPETITION: If the exact same line appears in 2+ non-Chorus sections,\n` +
+    `  keep the first and replace subsequent occurrences with a different concrete action:\n` +
+    `  「おしぼりで首を拭く」(in Pre-Chorus AND Interlude AND Verse) → keep first,\n` +
+    `  replace 2nd: 「指先のタレを紙で拭う」, 3rd: 「袖口のタレを指でこする」\n` +
+    `  「割り箸の袋を畳む」(repeated) → keep first, replace: 「山椒の袋をポケットに入れる」\n` +
     `  When 麦茶 appears more than once in nearby lines, replace one occurrence:\n` +
     `  「冷たい麦茶をひと口飲む」→「湯気の向こうで箸を割る」\n` +
     `  「麦茶の氷が鳴る」→「レジ横の小銭皿が鳴る」\n` +
@@ -1131,6 +1162,7 @@ const DETERMINISTIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
   [/この味でいい/g,                     "タレ多めの並ひとつ"],
   // Pattern replacements
   [/^七百八十円[ \t]*$/gm,              "カサカサのレシート"],
+  [/冷たい麦茶で[ \t]*$/gm,               "冷たい麦茶をひと口飲む"],
   [/ひやりと冷たい[ \t]+おしぼりが[ \t]*$/gm, "おしぼりで首を拭く"],
   [/冷たいおしぼりが[ \t]*$/gm,         "おしぼりで首を拭く"],
   [/冷たいおしぼり首筋に[ \t]*$/gm,     "おしぼりで首を拭く"],
