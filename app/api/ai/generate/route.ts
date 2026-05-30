@@ -194,6 +194,15 @@ BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me 
   "日常が染みる" "染みてくる" "期待が膨らむ" "充足" "安らぎ"
   "満たされていく" "満たされて" "今ここでいい" "生きるただそれだけ"
   These are summary labels. Replace with the specific object, price, or action the narrator performs.
+  Meta-lyric self-reference (banned — song should not describe itself):
+  ".*の歌" "夏の歌" "庶民的な.*歌" "これは.*歌" ".*まで含めた.*歌"
+  Replace with the object or action the narrator performs: 「レシート七百八十円」「並の札が裏返る」
+  Explanatory contrast patterns (banned — compress to short hook):
+  "じゃなくても" "十分うまい" "高い天然" "庶民的な" (as editorial adjective)
+  Bad: 「高い天然うなぎじゃなくても養殖うなぎで十分うまい」
+  Good: 「養殖でいい」「タレでいい」
+  Weak-sensory filler (banned — replace with concrete action):
+  "心を撫でる" "心を" (as abstract warmth phrase) "撫でる" "静かな笑顔" "ふわり"
 
 VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
   lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
@@ -398,6 +407,16 @@ removed or replaced with a concrete repeat of the main Chorus's last line.
 Also scan for 快感 overuse: if 快感 appears more than once in the entire lyrics, replace
 the extra occurrences with the concrete object the sensation refers to (payout screen,
 odds number, red hit display, ticket stub).
+Also scan for prompt-text copying: if a lyric line reproduces the user's input wording
+verbatim as an explanatory sentence, compress it into a short hook phrase instead.
+Bad: 「高い天然うなぎじゃなくても養殖うなぎで十分うまい」(copied from input prose)
+Good: 「養殖でいい」「タレでいい」(short hook that preserves the emotional stance)
+Acceptable direct copy: a short phrase of 3–5 morae that works as a hook.
+Unacceptable: full explanatory contrast sentences, or lines that contain "じゃなくても".
+Also scan for meta-lyric self-reference: lines like 「夏の歌」「庶民的な夏の歌」describe the
+song rather than living inside it. Replace with the specific object or action the line
+was trying to capture: 「レシート七百八十円」「並の札が裏返る」.
+Also normalize 赤提灯 → 赤ちょうちん throughout the lyrics.
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
@@ -574,6 +593,11 @@ const WEAK_POETIC_JP: RegExp[] = [
   /背中に.*風/,
   /夕暮れが/,
   /窓辺/,
+  /心を撫/,
+  /撫でる/,
+  /静かな笑顔/,
+  /ふわり/,
+  /の$/,
 ];
 
 const ABSTRACT_SUMMARY_JP: RegExp[] = [
@@ -612,6 +636,18 @@ const EXPLANATORY_PROSE_JP: RegExp[] = [
   /ただの.*じゃなく/,
   /と思わせる/,
   /という理由/,
+  /じゃなくても/,
+  /十分うまい/,
+  /高い天然/,
+  /庶民的な/,
+];
+
+const META_LYRIC_JP: RegExp[] = [
+  /の歌$/,
+  /庶民的な.*歌/,
+  /これは.*歌/,
+  /まで含めた.*歌/,
+  /夏の歌/,
 ];
 
 const MIXED_LANG_WEIRD: RegExp[] = [
@@ -668,6 +704,11 @@ function detectAbstractDrift(lyrics: string): string | null {
     // Abstract summary convenience label check: applies to all sections
     for (const pat of ABSTRACT_SUMMARY_JP) {
       if (pat.test(t)) { reasons.push(`abstract summary: "${t.slice(0, 40)}"`); break; }
+    }
+
+    // Meta-lyric self-reference check: applies to all sections
+    for (const pat of META_LYRIC_JP) {
+      if (pat.test(t)) { reasons.push(`meta lyric: "${t.slice(0, 40)}"`); break; }
     }
 
     if (kind === "final_chorus" || kind === "chorus_etc") {
@@ -856,7 +897,18 @@ async function repairAbstractDrift(
     `  「何を探してるか分からない」→「小銭を数えて暖簾を出る」\n` +
     `  「この味が忘れられない」→「空の重箱に山椒だけ残った」\n` +
     `- SEASONAL FILLER: Replace weather/season filler with source-specific concrete details.\n` +
-    `  「夏の終わり」「熱い日々」「また来年も」「過ぎ去る季節」→ an object, number, or action.\n\n` +
+    `  「夏の終わり」「熱い日々」「また来年も」「過ぎ去る季節」→ an object, number, or action.\n` +
+    `- NO PROMPT COPY: Do not reproduce user input prose verbatim as lyrics.\n` +
+    `  Compress explanatory contrast sentences into short hook phrases.\n` +
+    `  Bad: 「高い天然うなぎじゃなくても養殖うなぎで十分うまい」(prose copy)\n` +
+    `  Good: 「養殖でいい」「タレでいい」(compressed hook)\n` +
+    `  Pattern to fix: any line containing 「じゃなくても」「十分うまい」「高い天然」「庶民的な」\n` +
+    `- META LYRIC: Lines that describe the song rather than living inside it must be replaced.\n` +
+    `  「夏の歌」「庶民的な夏の歌」「レシートまで含めた夏の歌」→ replace with the specific\n` +
+    `  object or action: 「レシート七百八十円」「並の札が裏返る」\n` +
+    `- WEAK SENSORY FILLER: 「心を撫でる」「撫でる」「静かな笑顔」「ふわり」「の」(line-end).\n` +
+    `  Replace with concrete sensory action: 「丼の底まで タレを拾う」「箸袋を折る」\n` +
+    `- NORMALIZE: Replace all 赤提灯 with 赤ちょうちん.\n\n` +
     `FEW-SHOT REPAIR EXAMPLES (apply the same logic to similar lines):\n` +
     `  「その声が響く」→「払い戻しは0円のまま」\n` +
     `  「その一言が響く」→「一度も当たらなかった、と画面に出た」\n` +
@@ -875,6 +927,14 @@ async function repairAbstractDrift(
     `  「日常の儀式、日が暮れて」→「割り箸の袋を畳んでる」\n` +
     `  「この味だけは残るだろう」→「山椒の袋だけポケットに入れた」\n` +
     `  「養殖うなぎ、それで十分」→「養殖でいい」\n` +
+    `  「高い天然うなぎじゃなくても」→「養殖でいい」\n` +
+    `  「養殖うなぎで十分うまい」→「タレでいい」\n` +
+    `  「レシートまで含めた夏の歌」→「レシート七百八十円」\n` +
+    `  「庶民的な夏の歌」→「並の札が裏返る」\n` +
+    `  「ただこの焦げ目が 心を撫でる」→「丼の底まで タレを拾う」\n` +
+    `  「隣の席では 静かな笑顔」→「隣の席で 箸袋を折る」\n` +
+    `  「ふわり うなぎの」→「湯気が丼から上がる」\n` +
+    `  「赤提灯 路地裏に映る」→「赤ちょうちん 路地裏に映る」\n` +
     `  [Final Chorus extra line]「競馬をみんな絶対に楽しむんだ」→ DELETE this line (cap at 6)\n` +
     `  Any line whose only function is atmosphere or emotion-label → replace with source evidence.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
@@ -991,6 +1051,7 @@ export async function POST(req: NextRequest) {
       const residualExplanatory   = residualDrift?.includes("explanatory prose")     ? "detected" : "none";
       const residualAbstractSum   = residualDrift?.includes("abstract summary")      ? "detected" : "none";
       const residualDangling      = residualDrift?.includes("dangling particle")     ? "detected" : "none";
+      const residualMetaLyric     = residualDrift?.includes("meta lyric")            ? "detected" : "none";
       const residualKaikan        = residualDrift?.includes("快感 overuse")          ? "detected" : "none";
       const finalChorusOverflow   = detectFinalChorusOverflow(finalLyrics)           ? "detected" : "none";
       console.log(
@@ -1001,6 +1062,7 @@ export async function POST(req: NextRequest) {
         `| weak_poetic:${residualWeak}`,
         `| abstract_summary:${residualAbstractSum}`,
         `| dangling_particle:${residualDangling}`,
+        `| meta_lyric:${residualMetaLyric}`,
         `| generic_positive_ending:${residualGenericPos}`,
         `| explanatory_prose:${residualExplanatory}`,
         `| kaikan_overuse:${residualKaikan}`,
