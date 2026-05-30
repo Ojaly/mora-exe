@@ -198,6 +198,13 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - A strong Chorus has both: one concrete anchor image AND one emotional thesis line.
 - The Chorus crystallizes the world built in the Verse — it does not escape it into abstraction.
 - The Chorus must carry the SOURCE CORE LINE or its direct transformation — not a paraphrase, not a softened version.
+- A complete Chorus contains all three: the SOURCE CORE LINE (or its direct transformation),
+  at least one ordinary concrete detail from the source (a record, object, habit, or number),
+  and one emotional thesis line. Missing any of the three makes the Chorus incomplete.
+- Do not let the Chorus end after only the SOURCE CORE LINE — use the remaining lines
+  to complete the emotional statement with concrete ordinary detail and thesis.
+- If the Chorus opens with the source quote, follow it with concrete ordinary detail,
+  not generic imagery.
 
 BILINGUAL RULE (applies whenever English words or lines appear):
 - English phrases must NOT translate or restate the adjacent Japanese line.
