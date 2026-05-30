@@ -433,6 +433,84 @@ ${
 Return JSON only.`;
 }
 
+// ─── Post-generation: abstract drift detection & repair ──────────────────────
+
+const ABSTRACT_SIGNALS_EN: RegExp[] = [
+  /hope is gone/i,
+  /winning is hope/i,
+  /fading out/i,
+  /just silence/i,
+  /silence remains/i,
+];
+
+const ABSTRACT_LINE_JP: RegExp[] = [
+  /^(また|ただ)?静かに.*(消えた|去った|遠ざかる|終わった)/,
+  /^(夢|希望).*(消えた|終わった|遠く|見れない|見たかった)/,
+  /^(夢|希望)が(欲しい|ない|消えた|見れない)/,
+  /^報われる瞬間/,
+  /^また来週への希望/,
+  /^でも夢が/,
+];
+
+const REPAIR_TARGET_RE = /^\[(Chorus|Final Chorus|Outro|Finale|Breakdown|Interlude)/i;
+
+/** Returns a reason string if abstract drift is detected, null if clean. */
+function detectAbstractDrift(lyrics: string): string | null {
+  const reasons: string[] = [];
+
+  for (const pat of ABSTRACT_SIGNALS_EN) {
+    if (pat.test(lyrics)) { reasons.push(`EN slogan: /${pat.source}/`); break; }
+  }
+
+  const lines = lyrics.split("\n");
+  let inTarget = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith("[")) { inTarget = REPAIR_TARGET_RE.test(t); continue; }
+    if (inTarget && t) {
+      for (const pat of ABSTRACT_LINE_JP) {
+        if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
+      }
+    }
+    if (reasons.length >= 3) break;
+  }
+
+  return reasons.length > 0 ? reasons.join("; ") : null;
+}
+
+async function repairAbstractDrift(
+  apiKey: string,
+  lyrics: string,
+  quickIdea: string,
+): Promise<{ text: string; finishReason?: string } | null> {
+  const systemPrompt =
+    "You are a lyrics repair specialist. Fix abstract emotional drift. Return only valid JSON.";
+  const userPrompt =
+    `Revise the following song lyrics without changing the section order or section tags.\n\n` +
+    `SOURCE (Quick Idea — use this vocabulary as the preferred evidence pool):\n${quickIdea || "(none)"}\n\n` +
+    `REPAIR RULES:\n` +
+    `- Keep ALL [Section Tag] lines exactly as they appear.\n` +
+    `- Keep the source core confession line in the Chorus.\n` +
+    `- Keep the Chorus hook mostly consistent across repetitions.\n` +
+    `- Replace abstract emotional summaries with concrete evidence from the source:\n` +
+    `  records, numbers, objects, repeated actions, or quoted phrases.\n` +
+    `- Do not use dream, hope, silence, fading, gone, goodbye, quiet, or scenery as the\n` +
+    `  emotional payload of a line.\n` +
+    `- Prefer the specific vocabulary the source actually contains.\n\n` +
+    `LYRICS TO REPAIR:\n${lyrics}\n\n` +
+    `Return ONLY valid JSON: {"lyrics": "<repaired lyrics with all section tags>"}`;
+
+  try {
+    return await callGemini(apiKey, systemPrompt, userPrompt, 3200);
+  } catch (err) {
+    console.error(
+      "[mora/generate] repair callGemini failed:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return null;
+  }
+}
+
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -493,8 +571,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ lyrics: "", notes: "" });
     }
 
+    let finalLyrics = typeof parsed.lyrics === "string" ? parsed.lyrics : "";
+    const driftReason = finalLyrics ? detectAbstractDrift(finalLyrics) : null;
+
+    if (driftReason) {
+      const quickIdea = input.theme?.trim() || input.title?.trim() || "";
+      console.log("[mora/generate] abstract drift detected:", driftReason);
+      console.log("[mora/generate] repair start — pre-length:", finalLyrics.length);
+      const repairResult = await repairAbstractDrift(apiKey, finalLyrics, quickIdea);
+      if (repairResult) {
+        try {
+          const repaired = extractJson(repairResult.text, {
+            rawLength: repairResult.text.length,
+            finishReason: repairResult.finishReason,
+          });
+          if (typeof repaired.lyrics === "string" && repaired.lyrics.length > 0) {
+            console.log(
+              "[mora/generate] repair done — post-length:", repaired.lyrics.length,
+              "finishReason:", repairResult.finishReason ?? "unknown",
+            );
+            finalLyrics = repaired.lyrics;
+          }
+        } catch (parseErr) {
+          console.error("[mora/generate] repair JSON parse failed:", parseErr);
+        }
+      } else {
+        console.log("[mora/generate] repair skipped — callGemini returned null");
+      }
+    }
+
     return NextResponse.json({
-      lyrics: parsed.lyrics ?? "",
+      lyrics: finalLyrics,
       notes: parsed.notes ?? "",
     });
   } catch (err) {
