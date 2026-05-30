@@ -654,6 +654,8 @@ const ABSTRACT_SUMMARY_JP: RegExp[] = [
   /満たされて/,
   /今ここでいい/,
   /生きるただそれだけ/,
+  /この味でいい/,
+  /これでいい/,
 ];
 
 const SLOGANY_ENDING_JP: RegExp[] = [
@@ -994,6 +996,13 @@ async function repairAbstractDrift(
     `  → Keep Chorus line; change next section opener: 「おしぼりで首を拭く」\n` +
     `  Chorus: 「麦茶で流す」+ next section: 「麦茶の氷が鳴る」\n` +
     `  → Keep Chorus line; change next section opener: 「レシートを財布に戻す」\n` +
+    `  Do NOT repeat the Chorus price in [Interlude] or [Breakdown]. If Chorus ends with\n` +
+    `  「レシート七百八十円」and Interlude repeats 「七百八十円」alone, replace the Interlude line:\n` +
+    `  「七百八十円」→「カサカサのレシート」or「割り箸の袋を畳む」\n` +
+    `  Additional replacement candidates for 畳む overuse across sections:\n` +
+    `  「割り箸の袋を畳む」(if 畳む already used nearby) → 「山椒の袋をポケットに入れる」\n` +
+    `  「カサカサのレシートを畳む」(if 畳む already used nearby) → 「レシートを財布に戻す」\n` +
+    `  「おしぼりで顔を拭く」(if 拭く already used nearby) → 「麦茶をひと口飲む」\n` +
     `- INCOMPLETE LINES: A line that ends with a dangling particle (が/を/に/で/は as final char)\n` +
     `  must be fixed: either drop the particle (taigen-dome) or complete the phrase.\n` +
     `  「タレの甘い匂いが」→「タレの甘い匂い」(drop particle) or「タレの甘い匂いが漂う」\n` +
@@ -1082,7 +1091,11 @@ const DETERMINISTIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
   [/喉を静かに潤す/g,                   "麦茶をひと口飲む"],
   [/この舌は知ってる/g,                 "山椒ひと振り"],
   [/ざらざらした舌の記憶/g,             "焦げ目を奥歯で噛む"],
+  [/この味でいい/g,                     "タレ多めの並ひとつ"],
   // Pattern replacements
+  [/^七百八十円[ \t]*$/gm,              "カサカサのレシート"],
+  [/ひやりと冷たい[ \t]+おしぼりが[ \t]*$/gm, "おしぼりで首を拭く"],
+  [/冷たいおしぼりが[ \t]*$/gm,         "おしぼりで首を拭く"],
   [/冷たいおしぼり首筋に[ \t]*$/gm,     "おしぼりで首を拭く"],
   [/舌が痺れ[ \t]*$/gm,                "舌が痺れる"],
   [/赤提灯/g,                          "赤ちょうちん"],
@@ -1250,8 +1263,9 @@ export async function POST(req: NextRequest) {
     const finalResidual    = detectAbstractDrift(finalLyrics);
     const nearDupResult    = detectNearDuplicate(finalLyrics);
     const domainLeakResult = detectDomainLeakage(finalLyrics, quickIdea);
+    const qualityWarning   = finalResidual || nearDupResult;
     console.log(
-      `[mora/generate] final — quality_warning:${finalResidual ? "detected" : "none"}`,
+      `[mora/generate] final — quality_warning:${qualityWarning ? "detected" : "none"}`,
       `| domain_leakage:${domainLeakResult ? "detected" : "none"}`,
       `| near_duplicate:${nearDupResult ? "detected" : "none"}`,
       `| deterministic_replacements:${cleanCount}`,
