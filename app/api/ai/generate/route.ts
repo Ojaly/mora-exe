@@ -171,6 +171,14 @@ QUALITY:
 - Bridge/Scene Change shifts perspective or time.
 - No over-explanation. Trust the image.
 
+META-LANGUAGE RULE:
+- Do not use analytical meta-words in the final lyrics: core, thesis, theme, claim,
+  concept, motif, emotional thesis, emotional anchor.
+- These words may guide your reasoning — they must not appear in the lyrics output.
+- Express the emotional center as an image, confession, action, or concrete phrase.
+- Lines like "that's the core of it all" or "this is the theme" are analysis, not poetry.
+- Avoid any line that reads like a lyricist explaining what the song is about.
+
 CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - The Chorus must state the core claim of the song: what the narrator really wants, fears, or cannot let go of. Answer that question directly in the Chorus.
 - At least one concrete motif from the Quick Idea must appear in the Chorus — an object, action, place, phrase, or recurring image drawn from the theme.
