@@ -205,6 +205,15 @@ RAW REALITY RULE:
 - Avoid beautiful but generic phrases like "fading dream", "silent ending",
   "forgotten voice", "under a gray sky" unless directly anchored to a source detail.
 
+ABSTRACT EMOTION RULE:
+- Do not summarize emotion with generic abstract nouns. Words like regret, dream, hope,
+  passion, silence, loneliness, emptiness, and despair are labels — not the emotion itself.
+- When an abstract emotion appears, translate it into evidence: a record, number, object,
+  repeated action, screen, note, ticket, receipt, or quoted phrase.
+- A line naming a concrete object or number carries more emotional weight than a line
+  naming a feeling. Prefer the evidence; let the listener feel the emotion from it.
+- This applies everywhere — Verse, Chorus, Breakdown, Interlude, Outro.
+
 NO SCENERY SUBSTITUTION RULE:
 - This rule applies to every section — Verse, Pre-Chorus, Chorus, Breakdown,
   Interlude, Bridge, Outro, and Finale. Do not use any section as a place to
@@ -230,6 +239,11 @@ NO SCENERY SUBSTITUTION RULE:
   A source may be about horse racing yet contain only PAT records, red pen marks,
   prediction notebooks, payout amounts, and a confession. Write from those — not from
   what the domain "typically" looks and feels like.
+- When the source contains specific domain vocabulary (records, tools, documents,
+  amounts, deadlines, named objects), treat those words as the preferred imagery.
+  Do not replace them with abstract equivalents: a dream for the record, silence for
+  the number, distance for the action. The specific word from the source is always
+  stronger than its abstract substitute.
 - For Breakdown, Interlude, Bridge, and Outro: close with a concrete object, number,
   repeated action, quoted phrase, or unresolved human gesture — not with scenery,
   silence, fading, goodbye, wind, sky, soil, rain, or dream imagery.
@@ -244,6 +258,11 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - Do not approach the Chorus as a three-slot checklist. Let the SOURCE CORE LINE drive; let concrete detail and emotional weight follow from it organically in the remaining lines.
 - Do not fill the Chorus with generic emotion words (dream, hope, pain, light, darkness) unless each one is directly anchored to a concrete motif from the theme.
 - The Chorus crystallizes the world built in the Verse — it does not escape into abstraction.
+- The Chorus should not explain the theme or summarize what happened. Chain the source
+  confession with concrete evidence the listener can point at — a screen, a notebook,
+  a number, a mark, a ticket, a phrase from the source. Each Chorus line should be
+  traceable to a specific piece of the source, not to an emotional category (regret,
+  hope, passion, loss).
 - Every Chorus line must serve at least one concrete role: carry the source confession,
   name a specific object or record or number or action, or state the emotional truth in
   plain words. A line whose only job is atmosphere, distance, fading, or scenery does not
@@ -261,6 +280,11 @@ BILINGUAL RULE (applies whenever English words or lines appear):
   "quiet goodbye", "just silence", "fade out", "faint hope", "the world moves on",
   "it ends here", "nothing left". English must be a hook, texture, inner voice,
   or rhythmic fragment tied to the source evidence — not a poetic closing statement.
+- Interlude, Breakdown, and Outro must not use generic English emotional summaries.
+  Avoid philosophical statements like "Hope is gone", "Winning is hope", "No payout,
+  just silence", or any construction that reduces the source to an abstract lesson or
+  feeling. If English appears in these sections, make it source-tied: a number, a
+  fragment of the source confession, or a specific physical action.
 
 PRE-FINALIZE SCAN — do this before writing the JSON output:
 Scan every line of every section. If any line's only function is mood, scenery,
@@ -276,6 +300,11 @@ Also check section balance:
 - If a Verse is shorter than the Pre-Chorus or Chorus without a clear reason, expand it with concrete source details.
 - If an Interlude, Breakdown, or Outro exceeds its target length with vague atmosphere, shorten it or replace with a concrete phrase or action.
 - If [Chorus] repeats in the structure, keep lyrics mostly consistent across repetitions — allow small variation only in [Final Chorus].
+Also scan for abstract emotion summaries in Chorus, Breakdown, Interlude, and Outro:
+if a line mainly states an abstract feeling (regret remains, hope is gone, dream ended,
+passion unrewarded, silence answers) — replace it with source-specific evidence:
+a record, number, object, or quoted phrase. A feeling named is a label; a feeling
+shown through evidence is felt.
 Also scan for invented scenic domain imagery: if a line adds topically typical scenery
 (weather, soil, wind, crowd, stadium atmosphere) that is not present in the source
 evidence, replace it with something the source actually contains — a record, object,
