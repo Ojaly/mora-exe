@@ -764,3 +764,254 @@ npm.cmd run dev
 | `mora-project-list` | SongProjectMeta[] index（summary fields 含む） | lib/songProject.ts |
 | `mora-project-<id>` | SongProject フルペイロード | lib/songProject.ts |
 | `mora-current-project` | アクティブ Project ID（将来用） | 未使用 |
+
+---
+
+## 12. 歌詞生成品質改善フェーズ — 2026-05-30
+
+> **最新コミット: `4562b7c`**
+> このセクションを読めば、次のスレッドから迷わず再開できる。
+
+---
+
+### 12-1. 大方針
+
+MORA.exe は「元ネタの抽象的な面白さを、具体物・動作・物証に変換して歌詞化するエンジン」として育てている。
+
+**AIが出しがちなもの（抑制対象）:**
+
+| パターン | 例 |
+|---|---|
+| 抽象感情 | `報われる瞬間`、`静かに消えた` |
+| AI文学的な詩情 | `声が響く`、`指先の熱が冷めていく` |
+| ポジティブ標語 | `競馬をみんな絶対に楽しむんだ` |
+| メタ歌詞 | `庶民的な夏の歌`、`レシートまで含めた夏の歌` |
+| プロンプト文の直貼り | `高い天然うなぎじゃなくても養殖うなぎで十分うまい` |
+| 説明文の歌詞化 | `万馬券はただの高配当じゃなく` |
+| 未完了行 | `タレの甘い匂いが`（助詞で終わる） |
+| 近接重複 | `麦茶` → `麦茶` が連続する |
+| 抽象まとめ語 | `質素な贅沢`、`ささやかな満足`、`充足` |
+| 感覚フィラー | `染み渡る`、`灯り`、`視線`、`見つめる` |
+
+**代わりに変換する方向:**
+
+| 変換前 | 変換後 |
+|---|---|
+| `報われる瞬間` | `払い戻し0円` / `PAT履歴` / `締切前の画面` |
+| `ささやかな贅沢` | `山椒ひと振り` / `レシート七百八十円` |
+| `ポジティブ標語` | 主Chorusの繰り返し or 具体物で終わる |
+| 説明文 | 短い言い切りフック（`養殖でいい` / `タレでいい`） |
+| 未完了行 | 体言止め or 動詞完結 |
+
+---
+
+### 12-2. 実装済み（コミット一覧）
+
+| コミット | 内容 |
+|---|---|
+| `5a4c0ab` | UI / API の `Claude` 表示を `Gemini` に修正 |
+| `4fd9500` | Chorus 5〜6行 preferred、abstract closure 抑制 |
+| `72133c2` | repair residual 強化（報われる/夢/希望 置換、Chorus per-section ログ） |
+| `467a34d` | WEAK_POETIC_JP / MIXED_LANG_WEIRD 追加、langInstruction("low") 厳格化 |
+| `7bf1c7c` | Final Chorus ハードキャップ、スローガン禁止、快感制限、説明文検出 |
+| `4f462df` | ABSTRACT_SUMMARY_JP 追加、短フックルール、Verse/Bridge 末尾ルール |
+| `f6f5e49` | 抽象まとめ語・弱詩的フィラー拡張、Chorus 行末助詞チェック |
+| `b6010d7` | META_LYRIC_JP 追加、プロンプト直貼り禁止、赤提灯正規化 |
+| `0fbe337` | deterministic cleanup 追加、quality_warning ログ追加 |
+| `ca45629` | 季節フィラー / 擬感覚記憶フレーズ、Chorus 名詞チェーン禁止 |
+| `4562b7c` | near_duplicate 検出、dangling_particle 全セクション化、感覚表現禁止 |
+
+---
+
+### 12-3. 実装済みの主な検出項目（detectAbstractDrift）
+
+post-repair ログに出力される項目一覧。すべて `none / detected` で表示。
+
+| ログキー | 意味 |
+|---|---|
+| `jp_abstract` | 日本語の抽象感情行（静かに消えた / 夢が消えた 等） |
+| `en_slogan` | 英語スローガン（hope is gone / fading out 等） |
+| `weird_mixed_lang` | 日英不自然混在（`Winning is the快感` 等） |
+| `weak_poetic` | 弱詩的フィラー（が響く / 染み渡る / 灯り / 視線 等） |
+| `abstract_summary` | 抽象まとめ語（贅沢 / 充足 / 安らぎ / 今ここでいい 等） |
+| `dangling_particle` | 全セクション対象。助詞（が/を/に/で/は）で終わる行（t.length > 3） |
+| `meta_lyric` | 自己言及行（夏の歌 / 庶民的な.*歌 等） |
+| `explanatory_prose` | 説明口調（じゃなくても / 庶民的な / 最高級 等） |
+| `generic_positive_ending` | Final Chorus のポジティブ標語（みんな絶対に等） |
+| `kaikan_overuse` | 「快感」が曲中2回以上 |
+| `final_chorus_overflow` | Final Chorus が7行以上 |
+
+**final ログ（常時出力）:**
+
+```
+[mora/generate] final — quality_warning:none | near_duplicate:none | deterministic_replacements:0
+```
+
+| キー | 意味 |
+|---|---|
+| `quality_warning` | repair + cleanup 後も残存ドリフトあり |
+| `near_duplicate` | 隣接2行に共通の漢字2+／カタカナ2+トークン |
+| `deterministic_replacements` | deterministic cleanup で置換した件数 |
+
+---
+
+### 12-4. Deterministic Cleanup（DETERMINISTIC_REPLACEMENTS）
+
+Gemini repair が通った後に**アプリ側で安全に確実置換**するパス。`route.ts` 内で常時実行。
+
+| 検出パターン | 置換後 |
+|---|---|
+| `レシートまで含めた庶民的な夏の歌` | `レシート七百八十円` |
+| `最高級じゃなくても` | `並の札を裏返す` |
+| `あの夏の日と同じ` | `麦茶の氷が鳴る` |
+| `このままの夏` | `タレ多めの並ひとつ` |
+| `喉を静かに潤す` | `麦茶をひと口飲む` |
+| `この舌は知ってる` | `山椒ひと振り` |
+| `ざらざらした舌の記憶` | `焦げ目を奥歯で噛む` |
+| `冷たいおしぼり首筋に`（行末） | `おしぼりで首を拭く` |
+| `舌が痺れ`（行末） | `舌が痺れる` |
+| `赤提灯` | `赤ちょうちん` |
+
+---
+
+### 12-5. 主な検出配列（route.ts）
+
+```typescript
+// app/api/ai/generate/route.ts 内
+ABSTRACT_SIGNALS_EN      // 英語スローガン
+ABSTRACT_LINE_JP         // JP 抽象行（行頭パターン）
+WEAK_POETIC_JP           // 弱詩的表現（広域）
+ABSTRACT_SUMMARY_JP      // 抽象まとめ語
+SLOGANY_ENDING_JP        // Final Chorus ポジティブ標語
+EXPLANATORY_PROSE_JP     // 説明口調
+META_LYRIC_JP            // メタ歌詞自己言及
+MIXED_LANG_WEIRD         // 不自然な日英混在
+DETERMINISTIC_REPLACEMENTS  // 確定置換テーブル
+```
+
+---
+
+### 12-6. system prompt の主要ルール（SYSTEM_PROMPT）
+
+- **QUICK IDEA IS LAW**: Quick Idea が最上位ソース
+- **SOURCE CORE LINE RULE**: 最も痛い1文をChorustアンカーに
+- **NO SCENERY SUBSTITUTION RULE**: 痛みを風景に変換しない
+- **ABSTRACT EMOTION RULE**: 感情ラベルを具体物・数字・動作に変換
+- **RAW REALITY RULE**: 日常の平凡な具体物が感情を運ぶ
+- **ABSTRACT SUMMARY RULE**: `贅沢`・`儀式`・`充足` 等を禁止
+- **CHORUS RULE**: Chorus は SOURCE CORE LINE + 具体物 + 動作/価格
+- **FINAL CHORUS RULE**: 主Chorus の繰り返し ±1行。スローガン禁止
+- **JAPANESE-ONLY RULE**: `englishRatio=low` の場合、全行日本語
+- **BILINGUAL RULE**: 英語行は日本語行を言い換えない
+- **PRE-FINALIZE SCAN**: 出力前に全行スキャン（説明文・メタ歌詞・快感多用等）
+
+---
+
+### 12-7. Repair プロンプトの構成（repairAbstractDrift）
+
+repair は **最大1回**。以下のブロックで構成：
+
+1. REPAIR RULES（行数維持・Chorus concrete 化等）
+2. FINAL CHORUS RULES（7行目削除・スローガン禁止）
+3. 快感 LIMIT（1回のみ許可）
+4. EXPLANATORY PROSE（説明文 → 具体動作）
+5. ABSTRACT SUMMARY REPLACEMENT（抽象まとめ語 → 価格/物/動作）
+6. ATMOSPHERIC FILLER REPLACEMENT（滲む/蝉時雨/夕暮れ 等）
+7. CHORUS SELF-CONTAINED LINES（行末助詞の修正）
+8. SECTION ENDINGS（Verse/Bridge 末尾は動作で終わる）
+9. SEASONAL FILLER（夏の終わり等 → 具体物）
+10. NO PROMPT COPY（プロンプト文の直貼り禁止）
+11. META LYRIC（自己言及行 → 物/動作）
+12. WEAK SENSORY FILLER（心を撫でる/ふわり 等）
+13. NEAR DUPLICATE LINES（隣接行で同名詞・同動詞禁止）
+14. INCOMPLETE LINES（助詞終端行の修正）
+15. SENSORY FILLER（染み渡る/視線/見つめる 等）
+16. NORMALIZE（赤提灯→赤ちょうちん）
+17. **FEW-SHOT EXAMPLES**（30件以上）
+
+---
+
+### 12-8. 直近のテストプロンプト
+
+```
+高い天然うなぎじゃなくても、養殖うなぎで十分うまい。
+赤ちょうちん、タレの焦げ目、山椒、麦茶、冷たいおしぼり、
+レシートまで含めた庶民的な夏の歌。
+```
+
+**良い出力傾向（維持する方向）:**
+
+```
+養殖でいい タレでいい
+赤ちょうちん タレの焦げ目
+山椒ひと振り 舌が痺れる
+レシート七百八十円
+小銭を数えて暖簾を出る
+割り箸の袋を畳む
+麦茶の氷が鳴る
+焦げ目を奥歯で噛む
+```
+
+---
+
+### 12-9. 残課題（次スレッドでやること）
+
+#### 優先度：高
+
+| 課題 | 詳細 |
+|---|---|
+| 動詞終端の near_duplicate 未検出 | `畳む` / `拭く` / `飲む` のような「漢字1字+送り仮名」動詞は現行の kanji2+検出で拾えない |
+| 連続テスト（3回生成） | `quality_warning:none` / `near_duplicate:none` / `deterministic_replacements:N` が出るか確認 |
+
+#### 動詞終端 near_duplicate の実装案
+
+```typescript
+const NEAR_DUP_VERB_ENDINGS = [
+  "畳む", "拭く", "飲む", "噛む", "出る", "拾う",
+  "戻す", "鳴る", "見る", "開ける", "数える", "折る",
+];
+
+// detectNearDuplicate に追加:
+const verbA = NEAR_DUP_VERB_ENDINGS.filter(v => lines[i].includes(v));
+const verbB = NEAR_DUP_VERB_ENDINGS.filter(v => lines[i + 1].includes(v));
+const sharedVerbs = verbA.filter(v => verbB.includes(v));
+```
+
+#### 優先度：中
+
+| 課題 | 詳細 |
+|---|---|
+| Chorus バリエーション固定化 | `赤ちょうちん タレの焦げ目` が毎回同じ並びになりやすい。few-shot で複数パターンを示す |
+| `染み渡る` 等が repair 後も残るケース | WEAK_POETIC_JP で検出はできているが repair で消えない場合は deterministic 追加を検討 |
+
+---
+
+### 12-10. route.ts 変更ファイル
+
+歌詞生成品質改善フェーズで変更したのは **1ファイルのみ**:
+
+```
+app/api/ai/generate/route.ts
+```
+
+UI・他の API route・lib/ は**一切変更なし**。
+品質改善を元に戻すには `route.ts` のみ差し戻せばよい。
+
+---
+
+### 12-11. ブラウザ確認方法
+
+```
+localhost:3000
+```
+
+で dev server が起動済みの前提で、Quick Idea に上記のテストプロンプトを入れて生成。
+サーバーログ（`npm run dev` の出力）に `[mora/generate]` プレフィックスのログが出る。
+
+**合格条件:**
+- `quality_warning:none`
+- `near_duplicate:none`
+- `deterministic_replacements:N`（N は0でも正常）
+- 実際の歌詞に `贅沢` / `充足` / `安らぎ` / `染み渡る` 等が残っていない
+- `養殖でいい` 系の短フックが Chorus に出る
+- `レシート七百八十円` / `小銭を数えて暖簾を出る` 等が自然に出る
