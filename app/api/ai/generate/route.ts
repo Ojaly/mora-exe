@@ -191,6 +191,18 @@ RAW REALITY RULE:
 - Avoid beautiful but generic phrases like "fading dream", "silent ending",
   "forgotten voice", "under a gray sky" unless directly anchored to a source detail.
 
+NO SCENERY SUBSTITUTION RULE:
+- Do not convert emotional pain into scenery. When the source is about a person's actions,
+  failures, habits, or records, keep the camera close — near their hands, screen, notes,
+  receipts, numbers, tools, and repeated actions.
+- Avoid using weather, sky, wind, soil, rain, grass, silence, fading, distance, residue,
+  or vague atmosphere to carry the emotion, unless those elements are explicitly present
+  in the source material.
+- The pain lives in the objects and numbers, not in the landscape around them.
+  "PAT履歴は0円のまま" beats "乾いた土に散る夢".
+  "赤ペンの丸だけ残ってる" beats "静かに遠ざかる万馬券の夢".
+  "締切1分前に画面を見てた" beats "湿った空気、風に揺れる草".
+
 CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - The Chorus must answer the core question of the song: what the narrator really wants, fears, or cannot let go of. Answer it in the specific — not through metaphor, but through the SOURCE CORE LINE or its direct transformation.
 - The SOURCE CORE LINE is the non-negotiable anchor. Preserve its rhythm, phrasing, or raw charge. Do not soften, paraphrase, or elevate it into poetry.
@@ -198,6 +210,10 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - Do not approach the Chorus as a three-slot checklist. Let the SOURCE CORE LINE drive; let concrete detail and emotional weight follow from it organically in the remaining lines.
 - Do not fill the Chorus with generic emotion words (dream, hope, pain, light, darkness) unless each one is directly anchored to a concrete motif from the theme.
 - The Chorus crystallizes the world built in the Verse — it does not escape into abstraction.
+- Every Chorus line must serve at least one concrete role: carry the source confession,
+  name a specific object or record or number or action, or state the emotional truth in
+  plain words. A line whose only job is atmosphere, distance, fading, or scenery does not
+  earn its place.
 - Avoid abstract poetic closure: the last Chorus line should not open out into a wide, universal image ("the light fades", "silence remains", "the world keeps turning"). End on the specific — the object, the number, the action, the confession.
 - For a full song (Verse + Chorus + Bridge structure), prefer 5–6 lines for the main [Chorus]. A 4-line Chorus risks ending before the emotional statement has room to land.
 
