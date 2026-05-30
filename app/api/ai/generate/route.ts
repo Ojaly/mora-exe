@@ -143,7 +143,12 @@ HARD RULES:
 - [Verse] [Verse 1] [Verse 2]: 4–6 lines. Accumulate concrete details — each line adds a new object, action, or angle.
 - [Pre-Chorus] [Build]: 3–4 lines. Build emotional pressure toward the Chorus. End on tension, not resolution.
 - [Chorus]: 4–6 lines (5–6 preferred in a full song). Emotionally direct and singable. Each line adds a dimension; the last line lands with weight.
-- [Final Chorus]: 5–6 lines. Emotionally complete. May include one small variation from the main Chorus to mark the close.
+- [Final Chorus]: 5–6 lines HARD CAP. Emotionally complete. Repeat the main Chorus with at most one
+  line changed. Do NOT add motivational lines, moral lessons, encouragement, or positive-outcome
+  summaries. Do NOT append a slogan or inspirational conclusion. The last line must be concrete —
+  an object, number, action, or direct confession from the source.
+  Bad: 「競馬をみんな絶対に楽しむんだ」「また来週を楽しみたいんだ」「きっと次は当たるから」
+  Good: 「払い戻しは0円のまま」 or a direct repeat of the main Chorus final line.
 - [Bridge]: 4–6 lines. Shifts perspective or time; stay grounded in source-specific imagery.
 - [Breakdown]: 2–4 lines. Short and concrete — a phrase, object, number, or action. Not atmospheric filler.
 - [Interlude]: 1–2 lines only. Use a minimal lyric fragment tied to the source — a number,
@@ -165,9 +170,17 @@ BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me 
   "街の灯り" "光の海" "君の笑顔" "翼を広げて" "空に向かって"
   "蛍光灯" "滲んだ街明かり" "雨に濡れた街" "夜明け前" "光と影" "誰もいない部屋" (generic AI filler)
   Japanese weak-poetic fillers (banned — replace with source-specific evidence):
-  "声が響く" "熱が冷めていく" "静かに閉じた" "胸に残る" "指先の熱" "光を探す"
-  "その声が響" "胸が痛い" "心が揺れる" "魂が叫ぶ" "未来へ向かう" "報われる瞬間"
+  "声が響く" "一言が響く" "〜が響く" "熱が冷めていく" "静かに閉じた" "胸に残る"
+  "指先の熱" "光を探す" "その声が響" "胸が痛い" "心が揺れる" "魂が叫ぶ"
+  "未来へ向かう" "報われる瞬間" "負け慣れた背中" "人は去っていく" "静かに離れていく"
+  "夢を見せる" "夢を見せてくれる" "静かに競馬から離れていく"
   These are emotional labels, not evidence. Replace with source records, numbers, objects, actions.
+  Generic-positive slogans (banned — especially in Final Chorus):
+  "みんな絶対に" "楽しみたいんだ" "みんなで楽しむ" "また来週を楽しみたい"
+  "きっと次は" "絶対に楽しむんだ" "また夢を見る"
+  Explanatory-prose patterns (banned — convert to scene or action):
+  "ただの〜じゃなく" "と思わせる" "という理由" "〜の理由がある"
+  These read as analysis or essay prose, not lyrics. Convert to a concrete scene or action.
 
 VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
   lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
@@ -274,6 +287,20 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - Avoid abstract poetic closure: the last Chorus line should not open out into a wide, universal image ("the light fades", "silence remains", "the world keeps turning"). End on the specific — the object, the number, the action, the confession.
 - For a full song (Verse + Chorus + Bridge structure), prefer 5–6 lines for the main [Chorus]. A 4-line Chorus risks ending before the emotional statement has room to land.
 
+FINAL CHORUS RULE — applies only to [Final Chorus]:
+- The Final Chorus is essentially a repeat of the main Chorus with at most ONE line changed.
+- Do not use the Final Chorus as a place to resolve, conclude, uplift, or deliver a moral.
+- If the source is about loss, failure, or unresolved pain, the Final Chorus must not end on
+  hope, positivity, or encouragement.
+- Do not add an extra line to the Final Chorus that the main Chorus did not have. If you vary
+  the last line, make it more specific or concrete — not broader or more universal.
+- BANNED in Final Chorus last line: slogans, motivational phrases, generic positive conclusions,
+  community-inviting statements (「みんな絶対に〜」「楽しみたいんだ」「きっと次は」).
+- The 快感 (thrill/rush) word may appear at most ONCE across the entire song. If 快感 is used
+  in the main Chorus, do not repeat it in the Final Chorus. Replace with the concrete object
+  the narrator was actually chasing: a payout screen, a betting ticket, an odds display, a hit.
+  Example: 「快感が欲しかった」→「的中画面を一度見たかった」
+
 BILINGUAL RULE (applies whenever English words or lines appear):
 - English phrases must NOT translate or restate the adjacent Japanese line.
 - English must add something new: a different image, emotional angle, sonic texture, or rhythmic hook.
@@ -323,6 +350,16 @@ Also scan for invented scenic domain imagery: if a line adds topically typical s
 (weather, soil, wind, crowd, stadium atmosphere) that is not present in the source
 evidence, replace it with something the source actually contains — a record, object,
 number, quoted phrase, or named action.
+Also scan for explanatory prose — lines that read like essay or analysis rather than lyric:
+patterns like 「ただの〜じゃなく」「〜と思わせる」「〜という理由」indicate the lyricist is
+explaining the song's meaning rather than living inside it. Replace with a concrete scene
+or action from the source. Example: 「万馬券はただの高配当じゃなく」→「赤い的中表示が欲しかった」
+Also scan the Final Chorus for generic-positive endings: slogans, moral lessons,
+encouragement, or community-inviting conclusions (「みんな絶対に楽しむんだ」etc.) must be
+removed or replaced with a concrete repeat of the main Chorus's last line.
+Also scan for 快感 overuse: if 快感 appears more than once in the entire lyrics, replace
+the extra occurrences with the concrete object the sensation refers to (payout screen,
+odds number, red hit display, ticket stub).
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
@@ -467,16 +504,35 @@ const ABSTRACT_LINE_JP: RegExp[] = [
 ];
 
 const WEAK_POETIC_JP: RegExp[] = [
-  /声が響く/,
+  /が響く/,
   /熱が冷めていく/,
   /静かに閉じた/,
   /胸に残る/,
   /光を探す/,
   /指先の熱/,
-  /その声が響/,
   /心が揺れ/,
   /魂が叫/,
   /未来へ向か/,
+  /負け慣れた背中/,
+  /人は去っていく/,
+  /静かに.*離れていく/,
+  /夢を見せ/,
+  /一言だけ残して/,
+];
+
+const SLOGANY_ENDING_JP: RegExp[] = [
+  /みんな絶対に/,
+  /楽しみたいんだ/,
+  /みんなで.*楽しむ/,
+  /また来週を楽しみたい/,
+  /きっと次は.*当たる/,
+  /絶対に楽しむんだ/,
+];
+
+const EXPLANATORY_PROSE_JP: RegExp[] = [
+  /ただの.*じゃなく/,
+  /と思わせる/,
+  /という理由/,
 ];
 
 const MIXED_LANG_WEIRD: RegExp[] = [
@@ -495,15 +551,21 @@ function detectAbstractDrift(lyrics: string): string | null {
 
   // 2. Section-aware scan: strict check for Chorus/Outro/Breakdown/Interlude,
   //    lighter count-based check for Verse/Pre-Chorus
+  // 快感 over-use check (whole-lyrics)
+  const kaikanCount = (lyrics.match(/快感/g) ?? []).length;
+  if (kaikanCount > 1) reasons.push(`快感 overuse ×${kaikanCount}`);
+
   const lines = lyrics.split("\n");
-  type SectionKind = "chorus_etc" | "verse_pre" | "other";
+  type SectionKind = "final_chorus" | "chorus_etc" | "verse_pre" | "other";
   let kind: SectionKind = "other";
   let verseAbstractCount = 0;
 
   for (const line of lines) {
     const t = line.trim();
     if (t.startsWith("[")) {
-      if (/^\[(Chorus|Final Chorus|Outro|Finale|Breakdown|Interlude)/i.test(t)) {
+      if (/^\[Final Chorus\]/i.test(t)) {
+        kind = "final_chorus";
+      } else if (/^\[(Chorus|Outro|Finale|Breakdown|Interlude)/i.test(t)) {
         kind = "chorus_etc";
       } else if (/^\[(Verse|Pre-Chorus)/i.test(t)) {
         kind = "verse_pre";
@@ -519,7 +581,22 @@ function detectAbstractDrift(lyrics: string): string | null {
       if (pat.test(t)) { reasons.push(`weird mixed-lang: "${t.slice(0, 40)}"`); break; }
     }
 
-    if (kind === "chorus_etc") {
+    // Explanatory prose check: applies to all sections
+    for (const pat of EXPLANATORY_PROSE_JP) {
+      if (pat.test(t)) { reasons.push(`explanatory prose: "${t.slice(0, 40)}"`); break; }
+    }
+
+    if (kind === "final_chorus") {
+      for (const pat of SLOGANY_ENDING_JP) {
+        if (pat.test(t)) { reasons.push(`generic positive ending: "${t.slice(0, 40)}"`); break; }
+      }
+      for (const pat of ABSTRACT_LINE_JP) {
+        if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
+      }
+      for (const pat of WEAK_POETIC_JP) {
+        if (pat.test(t)) { reasons.push(`weak poetic: "${t.slice(0, 40)}"`); break; }
+      }
+    } else if (kind === "chorus_etc") {
       for (const pat of ABSTRACT_LINE_JP) {
         if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
       }
@@ -562,6 +639,22 @@ function chorusLineCounts(lyrics: string): number[] {
   }
   if (inChorus) counts.push(count);
   return counts;
+}
+
+function detectFinalChorusOverflow(lyrics: string): boolean {
+  const lines = lyrics.split("\n");
+  let inFinalChorus = false, count = 0;
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith("[")) {
+      if (inFinalChorus && count > 6) return true;
+      inFinalChorus = /^\[Final Chorus\]/i.test(t);
+      count = 0;
+      continue;
+    }
+    if (inFinalChorus && t) count++;
+  }
+  return inFinalChorus && count > 6;
 }
 
 function analyzeRepairDiff(before: string, after: string): { repairedLines: number; repairedSections: string[] } {
@@ -626,14 +719,38 @@ async function repairAbstractDrift(
     `  These are emotional labels. Replace with a record, object, number, or action from SOURCE.\n` +
     `- Replace mixed-language lines where English and Japanese are grammatically fused unnaturally.\n` +
     `  If the surrounding lyrics are Japanese-dominant, translate the entire line into Japanese.\n\n` +
+    `- FINAL CHORUS RULES:\n` +
+    `  - The Final Chorus must not exceed 6 lines.\n` +
+    `  - Do not add motivational slogans, moral conclusions, or positive-outcome lines.\n` +
+    `  - If the Final Chorus has a 7th line that is a slogan or encouragement, DELETE it.\n` +
+    `  - Bad last lines: 「競馬をみんな絶対に楽しむんだ」「また来週を楽しみたいんだ」「きっと次は当たるから」\n` +
+    `  - If the source is about loss, the Final Chorus must not end on hope or uplift.\n` +
+    `  - Good last line: repeat the main Chorus's last line, or use a concrete object/record.\n` +
+    `- 快感 LIMIT: 快感 may appear at most once in the entire song. If it appears more than once,\n` +
+    `  replace extra occurrences with concrete imagery: 「的中画面を一度見たかった」\n` +
+    `  「赤い的中表示を待っていた」「払い戻しの数字を見たかった」\n` +
+    `- EXPLANATORY PROSE: Replace lines that read like analysis or essay.\n` +
+    `  「万馬券はただの高配当じゃなく」→「赤い的中表示が欲しかった」\n` +
+    `  「また来週も競馬したいと思わせる」→「日曜の夜にまた印を打つ」\n` +
+    `  「思わせる理由」→「買い目のメモが残ってる」\n` +
+    `- 「が響く」system: any line with 〜が響く / 〜が響いた should be replaced:\n` +
+    `  「その一言が響く」→「一度も当たらなかった、とだけ書いてあった」\n` +
+    `  「負け慣れた背中」→「ハズレ券を引き出しに入れた」\n` +
+    `  「人は去っていく」→「PAT口座の残高を確認した」\n\n` +
     `FEW-SHOT REPAIR EXAMPLES (apply the same logic to similar lines):\n` +
     `  「その声が響く」→「払い戻しは0円のまま」\n` +
+    `  「その一言が響く」→「一度も当たらなかった、と画面に出た」\n` +
     `  「指先の熱が冷めていく」→「締切前の画面を閉じた」\n` +
     `  「静かに閉じた」→「買い目のメモを消した」\n` +
     `  「胸に残る」→「ハズレ券だけが残った」\n` +
-    `  "Winning is the快感"→「当たりの画面が見たかった」\n` +
-    `  "Not just money"→「金だけじゃなかった」\n` +
+    `  「負け慣れた背中」→「ハズレ券を引き出しに入れた」\n` +
+    `  「人は去っていく」→「PAT口座の残高を確認した」\n` +
+    `  「快感を探してた」→「赤い的中表示を待っていた」\n` +
+    `  「快感だけを追いかけて」→「払い戻しの数字を見たかった」\n` +
+    `  「万馬券はただの高配当じゃなく」→「赤い的中表示が欲しかった」\n` +
+    `  「また来週も競馬したいと思わせる」→「日曜の夜にまた印を打つ」\n` +
     `  「また来週の夢」→「また来週の買い目」\n` +
+    `  [Final Chorus extra line]「競馬をみんな絶対に楽しむんだ」→ DELETE this line (cap at 6)\n` +
     `  Any line whose only function is atmosphere or emotion-label → replace with source evidence.\n\n` +
     `LYRICS TO REPAIR:\n${lyrics}\n\n` +
     `Return ONLY valid JSON: {"lyrics": "<repaired lyrics with all section tags>"}`;
@@ -741,16 +858,24 @@ export async function POST(req: NextRequest) {
       const counts = chorusLineCounts(finalLyrics);
       const residualDrift = detectAbstractDrift(finalLyrics);
       const { repairedLines, repairedSections } = analyzeRepairDiff(preRepairLyrics, finalLyrics);
-      const residualJpAbstract = residualDrift?.includes("JP abstract") ? "detected" : "none";
-      const residualEnSlogan   = residualDrift?.includes("EN slogan")   ? "detected" : "none";
-      const residualMixed      = residualDrift?.includes("weird mixed")  ? "detected" : "none";
-      const residualWeak       = residualDrift?.includes("weak poetic")  ? "detected" : "none";
+      const residualJpAbstract    = residualDrift?.includes("JP abstract")          ? "detected" : "none";
+      const residualEnSlogan      = residualDrift?.includes("EN slogan")            ? "detected" : "none";
+      const residualMixed         = residualDrift?.includes("weird mixed")           ? "detected" : "none";
+      const residualWeak          = residualDrift?.includes("weak poetic")           ? "detected" : "none";
+      const residualGenericPos    = residualDrift?.includes("generic positive")      ? "detected" : "none";
+      const residualExplanatory   = residualDrift?.includes("explanatory prose")     ? "detected" : "none";
+      const residualKaikan        = residualDrift?.includes("快感 overuse")          ? "detected" : "none";
+      const finalChorusOverflow   = detectFinalChorusOverflow(finalLyrics)           ? "detected" : "none";
       console.log(
         `[mora/generate] post-repair — Chorus count:${counts.length} lines:${JSON.stringify(counts)}`,
         `| jp_abstract:${residualJpAbstract}`,
         `| en_slogan:${residualEnSlogan}`,
         `| weird_mixed_lang:${residualMixed}`,
         `| weak_poetic:${residualWeak}`,
+        `| generic_positive_ending:${residualGenericPos}`,
+        `| explanatory_prose:${residualExplanatory}`,
+        `| kaikan_overuse:${residualKaikan}`,
+        `| final_chorus_overflow:${finalChorusOverflow}`,
         `| repaired_lines:${repairedLines}`,
         `| sections:${repairedSections.join(",") || "none"}`,
       );
