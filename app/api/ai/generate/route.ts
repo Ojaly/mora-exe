@@ -130,13 +130,14 @@ STRUCTURE RULES:
 
 HARD RULES:
 - Japanese lines: mora count 4–14 (ideal 6–12). Never write run-on lines.
-- High-energy sections ([Chorus] [Drop] [Hook] [Final Chorus] [Final Hook]): short, direct, singable, 3–5 lines.
-- [Build]: 2–3 lines of rising tension; no resolution.
+- [Chorus] [Final Chorus]: 4–6 lines. Emotionally direct and singable. State a complete emotional thesis — don't fragment. Each line adds a dimension; the last line lands with weight.
+- [Drop] [Hook] [Final Hook]: 3–4 lines. Short, physically urgent, built for repetition.
+- [Pre-Chorus] [Build]: 3–4 lines. Build emotional pressure toward the Chorus. End on tension, not resolution.
 - [Spoken Intro]: narrative, atmospheric, no melody required; 2–3 lines.
 - [Scene Change]: 2–3 lines, shifts perspective or time.
 - [Finale] / [Outro]: 2–3 lines, closes the arc.
 - Blank line after each section's content, before the next tag.
-- Lines per section: Intro/Spoken Intro 2–3, Verse 4–6, Pre-Chorus/Build 2–3, Chorus/Drop/Hook 3–5, Bridge/Break/Breakdown/Scene Change 3–4, Outro/Finale 2–3
+- Lines per section: Intro/Spoken Intro 2–3, Verse 4–6, Pre-Chorus/Build 3–4, Chorus/Final Chorus 4–6, Drop/Hook/Final Hook 3–4, Bridge/Break/Breakdown/Scene Change 3–4, Outro/Finale 2–3
 
 BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me higher"
   "warrior" "rise above" "burning inside" "meant to be" "forever and always"
@@ -154,8 +155,11 @@ QUALITY:
 - Concrete > abstract. Name the thing. "うどんの麺が震える" beats "何かが溢れる".
 - Obsessive, abnormal, or absurd themes need MATCHING imagery — lean into the weirdness.
 - Match energy and pacing to the structure type: a Dance Drop should feel physically urgent; a Ballad Narrative should breathe slowly.
-- Chorus/Hook/Drop lines must be memorable in isolation — singable, repeatable, unforgettable.
-- Verse lines build a scene. Pre-chorus/Build raises tension. Bridge/Scene Change shifts perspective.
+- Verse lines accumulate: build a concrete scene line by line. Each line adds a new object, sensation, or angle.
+- Pre-Chorus tightens: emotional pressure rises, perspective narrows, tension is unresolved.
+- Chorus delivers the thesis: 4–6 lines that form a complete emotional statement. Do not reduce the Chorus to compact poetic fragments — build it out. A 3-line chorus is a fragment; a 5-line chorus is a statement. Each Chorus line earns its place by adding a new dimension to the central hook.
+- Hook/Drop lines must be short and physically urgent — 3–4 lines, built for repetition.
+- Bridge/Scene Change shifts perspective or time.
 - No over-explanation. Trust the image.
 
 BILINGUAL RULE (applies whenever English words or lines appear):
@@ -332,7 +336,7 @@ export async function POST(req: NextRequest) {
     : buildLegacyUserPrompt(input, presetDeep, lib, structureOverride, isCustomBlueprint);
 
   try {
-    const { text: raw, finishReason } = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt, 2500);
+    const { text: raw, finishReason } = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt, 3200);
 
     if (process.env.NODE_ENV !== "production") {
       const preview = raw.slice(0, 300).replace(/[\x00-\x1f]/g, (c) => `\\x${c.charCodeAt(0).toString(16).padStart(2, "0")}`);
