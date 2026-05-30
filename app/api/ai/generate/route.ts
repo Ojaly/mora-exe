@@ -618,6 +618,13 @@ const WEAK_POETIC_JP: RegExp[] = [
   /静かに潤す/,
   /この舌は知ってる/,
   /舌の記憶/,
+  /染み渡る/,
+  /まだ残る/,
+  /目に染みる/,
+  /灯り/,
+  /視線/,
+  /見つめる/,
+  /外へ$/,
 ];
 
 const ABSTRACT_SUMMARY_JP: RegExp[] = [
@@ -733,11 +740,12 @@ function detectAbstractDrift(lyrics: string): string | null {
       if (pat.test(t)) { reasons.push(`meta lyric: "${t.slice(0, 40)}"`); break; }
     }
 
+    // Dangling particle: applies to ALL sections (line ends with raw particle, length > 3)
+    if (t.length > 3 && /[がをにでは]$/.test(t)) {
+      reasons.push(`dangling particle: "${t.slice(0, 40)}"`);
+    }
+
     if (kind === "final_chorus" || kind === "chorus_etc") {
-      // Dangling particle: line ends with a raw particle character
-      if (/[がをにでは]$/.test(t)) {
-        reasons.push(`dangling particle in Chorus: "${t.slice(0, 40)}"`);
-      }
       if (kind === "final_chorus") {
         for (const pat of SLOGANY_ENDING_JP) {
           if (pat.test(t)) { reasons.push(`generic positive ending: "${t.slice(0, 40)}"`); break; }
@@ -785,6 +793,23 @@ function chorusLineCounts(lyrics: string): number[] {
   }
   if (inChorus) counts.push(count);
   return counts;
+}
+
+function detectNearDuplicate(lyrics: string): string | null {
+  function keyTokens(line: string): string[] {
+    const kanji = line.match(/[一-鿿]{2,}/g) ?? [];
+    const kana  = line.match(/[゠-ヿ]{2,}/g) ?? [];
+    return [...kanji, ...kana];
+  }
+  const lines = lyrics.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("["));
+  for (let i = 0; i < lines.length - 1; i++) {
+    const setA = new Set(keyTokens(lines[i]));
+    const shared = keyTokens(lines[i + 1]).filter(w => setA.has(w));
+    if (shared.length > 0) {
+      return `near duplicate: "${shared[0]}" in [${lines[i].slice(0, 20)}] / [${lines[i + 1].slice(0, 20)}]`;
+    }
+  }
+  return null;
 }
 
 function detectFinalChorusOverflow(lyrics: string): boolean {
@@ -934,7 +959,23 @@ async function repairAbstractDrift(
     `  → replace with the specific object or action: 「レシート七百八十円」「並の札が裏返る」\n` +
     `- WEAK SENSORY FILLER: 「心を撫でる」「撫でる」「静かな笑顔」「ふわり」「の」(line-end).\n` +
     `  Replace with concrete sensory action: 「丼の底まで タレを拾う」「箸袋を折る」\n` +
-    `- NORMALIZE: Replace all 赤提灯 with 赤ちょうちん.\n\n` +
+    `- NORMALIZE: Replace all 赤提灯 with 赤ちょうちん.\n` +
+    `- NEAR DUPLICATE LINES: Do not repeat the same key noun or verb in consecutive lines.\n` +
+    `  If two adjacent lines share 麦茶 / レシート / 畳む / タレ / 山椒 etc., replace one:\n` +
+    `  「水滴残る麦茶を」+「麦茶をひと口飲む」→「麦茶の氷が鳴る」+「おしぼりで首を拭く」\n` +
+    `  「カサカサのレシートを畳む」+「割り箸の袋を畳む」→ keep first, replace second:\n` +
+    `  「カサカサのレシートを畳む」+「小銭を数えて暖簾を出る」\n` +
+    `- INCOMPLETE LINES: A line that ends with a dangling particle (が/を/に/で/は as final char)\n` +
+    `  must be fixed: either drop the particle (taigen-dome) or complete the phrase.\n` +
+    `  「タレの甘い匂いが」→「タレの甘い匂い」(drop particle) or「タレの甘い匂いが漂う」\n` +
+    `- SENSORY FILLER: 「染み渡る」「まだ残る」「目に染みる」「灯り」「視線」「見つめる」\n` +
+    `  are atmospheric filler. Replace with concrete objects or physical actions.\n` +
+    `  「このタレが染み渡る」→「丼の底までタレを拾う」\n` +
+    `  「匂いがまだ残る」→「シャツの袖にタレの匂い」\n` +
+    `  「焦げたタレの煙 目に染みる」→「換気扇が煙を吸う」\n` +
+    `  「赤ちょうちんの 灯り」→「赤ちょうちん 店先に揺れる」\n` +
+    `  「熱い視線で丼を見つめる」→「丼のふたを開ける」\n` +
+    `  「暖簾をくぐり外へ」→「小銭を数えて暖簾を出る」\n\n` +
     `FEW-SHOT REPAIR EXAMPLES (apply the same logic to similar lines):\n` +
     `  「その声が響く」→「払い戻しは0円のまま」\n` +
     `  「その一言が響く」→「一度も当たらなかった、と画面に出た」\n` +
@@ -1147,13 +1188,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Final quality check (always runs)
-    const finalResidual = detectAbstractDrift(finalLyrics);
+    const finalResidual   = detectAbstractDrift(finalLyrics);
+    const nearDupResult   = detectNearDuplicate(finalLyrics);
     console.log(
       `[mora/generate] final — quality_warning:${finalResidual ? "detected" : "none"}`,
-      cleanCount > 0 ? `| deterministic_replacements:${cleanCount}` : "",
+      `| near_duplicate:${nearDupResult ? "detected" : "none"}`,
+      `| deterministic_replacements:${cleanCount}`,
     );
     if (finalResidual) {
       console.log("[mora/generate] final residual detail:", finalResidual);
+    }
+    if (nearDupResult) {
+      console.log("[mora/generate] near duplicate detail:", nearDupResult);
     }
 
     return NextResponse.json({
