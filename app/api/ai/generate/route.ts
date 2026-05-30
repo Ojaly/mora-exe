@@ -129,6 +129,7 @@ SOURCE CORE LINE RULE — do this before writing any lyrics:
 STRUCTURE RULES:
 - Write EXACTLY the sections listed in the STRUCTURE parameter — no extras, no omissions.
 - Do not default to [Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Outro] unless the STRUCTURE parameter specifies it.
+- If the user or Builder provides a section order, follow that order exactly. Do not reorder sections.
 - Section tags must be written exactly as they appear in STRUCTURE, enclosed in square brackets.
 - Valid section tag families (use only what STRUCTURE specifies):
     Standard:   [Intro] [Verse 1] [Verse 2] [Pre-Chorus] [Chorus] [Bridge] [Final Chorus] [Outro]
@@ -139,14 +140,20 @@ STRUCTURE RULES:
 
 HARD RULES:
 - Japanese lines: mora count 4–14 (ideal 6–12). Never write run-on lines.
-- [Chorus] [Final Chorus]: 4–6 lines. Emotionally direct and singable. State a complete emotional thesis — don't fragment. Each line adds a dimension; the last line lands with weight.
-- [Drop] [Hook] [Final Hook]: 3–4 lines. Short, physically urgent, built for repetition.
+- [Verse] [Verse 1] [Verse 2]: 4–6 lines. Accumulate concrete details — each line adds a new object, action, or angle.
 - [Pre-Chorus] [Build]: 3–4 lines. Build emotional pressure toward the Chorus. End on tension, not resolution.
+- [Chorus]: 4–6 lines (5–6 preferred in a full song). Emotionally direct and singable. Each line adds a dimension; the last line lands with weight.
+- [Final Chorus]: 5–6 lines. Emotionally complete. May include one small variation from the main Chorus to mark the close.
+- [Bridge]: 4–6 lines. Shifts perspective or time; stay grounded in source-specific imagery.
+- [Breakdown]: 2–4 lines. Short and concrete — a phrase, object, number, or action. Not atmospheric filler.
+- [Interlude]: 1–2 lines only. Use a minimal lyric fragment tied to the source; do not fill with vague atmosphere.
+- [Drop] [Hook] [Final Hook]: 3–4 lines. Short, physically urgent, built for repetition.
 - [Spoken Intro]: narrative, atmospheric, no melody required; 2–3 lines.
 - [Scene Change]: 2–3 lines, shifts perspective or time.
-- [Finale] / [Outro]: 2–3 lines, closes the arc.
+- [Finale] [Outro]: 2–4 lines. Closes with a concrete phrase, object, or unresolved action — not scenery.
+- Do not let short utility sections (Interlude, Breakdown, Outro) become vague poetic filler.
 - Blank line after each section's content, before the next tag.
-- Lines per section: Intro/Spoken Intro 2–3, Verse 4–6, Pre-Chorus/Build 3–4, Chorus/Final Chorus 4–6, Drop/Hook/Final Hook 3–4, Bridge/Break/Breakdown/Scene Change 3–4, Outro/Finale 2–3
+- Lines per section: Intro/Spoken Intro 2–3, Verse 4–6, Pre-Chorus/Build 3–4, Chorus 4–6 (5–6 preferred), Final Chorus 5–6, Bridge 4–6, Breakdown 2–4, Interlude 1–2, Drop/Hook/Final Hook 3–4, Outro/Finale 2–4
 
 BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me higher"
   "warrior" "rise above" "burning inside" "meant to be" "forever and always"
@@ -250,6 +257,10 @@ weather, silence, fading, distance, dream imagery, or abstract loss — replace 
   • a specific human gesture or incomplete action
   • a plain emotional sentence in the narrator's own voice
 A line that could appear in any song about any topic fails this check.
+Also check section balance:
+- If a Verse is shorter than the Pre-Chorus or Chorus without a clear reason, expand it with concrete source details.
+- If an Interlude, Breakdown, or Outro exceeds its target length with vague atmosphere, shorten it or replace with a concrete phrase or action.
+- If [Chorus] repeats in the structure, keep lyrics mostly consistent across repetitions — allow small variation only in [Final Chorus].
 
 OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \\n if a newline is needed.
 {
