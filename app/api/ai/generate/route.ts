@@ -117,6 +117,15 @@ Step 3 — NEVER fall back to generic J-Pop imagery ("街の灯り", "光の中�
      The Quick Idea replaces all defaults. If it's about udon, write about udon —麺, だし, 丼, 湯気, 偏執, 祈り.
 ═══════════════════════════
 
+SOURCE CORE LINE RULE — do this before writing any lyrics:
+- Read the Quick Idea and identify the single most painful sentence, quote, confession,
+  or emotional punchline. This is the SOURCE CORE LINE.
+  It may be a direct quote, an admission, a realization, or the line that makes the story hurt.
+- If no explicit sentence exists, name the sharpest emotional fact buried in the source.
+- Use the SOURCE CORE LINE, or a closely transformed version of it, as the emotional anchor
+  of the Chorus. If it contains a direct quote, consider preserving its phrasing or rhythm.
+- Do not replace the source wound with generic imagery. The listener must feel WHY this hurts.
+
 STRUCTURE RULES:
 - Write EXACTLY the sections listed in the STRUCTURE parameter — no extras, no omissions.
 - Do not default to [Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Outro] unless the STRUCTURE parameter specifies it.
@@ -168,6 +177,7 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - Do not fill the Chorus with generic emotion words (dream, hope, pain, light, darkness) unless each one is directly anchored to a concrete motif from the theme. Generic words alone are not a thesis.
 - A strong Chorus has both: one concrete anchor image AND one emotional thesis line.
 - The Chorus crystallizes the world built in the Verse — it does not escape it into abstraction.
+- The Chorus must carry the SOURCE CORE LINE or its direct transformation — not a paraphrase, not a softened version.
 
 BILINGUAL RULE (applies whenever English words or lines appear):
 - English phrases must NOT translate or restate the adjacent Japanese line.
