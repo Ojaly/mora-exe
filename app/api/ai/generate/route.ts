@@ -187,7 +187,13 @@ BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me 
   These describe experience from outside. Replace: 「タレ多めの並ひとつ」「レシート七百八十円」
   Seasonal / poetic filler (banned — replace with source-specific concrete detail):
   "夏の終わり" "熱い日々" "また来年も" "過ぎ去る季節" "惜しむように"
-  "胸に広がる" "ぼやけて見えた" "目に滲む"
+  "胸に広がる" "ぼやけて見えた" "目に滲む" "蝉時雨" "夕暮れが" "窓辺"
+  "滲む" (standalone poetic filler) "じわりと広がる"
+  Abstract-summary escalation (banned — replace with price / object / physical action):
+  "これが贅沢" "夏の贅沢" "今日の贅沢" "価値がある" "今日だけの価値"
+  "日常が染みる" "染みてくる" "期待が膨らむ" "充足" "安らぎ"
+  "満たされていく" "満たされて" "今ここでいい" "生きるただそれだけ"
+  These are summary labels. Replace with the specific object, price, or action the narrator performs.
 
 VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
   lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
@@ -311,6 +317,13 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
   earn its place.
 - Avoid abstract poetic closure: the last Chorus line should not open out into a wide, universal image ("the light fades", "silence remains", "the world keeps turning"). End on the specific — the object, the number, the action, the confession.
 - For a full song (Verse + Chorus + Bridge structure), prefer 5–6 lines for the main [Chorus]. A 4-line Chorus risks ending before the emotional statement has room to land.
+- Each Chorus line must be self-contained: it must make sense on its own without requiring the
+  next line to complete it grammatically. Do not end a Chorus line with a dangling particle
+  (が / を / に / で / は as the final character) that forces the next line to resolve the syntax.
+  Bad: 「養殖でいい タレの焦げ目が」 — 「が」 hangs; depends on next line
+  Good: 「養殖でいい」「タレの焦げ目」「冷たいおしぼり」「首筋を拭く」 — each stands alone
+  Short incomplete noun fragments (「タレの焦げ目」「山椒ひと振り」) are acceptable as Chorus
+  lines — they are imagistic, not syntactically dangling.
 
 FINAL CHORUS RULE — applies only to [Final Chorus]:
 - The Final Chorus is essentially a repeat of the main Chorus with at most ONE line changed.
@@ -555,6 +568,12 @@ const WEAK_POETIC_JP: RegExp[] = [
   /何を探してる.*分からない/,
   /今日の.*味覚.*記憶/,
   /この味.*残るだろう/,
+  /滲む/,
+  /じわりと広がる/,
+  /蝉時雨/,
+  /背中に.*風/,
+  /夕暮れが/,
+  /窓辺/,
 ];
 
 const ABSTRACT_SUMMARY_JP: RegExp[] = [
@@ -566,6 +585,18 @@ const ABSTRACT_SUMMARY_JP: RegExp[] = [
   /日常の儀式/,
   /いつもの儀式/,
   /の儀式/,
+  /[はがのなも]贅沢/,
+  /価値がある/,
+  /今日だけの価値/,
+  /日常が染みる/,
+  /染みてくる/,
+  /期待が膨らむ/,
+  /充足/,
+  /安らぎ/,
+  /満たされていく/,
+  /満たされて/,
+  /今ここでいい/,
+  /生きるただそれだけ/,
 ];
 
 const SLOGANY_ENDING_JP: RegExp[] = [
@@ -639,17 +670,16 @@ function detectAbstractDrift(lyrics: string): string | null {
       if (pat.test(t)) { reasons.push(`abstract summary: "${t.slice(0, 40)}"`); break; }
     }
 
-    if (kind === "final_chorus") {
-      for (const pat of SLOGANY_ENDING_JP) {
-        if (pat.test(t)) { reasons.push(`generic positive ending: "${t.slice(0, 40)}"`); break; }
+    if (kind === "final_chorus" || kind === "chorus_etc") {
+      // Dangling particle: line ends with a raw particle character
+      if (/[がをにでは]$/.test(t)) {
+        reasons.push(`dangling particle in Chorus: "${t.slice(0, 40)}"`);
       }
-      for (const pat of ABSTRACT_LINE_JP) {
-        if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
+      if (kind === "final_chorus") {
+        for (const pat of SLOGANY_ENDING_JP) {
+          if (pat.test(t)) { reasons.push(`generic positive ending: "${t.slice(0, 40)}"`); break; }
+        }
       }
-      for (const pat of WEAK_POETIC_JP) {
-        if (pat.test(t)) { reasons.push(`weak poetic: "${t.slice(0, 40)}"`); break; }
-      }
-    } else if (kind === "chorus_etc") {
       for (const pat of ABSTRACT_LINE_JP) {
         if (pat.test(t)) { reasons.push(`JP abstract: "${t.slice(0, 40)}"`); break; }
       }
@@ -792,13 +822,33 @@ async function repairAbstractDrift(
     `  「人は去っていく」→「PAT口座の残高を確認した」\n\n` +
     `- ABSTRACT SUMMARY REPLACEMENT: Lines using editorial convenience labels must be replaced\n` +
     `  with the specific price, object, or physical action from the SOURCE.\n` +
-    `  「質素な贅沢」「ささやかな贅沢」「小さな満足」「ささやかな満足」「日常の儀式」「いつもの儀式」\n` +
-    `  are all banned. Replace each with what the narrator actually touches, pays, or does.\n` +
+    `  Banned labels: 「贅沢」「価値がある」「充足」「安らぎ」「満たされ」「今ここでいい」\n` +
+    `  「生きるただそれだけ」「期待が膨らむ」「日常が染みる」「染みてくる」「今日だけの価値」\n` +
+    `  Replace each with what the narrator actually touches, pays, or does.\n` +
     `  Example replacements from the source world:\n` +
+    `  「これが夏の贅沢」→「山椒ひと振り」\n` +
+    `  「今日だけの価値がある」→「並の札を裏返す」\n` +
+    `  「日常が染みる」→「麦茶の氷が鳴る」\n` +
+    `  「期待が膨らむ」→「丼のふたを開ける」\n` +
+    `  「小さな充足」→「割り箸の袋を畳む」\n` +
+    `  「この安らぎがある」→「おしぼりで首を拭く」\n` +
+    `  「満たされていく」→「米粒を最後まで拾う」\n` +
+    `  「この夏を生きるただそれだけ」→「山椒ひと振り 麦茶で流す」\n` +
+    `  「今ここでいい」→「小銭を数えて暖簾を出る」\n` +
     `  「質素な贅沢、夏の終わり」→「タレ多めの並ひとつ」\n` +
     `  「ささやかな満足、また来週」→「レシート七百八十円」\n` +
     `  「日常の儀式、日が暮れて」→「割り箸の袋を畳んでる」\n` +
     `  「この味だけは残るだろう」→「山椒の袋だけポケットに入れた」\n` +
+    `- ATMOSPHERIC FILLER REPLACEMENT: 「滲む」「蝉時雨」「夕暮れが」「窓辺」「じわりと広がる」\n` +
+    `  are poetic filler. Replace with a concrete sensory object or action from the SOURCE.\n` +
+    `  「店先に滲む」→「店先まで流れる」\n` +
+    `  「おしぼり 滲んでゆく」→「おしぼりで首を拭く」\n` +
+    `  「夕暮れが滲む窓辺」→「曇った窓に提灯が映る」\n` +
+    `- CHORUS SELF-CONTAINED LINES: If a Chorus line ends with a dangling particle (が/を/に/で/は\n` +
+    `  as the final character), fix it so the line stands alone grammatically.\n` +
+    `  Bad: 「タレの焦げ目が」→ particle dangles\n` +
+    `  Good: 「タレの焦げ目」(drop particle) or rephrase as complete image\n` +
+    `  Short noun fragments are acceptable: 「山椒ひと振り」「冷たいおしぼり」stand alone fine.\n` +
     `- SECTION ENDINGS: Verse and Bridge must not close on introspective summary or open question.\n` +
     `  Replace with a concrete physical action the narrator performs:\n` +
     `  「今日の味覚を記憶する」→「割り箸の袋を畳んでる」\n` +
@@ -940,6 +990,7 @@ export async function POST(req: NextRequest) {
       const residualGenericPos    = residualDrift?.includes("generic positive")      ? "detected" : "none";
       const residualExplanatory   = residualDrift?.includes("explanatory prose")     ? "detected" : "none";
       const residualAbstractSum   = residualDrift?.includes("abstract summary")      ? "detected" : "none";
+      const residualDangling      = residualDrift?.includes("dangling particle")     ? "detected" : "none";
       const residualKaikan        = residualDrift?.includes("快感 overuse")          ? "detected" : "none";
       const finalChorusOverflow   = detectFinalChorusOverflow(finalLyrics)           ? "detected" : "none";
       console.log(
@@ -949,6 +1000,7 @@ export async function POST(req: NextRequest) {
         `| weird_mixed_lang:${residualMixed}`,
         `| weak_poetic:${residualWeak}`,
         `| abstract_summary:${residualAbstractSum}`,
+        `| dangling_particle:${residualDangling}`,
         `| generic_positive_ending:${residualGenericPos}`,
         `| explanatory_prose:${residualExplanatory}`,
         `| kaikan_overuse:${residualKaikan}`,
