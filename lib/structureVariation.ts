@@ -102,7 +102,7 @@ export function pickStructureForClaude(input: SongInput): string {
         "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus]",
       ],
       standard: [
-        "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus]",
+        "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Final Chorus]",
         "[Intro] → [Verse 1] → [Chorus] → [Bridge] → [Chorus]",
         "[Chorus] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Outro]",
       ],
@@ -129,7 +129,7 @@ export function pickStructureForClaude(input: SongInput): string {
       "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Pre-Chorus] → [Chorus] → [Bridge] → [Final Chorus]",
     ],
     standard: [
-      "[Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Outro]",
+      "[Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Bridge] → [Final Chorus]",
       "[Intro] → [Chorus] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Bridge] → [Final Chorus]",
       "[Intro] → [Verse 1] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Final Chorus]",
       "[Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Pre-Chorus] → [Chorus] → [Bridge] → [Final Chorus]",
@@ -212,7 +212,7 @@ const PRESET_STRUCTURES: Record<StructurePreset, Record<StructureLengthKey, stri
   },
   "verse-first": {
     "30s":  "[Verse] → [Chorus]",
-    "90s":  "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus]",
+    "90s":  "[Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Final Chorus]",
     "full": "[Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Bridge] → [Final Chorus]",
   },
   "spoken-intro": {
