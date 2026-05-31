@@ -937,6 +937,54 @@ function analyzeRepairDiff(before: string, after: string): { repairedLines: numb
   return { repairedLines, repairedSections: [...sectionSet] };
 }
 
+// ─── Concrete vocabulary extraction ──────────────────────────────────────────
+// Extracts theme-grounded words from quickIdea and non-abstract lyric lines.
+// Used to build a Concrete Pool for the repair prompt, so Gemini replaces
+// abstract lines with vocabulary already present in the song/source rather
+// than importing vocabulary from its training biases.
+
+const ABSTRACT_QUICK_PATTERNS: RegExp[] = [
+  /^(また|ただ)?静かに/,
+  /^(夢|希望).*(消えた|終わった)/,
+  /^報われる/,
+  /贅沢/, /充足/, /安らぎ/, /染みてくる/, /変わらないまま/,
+  /が響く/, /胸に残る/, /滲む/, /夕暮れ/, /指先の熱/,
+  /期待だけが残る/, /夢を見せ/, /静かに.*離れていく/,
+  /知識.*あった/, /情熱.*あった/, /急に消えた/, /画面は変わらず/,
+];
+
+function isLikelyAbstractLine(line: string): boolean {
+  return ABSTRACT_QUICK_PATTERNS.some(p => p.test(line));
+}
+
+function extractConcreteVocabulary(lyrics: string, quickIdea: string): string[] {
+  // Tokens from quickIdea: 2+ kanji runs, 3+ katakana runs, number+円
+  const ideaTokens: string[] = [
+    ...(quickIdea.match(/[一-鿿]{2,}/g) ?? []),
+    ...(quickIdea.match(/[゠-ヿ]{3,}/g) ?? []),
+    ...(quickIdea.match(/\d+円/g) ?? []),
+  ];
+
+  // Tokens from lyrics: skip section tags and likely-abstract lines
+  const lyricLines = lyrics.split("\n")
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith("[") && l.length >= 3 && !isLikelyAbstractLine(l));
+
+  const lyricTokens: string[] = lyricLines.flatMap(l => [
+    ...(l.match(/[一-鿿]{2,}/g) ?? []),
+    ...(l.match(/\d+円/g) ?? []),
+  ]);
+
+  // Deduplicate preserving order, cap at 25 tokens
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const t of [...ideaTokens, ...lyricTokens]) {
+    if (!seen.has(t)) { seen.add(t); result.push(t); }
+    if (result.length >= 25) break;
+  }
+  return result;
+}
+
 async function repairAbstractDrift(
   apiKey: string,
   lyrics: string,
@@ -967,11 +1015,20 @@ async function repairAbstractDrift(
     : `- BREAKDOWN / OUTRO: Do not place Chorus climax lines as standalone Breakdown/Outro content.\n` +
       `  Replace with a concrete action, object, or departure drawn from the SOURCE.\n`;
 
+  const concreteVocab = extractConcreteVocabulary(lyrics, quickIdea);
+  const concretePoolBlock = concreteVocab.length > 0
+    ? `CONCRETE POOL — prefer these words and phrases when replacing abstract lines.\n` +
+      `These are drawn from the user's input and the generated lyrics.\n` +
+      `Do not import vocabulary from other themes or unrelated contexts.\n` +
+      `Pool: ${concreteVocab.join("　")}\n\n`
+    : "";
+
   const systemPrompt =
     "You are a lyrics repair specialist. Fix abstract emotional drift. Return only valid JSON.";
   const userPrompt =
     `Revise the following song lyrics without changing the section order or section tags.\n\n` +
     `SOURCE (Quick Idea — this is your evidence pool; use its actual vocabulary and objects):\n${quickIdea || "(none)"}\n\n` +
+    concretePoolBlock +
     `REPAIR RULES:\n` +
     `- Keep ALL [Section Tag] lines exactly as they appear.\n` +
     `- Keep the source core confession line in the Chorus.\n` +
