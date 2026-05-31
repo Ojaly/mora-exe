@@ -1534,3 +1534,121 @@ Chorus 1 / Chorus 2 / Final Chorus がほぼ完全に反復している。
 | 低 | near_duplicate repair 指示の見直し | prompt 補強。効果は確率的 |
 | 低 | dangling_particle 残存時の追加 repair | repair 2段階化。ロジック変更大 |
 | 低 | Music Direction Tags | 新フェーズ |
+
+---
+
+## セクション18: EXE化事前調査・Tauri build 確認結果（2026-05-31）
+
+### 18-1. 前フェーズ引き継ぎ
+
+| 項目 | 状態 |
+|---|---|
+| 基点コミット | `59c016e docs: record structure improvement phase boundary` |
+| たたき台生成品質安定化フェーズ | セクション17で完了扱い |
+| 今回のフェーズ | EXE化事前調査（コード変更なし） |
+
+---
+
+### 18-2. EXE化事前調査結果
+
+**Tauri 2.x はすでに導入済み。** ゼロから構築する必要なし。
+
+| 確認項目 | 状態 |
+|---|---|
+| `src-tauri/` ディレクトリ | 存在する |
+| `src-tauri/tauri.conf.json` | 存在する |
+| `src-tauri/Cargo.toml` | 存在する（Tauri 2.x） |
+| `src-tauri/src/lib.rs` | 存在する（`forge_world` Rust command 実装済み） |
+| `cargo` | 1.95.0 ✅ |
+| `rustc` | 1.95.0 ✅ |
+| `tauri-cli` | 2.11.2 ✅ |
+| `node` | v24.16.0 ✅ |
+| `npm` | 11.13.0 ✅ |
+| `node_modules` | 存在する（npm install 不要） |
+
+**`npm run tauri:dev` は正常起動。**
+
+- Next.js dev server（localhost:3000）が先に起動し、Rust ビルド（約35秒）後に Tauri ウィンドウが開く
+- dev 環境では Next.js dev server 経由で全 API routes が生きている
+- `GET / 200` 確認済み
+
+---
+
+### 18-3. `npm run tauri:build` 結果
+
+**ビルド成功。**
+
+```
+npm run build:tauri  → Next.js 静的エクスポート完了
+cargo release build  → 56.98秒
+mora-exe.exe 生成
+bundle 生成完了
+```
+
+| 生成物 | パス | サイズ |
+|---|---|---|
+| EXE（直接実行） | `src-tauri/target/release/mora-exe.exe` | 11.1 MB |
+| MSI インストーラー | `src-tauri/target/release/bundle/msi/MORA.exe_0.1.0_x64_en-US.msi` | 4.1 MB |
+| NSIS インストーラー | `src-tauri/target/release/bundle/nsis/MORA.exe_0.1.0_x64-setup.exe` | 2.9 MB |
+
+- EXE 直接起動: 成功
+- UI 表示: 成功（Tauri WebView が `out/index.html` を表示）
+- サーバーレス動作（ポートなし）
+
+---
+
+### 18-4. 現状 EXE の制限
+
+**`build:tauri` は `NEXT_OUTPUT=export next build`（静的エクスポート）。**
+
+- `out/` に `/api/` フォルダが存在しない（Next.js API routes は静的エクスポートに含まれない）
+- 本番 EXE 内で `fetch("/api/ai/...")` を呼ぶと `tauri://localhost/api/...` に解決されるが、該当ファイルが存在しないため 404 / fetch 失敗
+
+| 機能 | EXE 内の挙動 | ユーザーへの見え方 |
+|---|---|---|
+| generate | fetch 失敗 → `catch {}` → ルールベース歌詞生成 | エラー表示なし（サイレントフォールバック） |
+| forge（WorldForge） | fetch 失敗 → `ruleBasedForge(seed)` | エラー表示なし（サイレントフォールバック） |
+| rewrite | fetch 失敗 → `null` → `applyRewriteMode()` | エラー表示なし（サイレントフォールバック） |
+| alchemy（SourceAlchemy） | fetch 失敗 → `setError(err.message)` | **🔴 "Failed to fetch" 相当のエラーが UI に表示される** |
+
+**注意:** WorldForge の Tauri `invoke` パスはコード上で意図的に無効化されている（`WorldForge.tsx` コメント参照）。
+
+---
+
+### 18-5. 重要な判断
+
+| 判断 | 内容 |
+|---|---|
+| 現状 EXE の位置づけ | 「Claude なしのルールベース版」として起動は可能 |
+| Claude 品質で動かすには | API route 依存を解消する必要がある |
+| 最有力の解決策 | Next.js API routes を Tauri/Rust command に移植 |
+| 移植の規模 | 大きい。個別に設計・フェーズ化が必要 |
+| 既存実装の再利用 | `lib.rs` の `forge_world` を参考に他の3本（generate / rewrite / alchemy）を移植できるはず |
+
+---
+
+### 18-6. 次フェーズ候補と方針
+
+**方針: いきなり全 API を移植しない。小さい機能から順に設計・実装する。**
+
+| 優先度 | 内容 | 備考 |
+|---|---|---|
+| 高 | **alchemy の Rust command 化**（設計） | 3本の中で最もシンプル。単一プロンプト→JSON返却の構造 |
+| 高 | generate / rewrite の Rust command 化（設計） | generate が最大規模。システムプロンプト・repair 込み |
+| 中 | APIキー設定方法の設計 | 環境変数 / 設定ファイル / 初回設定UI のいずれか |
+| 中 | `forge_world` Rust 実装の再利用性確認 | `.env.local` を読まない点に注意（システム環境変数が必要） |
+| 低 | EXE 配布時の注意事項整備 | SmartScreen 警告・オフライン不可・APIキー設定手順 |
+
+**generate は最後に回す**（最も規模が大きく、システムプロンプト・repair・バリデーションを含む）。
+
+---
+
+### 18-7. EXE 配布時の既知リスク
+
+| リスク | 対策 |
+|---|---|
+| APIキーを EXE に埋め込まない | `std::env::var("ANTHROPIC_API_KEY")` で実行時読み込み（`lib.rs` 方式） |
+| Windows SmartScreen 警告 | 未署名 EXE は初回起動で「発行元不明」警告が出る。コードサイニング証明書が必要 |
+| オフライン動作不可 | Claude API 呼び出しがあるため完全オフラインでは動かない。ユーザーへの説明が必要 |
+| ユーザー環境でのキー設定 | 初回設定 UI または README での案内が必要 |
+| `.env.local` が Rust プロセスで読まれない | Next.js は `.env.local` を読むが、Rust プロセスはシステム環境変数のみ参照 |
