@@ -1935,3 +1935,96 @@ async fn rewrite_lyrics(
 | 低 | APIキー設定 UI | 初回起動時の案内 UI |
 
 **generate はまず事前設計確認から**（最も規模が大きく、フェーズ分割が必要）。
+
+---
+
+## 22. Phase EXE-4B〜4D: generate legacy path Rust/Tauri command 化完了（2026-05-31）
+
+### 22-1. 完了フェーズ
+
+| フェーズ | 内容 |
+|---|---|
+| EXE-4A | invoke引数設計確認（コード変更なし） |
+| EXE-4B | `lib/generateLyrics.ts` 新規作成 |
+| EXE-4C | `app/page.tsx` の generate fetch 3箇所を `callGenerateLyrics()` に差し替え |
+| EXE-4D | `src-tauri/src/lib.rs` に `generate_lyrics` Rust command 追加 |
+
+### 22-2. lib/generateLyrics.ts の仕様
+
+| 環境 | 経路 |
+|---|---|
+| EXE / `tauri:dev` | `invoke("generate_lyrics", { songInput, expansion, resolvedStructure, worldPresetDeepPrompt, libraryStyleAddition })` |
+| Web / `npm run dev` | 既存 `fetch("/api/ai/generate", ...)` をそのまま維持 |
+
+- `null` 返却時・invoke reject 時: `null` を返し、既存 rule-based fallback に任せる
+- `app/page.tsx` の fetch 3箇所（handleGenerate PATH A / PATH B / handleRegenLyrics）を `callGenerateLyrics()` 経由に統一
+
+### 22-3. generate_lyrics Rust command の仕様
+
+```rust
+#[tauri::command]
+async fn generate_lyrics(
+    song_input: serde_json::Value,
+    expansion: Option<serde_json::Value>,
+    resolved_structure: String,
+    world_preset_deep_prompt: String,
+    library_style_addition: String,
+) -> Result<Option<serde_json::Value>, String>
+```
+
+| 戻り値 | 意味 |
+|---|---|
+| `Ok(Some({ lyrics, notes }))` | 成功 |
+| `Ok(None)` | `GEMINI_API_KEY` 未設定 → `null` → rule-based fallback |
+| `Ok(None)` | expansion あり → `null` → `buildExpansionLyricsFallback` fallback（EXE-4E 実装予定） |
+| `Err(msg)` | API失敗 / lyrics 空 → invoke reject → catch → `null` → fallback |
+
+- **APIキー**: `GEMINI_API_KEY` 環境変数
+- **モデル**: `gemini-2.5-flash` / `maxOutputTokens: 3200` / `response_mime_type: "application/json"` / `thinkingBudget: 0`
+- **タイムアウト**: 60秒
+- **structure解決**: TS側で `resolveStructure()` を事前計算して `resolved_structure` に渡す方式（EXE-4A 設計決定）
+- **deepPrompt解決**: TS側で `WORLD_PRESETS[worldPreset]?.deepPrompt` を解決して `world_preset_deep_prompt` に渡す方式（EXE-4A 設計決定）
+
+### 22-4. 移植済み / 未移植
+
+| 項目 | 状態 |
+|---|---|
+| `GENERATE_SYSTEM_PROMPT`（≒380行） | ✅ 移植済み（Rust raw string定数） |
+| `generate_lang_instruction`（langInstruction相当） | ✅ 移植済み |
+| `buildLegacyUserPrompt` 相当 | ✅ 移植済み |
+| expansion path（`buildExpansionUserPrompt`） | ❌ 未対応（`Ok(None)` を返す） |
+| `repairAbstractDrift`（第2Gemini呼び出し） | ❌ 未移植 |
+| `detectAbstractDrift` / `detectNearDuplicate` 等の品質検出 | ❌ 未移植 |
+| `applyDeterministicCleanup` | ❌ 未移植 |
+| domain leakage 検出 | ❌ 未移植 |
+
+### 22-5. 手動確認結果（2026-05-31）
+
+| 確認項目 | 結果 |
+|---|---|
+| `tauri:dev` 起動 | ✅（初回は旧プロセス残留により `Command generate_lyrics not found` が1度出たが、再ビルド後に解消） |
+| expansion なし・通常生成の実行 | ✅ 歌詞が生成された |
+| **"Gemini AI" バッジ表示** | ✅ 確認 |
+| 変更メモが表示された | ✅ |
+| エラー表示なし | ✅ |
+
+### 22-6. 現在の EXE 機能状態（Phase EXE-4D 完了後）
+
+| 機能 | EXE本番の挙動 |
+|---|---|
+| **generate（legacy path）** | ✅ `invoke("generate_lyrics")` → Gemini API |
+| generate（expansion path） | ❌ `Ok(None)` → `buildExpansionLyricsFallback`（EXE-4E 実装予定） |
+| generate repair | ❌ 未移植（EXE-4F で判断） |
+| **rewrite** | ✅ `invoke("rewrite_lyrics")` → Gemini API |
+| **forge（WorldForge）** | ✅ `invoke("forge_world")` → Gemini API |
+| **alchemy（SourceAlchemy）** | ✅ `invoke("alchemy_transform")` → Gemini API |
+
+### 22-7. 次フェーズ候補
+
+| 優先度 | 内容 | 備考 |
+|---|---|---|
+| 高 | EXE-4E: expansion path 対応 | expansion あり時の `buildExpansionUserPrompt` 相当を Rust に実装。**実装前に事前設計確認を行うこと** |
+| 中 | EXE-4F: repair 対応判断 | legacy path 品質を評価後に判断。repairは第2Gemini呼び出しを含むため慎重に |
+| 低 | APIキー設定 UI | 初回起動時の案内 UI |
+
+**expansion path は WorldExpansion の全フィールドを Rust に渡す設計が必要なため、いきなり実装しない。**

@@ -28,6 +28,7 @@ import { predictCollapse } from "@/lib/collapsePredictor";
 import { generateMoraSuggestions, applyLineFix } from "@/lib/moraTuner";
 import { applyRewriteMode, mergeSections } from "@/lib/rewriteModes";
 import { callClaudeRewrite } from "@/lib/claudeRewrite";
+import { callGenerateLyrics } from "@/lib/generateLyrics";
 import { loadMemories, saveMemory, deleteMemory, PromptMemory } from "@/lib/promptMemory";
 import {
   getPromptItemById,
@@ -967,31 +968,22 @@ export default function Home() {
       const apiInput = lib.chorusFirst ? { ...input, startWithChorus: true } : input;
 
       const structOvr = resolvedStructureOverride();
-      try {
-        const res = await fetch("/api/ai/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            songInput: apiInput,
-            expansion,
-            libraryStyleAddition: lib.styleAddition,
-            libraryStructureHint: lib.structureHint,
-            libraryMetaTagHint:   lib.metaTagHint,
-            structureOverride:    structOvr,
-            isCustomBlueprint:    structureMode === "builder" && !!structOvr,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.lyrics) {
-            setLyricsRaw(data.lyrics);
-            analyse(data.lyrics);
-            if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("gemini"); }
-            setIsGenerating(false);
-            return;
-          }
-        }
-      } catch { /* fallthrough to expansion fallback */ }
+      const dataA = await callGenerateLyrics({
+        songInput: apiInput as unknown as Record<string, unknown>,
+        expansion,
+        libraryStyleAddition: lib.styleAddition,
+        libraryStructureHint: lib.structureHint,
+        libraryMetaTagHint:   lib.metaTagHint,
+        structureOverride:    structOvr,
+        isCustomBlueprint:    structureMode === "builder" && !!structOvr,
+      });
+      if (dataA) {
+        setLyricsRaw(dataA.lyrics);
+        analyse(dataA.lyrics);
+        if (dataA.notes) { setRewriteNotes(dataA.notes); setRewriteSource("gemini"); }
+        setIsGenerating(false);
+        return;
+      }
 
       // Expansion fallback: Claude unavailable — build lyrics from expansion data,
       // NOT from generic mood pools. Style prompt is already expansion-based above.
@@ -1013,31 +1005,22 @@ export default function Home() {
     const apiInput = lib.chorusFirst ? { ...input, startWithChorus: true } : input;
 
     const structOvrB = resolvedStructureOverride();
-    try {
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          songInput: apiInput,
-          expansion: null,
-          libraryStyleAddition: lib.styleAddition,
-          libraryStructureHint: lib.structureHint,
-          libraryMetaTagHint:   lib.metaTagHint,
-          structureOverride:    structOvrB,
-          isCustomBlueprint:    structureMode === "builder" && !!structOvrB,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.lyrics) {
-          setLyricsRaw(data.lyrics);
-          analyse(data.lyrics);
-          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("gemini"); }
-          setIsGenerating(false);
-          return;
-        }
-      }
-    } catch { /* fallthrough */ }
+    const dataB = await callGenerateLyrics({
+      songInput: apiInput as unknown as Record<string, unknown>,
+      expansion: null,
+      libraryStyleAddition: lib.styleAddition,
+      libraryStructureHint: lib.structureHint,
+      libraryMetaTagHint:   lib.metaTagHint,
+      structureOverride:    structOvrB,
+      isCustomBlueprint:    structureMode === "builder" && !!structOvrB,
+    });
+    if (dataB) {
+      setLyricsRaw(dataB.lyrics);
+      analyse(dataB.lyrics);
+      if (dataB.notes) { setRewriteNotes(dataB.notes); setRewriteSource("gemini"); }
+      setIsGenerating(false);
+      return;
+    }
 
     const ly = draftToRaw(buildLyricsDraft(input));
     setLyricsRaw(ly);
@@ -1119,31 +1102,22 @@ export default function Home() {
     const regenInput = regenLib.chorusFirst ? { ...input, startWithChorus: true } : input;
     const regenStructOvr = resolvedStructureOverride();
 
-    try {
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          songInput: regenInput,
-          expansion,
-          libraryStyleAddition: regenLib.styleAddition,
-          libraryStructureHint: regenLib.structureHint,
-          libraryMetaTagHint:   regenLib.metaTagHint,
-          structureOverride:    regenStructOvr,
-          isCustomBlueprint:    structureMode === "builder" && !!regenStructOvr,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.lyrics) {
-          setLyricsRaw(data.lyrics);
-          analyse(data.lyrics);
-          if (data.notes) { setRewriteNotes(data.notes); setRewriteSource("gemini"); }
-          setIsGenerating(false);
-          return;
-        }
-      }
-    } catch { /* fallthrough */ }
+    const dataRegen = await callGenerateLyrics({
+      songInput: regenInput as unknown as Record<string, unknown>,
+      expansion,
+      libraryStyleAddition: regenLib.styleAddition,
+      libraryStructureHint: regenLib.structureHint,
+      libraryMetaTagHint:   regenLib.metaTagHint,
+      structureOverride:    regenStructOvr,
+      isCustomBlueprint:    structureMode === "builder" && !!regenStructOvr,
+    });
+    if (dataRegen) {
+      setLyricsRaw(dataRegen.lyrics);
+      analyse(dataRegen.lyrics);
+      if (dataRegen.notes) { setRewriteNotes(dataRegen.notes); setRewriteSource("gemini"); }
+      setIsGenerating(false);
+      return;
+    }
 
     // Fallback: rule-based draft
     const ly = expansion

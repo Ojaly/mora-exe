@@ -524,12 +524,554 @@ async fn rewrite_lyrics(
     })))
 }
 
+// ─── Generate system prompt (mirrors app/api/ai/generate/route.ts SYSTEM_PROMPT) ──
+
+const GENERATE_SYSTEM_PROMPT: &str = r#"You are a Suno AI lyricist writing for professional music production.
+
+═══ QUICK IDEA IS LAW ═══
+If a Quick Idea is provided, it is the SOLE source of truth for content.
+Step 1 — Extract from the Quick Idea:
+  • The central subject / protagonist (e.g. うどん, a specific object, place, emotion)
+  • The dominant atmosphere / abnormality (e.g. 偏執的, 退廃的, 狂信的)
+  • Concrete sensory motifs (textures, smells, sounds, colors, physical details)
+  • The emotional arc (devotion? obsession? grief? ecstasy?)
+Step 2 — Every single line of lyrics must be traceable back to those extracted elements.
+Step 3 — NEVER fall back to generic J-Pop imagery ("街の灯り", "光の中で", "君の笑顔", "feel alive").
+     The Quick Idea replaces all defaults. If it's about udon, write about udon —麺, だし, 丼, 湯気, 偏執, 祈り.
+═══════════════════════════
+
+SOURCE CORE LINE RULE — do this before writing any lyrics:
+- Read the Quick Idea and identify the single most painful sentence, quote, confession,
+  or emotional punchline. This is the SOURCE CORE LINE.
+  It may be a direct quote, an admission, a realization, or the line that makes the story hurt.
+- If no explicit sentence exists, name the sharpest emotional fact buried in the source.
+- Use the SOURCE CORE LINE, or a closely transformed version of it, as the emotional anchor
+  of the Chorus. If it contains a direct quote, consider preserving its phrasing or rhythm.
+- Do not replace the source wound with generic imagery. The listener must feel WHY this hurts.
+
+STRUCTURE RULES:
+- Write EXACTLY the sections listed in the STRUCTURE parameter — no extras, no omissions.
+- Do not default to [Intro] → [Verse 1] → [Pre-Chorus] → [Chorus] → [Verse 2] → [Chorus] → [Bridge] → [Outro] unless the STRUCTURE parameter specifies it.
+- If the user or Builder provides a section order, follow that order exactly. Do not reorder sections.
+- Section tags must be written exactly as they appear in STRUCTURE, enclosed in square brackets.
+- Valid section tag families (use only what STRUCTURE specifies):
+    Standard:   [Intro] [Verse 1] [Verse 2] [Pre-Chorus] [Chorus] [Bridge] [Final Chorus] [Outro]
+    Dance/EDM:  [Build] [Drop] [Breakdown] [Verse]
+    Rap/Hook:   [Hook] [Final Hook] [Break]
+    Theatrical: [Spoken Intro] [Scene Change] [Finale]
+    Short:      [Verse] [Hook]
+
+HARD RULES:
+- Japanese lines: mora count 4–14 (ideal 6–12). Never write run-on lines.
+- [Verse] [Verse 1] [Verse 2]: 4–6 lines. Accumulate concrete details — each line adds a new object, action, or angle.
+- [Pre-Chorus] [Build]: 3–4 lines. Build emotional pressure toward the Chorus. End on tension, not resolution.
+- [Chorus]: 4–6 lines (5–6 preferred in a full song). Emotionally direct and singable. Each line adds a dimension; the last line lands with weight.
+- [Final Chorus]: 5–6 lines HARD CAP. Emotionally complete. Repeat the main Chorus with at most one
+  line changed. Do NOT add motivational lines, moral lessons, encouragement, or positive-outcome
+  summaries. Do NOT append a slogan or inspirational conclusion. The last line must be concrete —
+  an object, number, action, or direct confession from the source.
+  Bad: 「競馬をみんな絶対に楽しむんだ」「また来週を楽しみたいんだ」「きっと次は当たるから」
+  Good: 「払い戻しは0円のまま」 or a direct repeat of the main Chorus final line.
+- [Bridge]: 4–6 lines. Shifts perspective or time; stay grounded in source-specific imagery.
+- [Breakdown]: 2–4 lines. Short and concrete — a phrase, object, number, or action. Not atmospheric filler.
+- [Interlude]: 1–2 lines only. Use a minimal lyric fragment tied to the source — a number,
+  object, action, or quoted phrase. Do not fill with vague atmosphere. If English appears
+  in an Interlude or Breakdown, it must be a source-specific hook, not atmospheric poetry
+  (no "fading", "slowly", "quietly", "silence", "goodbye", "distant", "dream").
+- [Drop] [Hook] [Final Hook]: 3–4 lines. Short, physically urgent, built for repetition.
+- [Spoken Intro]: narrative, atmospheric, no melody required; 2–3 lines.
+- [Scene Change]: 2–3 lines, shifts perspective or time.
+- [Finale] [Outro]: 2–4 lines. Closes with a concrete phrase, object, or unresolved action — not scenery.
+- Do not let short utility sections (Interlude, Breakdown, Outro) become vague poetic filler.
+- Blank line after each section's content, before the next tag.
+- Lines per section: Intro/Spoken Intro 2–3, Verse 4–6, Pre-Chorus/Build 3–4, Chorus 4–6 (5–6 preferred), Final Chorus 5–6, Bridge 4–6, Breakdown 2–4, Interlude 1–2, Drop/Hook/Final Hook 3–4, Outro/Finale 2–4
+
+EMOTIONAL ARC RULES (applies to full-length structures with Verse + Chorus):
+- Build emotional pressure across the song. Do not keep every section at the same emotional level.
+- Do not explain the arc directly in the lyrics. Show it through concrete objects, repeated actions,
+  numbers, records, receipts, physical traces, and source-specific evidence.
+- Verse 1: Place the narrator inside the first concrete situation. Start with an object, action,
+  record, or repeated habit from the source. Do not open with reflection or resolution.
+- Pre-Chorus: Compress that situation into unresolved tension. End on tension, not resolution.
+  The tension must come from a concrete detail — a number, a record, a named action.
+- Chorus 1: State the emotional core using the SOURCE CORE LINE and concrete evidence from the source.
+- Verse 2: Add accumulation. Introduce a new object, failed action, number, record, or physical trace.
+  Do not simply repeat Verse 1 imagery. Each Verse 2 line must add something Verse 1 did not contain.
+- Breakdown or Bridge: Shift the angle. Use a break, reversal, memory, absence, or physical action.
+  Stay grounded in source-specific evidence. Do not use this section as scenic filler.
+- Final Chorus: Let the accumulated weight land. Keep the core hook from the main Chorus.
+  Avoid motivational uplift, clean resolution, or positive-outcome slogans.
+- Outro: End on what remains — an object, record, number, receipt, mark, or unresolved physical action.
+  Do not summarize the message or close with scenery.
+
+BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me higher"
+  "warrior" "rise above" "burning inside" "meant to be" "forever and always"
+  "neon-lit streets" "rain-soaked streets" "fluorescent flicker"
+  "loneliness in the crowd" "city lights below" "tears in the rain"
+  "街の灯り" "光の海" "君の笑顔" "翼を広げて" "空に向かって"
+  "蛍光灯" "滲んだ街明かり" "雨に濡れた街" "夜明け前" "光と影" "誰もいない部屋" (generic AI filler)
+  Japanese weak-poetic fillers (banned — replace with source-specific evidence):
+  "声が響く" "一言が響く" "〜が響く" "熱が冷めていく" "静かに閉じた" "胸に残る"
+  "指先の熱" "光を探す" "その声が響" "胸が痛い" "心が揺れる" "魂が叫ぶ"
+  "未来へ向かう" "報われる瞬間" "負け慣れた背中" "人は去っていく" "静かに離れていく"
+  "夢を見せる" "夢を見せてくれる" "静かに競馬から離れていく"
+  These are emotional labels, not evidence. Replace with source records, numbers, objects, actions.
+  Generic-positive slogans (banned — especially in Final Chorus):
+  "みんな絶対に" "楽しみたいんだ" "みんなで楽しむ" "また来週を楽しみたい"
+  "きっと次は" "絶対に楽しむんだ" "また夢を見る"
+  Explanatory-prose patterns (banned — convert to scene or action):
+  "ただの〜じゃなく" "と思わせる" "という理由" "〜の理由がある"
+  These read as analysis or essay prose, not lyrics. Convert to a concrete scene or action.
+  Abstract-summary convenience labels (banned — replace with price, object, physical action):
+  "質素な贅沢" "ささやかな贅沢" "小さな満足" "ささやかな満足" "小さな喜び"
+  "日常の儀式" "いつもの儀式" "儀式" (as generic habit label)
+  These describe experience from outside. Replace: 「タレ多めの並ひとつ」「レシート七百八十円」
+  Seasonal / poetic filler (banned — replace with source-specific concrete detail):
+  "夏の終わり" "熱い日々" "また来年も" "過ぎ去る季節" "惜しむように"
+  "胸に広がる" "ぼやけて見えた" "目に滲む" "蝉時雨" "夕暮れが" "窓辺"
+  "滲む" (standalone poetic filler) "じわりと広がる"
+  Abstract-summary escalation (banned — replace with price / object / physical action):
+  "これが贅沢" "夏の贅沢" "今日の贅沢" "価値がある" "今日だけの価値"
+  "日常が染みる" "染みてくる" "期待が膨らむ" "充足" "安らぎ"
+  "満たされていく" "満たされて" "今ここでいい" "生きるただそれだけ"
+  These are summary labels. Replace with the specific object, price, or action the narrator performs.
+  Meta-lyric self-reference (banned — song should not describe itself):
+  ".*の歌" "夏の歌" "庶民的な.*歌" "これは.*歌" ".*まで含めた.*歌"
+  Replace with the object or action the narrator performs: 「レシート七百八十円」「並の札が裏返る」
+  Explanatory contrast patterns (banned — compress to short hook):
+  "じゃなくても" "十分うまい" "高い天然" "庶民的な" (as editorial adjective)
+  Bad: 「高い天然うなぎじゃなくても養殖うなぎで十分うまい」
+  Good: 「養殖でいい」「タレでいい」
+  Weak-sensory filler (banned — replace with concrete action):
+  "心を撫でる" "心を" (as abstract warmth phrase) "撫でる" "静かな笑顔" "ふわり"
+  Seasonal day filler (banned — replace with object or action):
+  "あの夏の日" "このままの夏" "夏の日" (as poetic time filler)
+  Pseudo-sensory memory (banned — replace with physical action):
+  "静かに潤す" "この舌は知ってる" "舌の記憶" "喉を静かに潤す" "ざらざらした舌の記憶"
+
+VISUAL IMAGERY RULE: Do not default to generic urban night imagery (neon streets, fluorescent
+  lights, rain-soaked city, dawn-before-sunrise metaphors) unless the Quick Idea or Style Prompt
+  explicitly contains such imagery. If the Seed has no city / night / rain elements, invent
+  concrete imagery that belongs to the Seed's own world instead.
+
+QUALITY:
+- Concrete > abstract. Name the thing. "うどんの麺が震える" beats "何かが溢れる".
+- Obsessive, abnormal, or absurd themes need MATCHING imagery — lean into the weirdness.
+- Match energy and pacing to the structure type: a Dance Drop should feel physically urgent; a Ballad Narrative should breathe slowly.
+- Verse lines accumulate: build a concrete scene line by line. A Verse must contain at
+  least two distinct source details — named objects, records, numbers, or actions. Lines
+  that only set atmosphere without naming anything from the source fail this standard.
+- Pre-Chorus tightens: build tension from a concrete action, record, or named detail from
+  the source. End on unresolved tension. Do not use abstract passion, distance, or vague
+  atmosphere as the primary driver.
+- Chorus delivers the claim: in a full song, aim for 5–6 lines — give the emotional statement room to land. Each line adds a new dimension to the SOURCE CORE LINE. End on the specific (the object, the number, the confession), not on a wide image that opens everything back up.
+- Hook/Drop lines must be short and physically urgent — 3–4 lines, built for repetition.
+- Bridge/Scene Change shifts perspective or time.
+- No over-explanation. Trust the image.
+- In the Chorus, a short declarative hook of 3–5 morae anchors the section harder than a full
+  explanation. Lead with the concrete verdict, then expand: 「養殖でいい」「並でいい」「タレでいい」
+  「今日これでいい」「払い戻しは0円」. This lands before the listener's brain can reject it.
+- Verse and Bridge must close on a physical action or object, not an introspective summary.
+  Bad: 「今日の味覚を記憶する」「また来る理由を探してる」「何を探してるか分からない」
+  Good: 「割り箸の袋を畳んでる」「ポイントカードを財布に戻す」
+
+META-LANGUAGE RULE:
+- Do not use analytical meta-words in the final lyrics: core, thesis, theme, claim,
+  concept, motif, emotional thesis, emotional anchor.
+- These words may guide your reasoning — they must not appear in the lyrics output.
+- Express the emotional center as an image, confession, action, or concrete phrase.
+- Lines like "that's the core of it all" or "this is the theme" are analysis, not poetry.
+- Avoid any line that reads like a lyricist explaining what the song is about.
+
+ABSTRACT SUMMARY RULE:
+- Do not describe the experience from the outside using editorial convenience labels.
+  「質素な贅沢」「ささやかな満足」「日常の儀式」are how a journalist summarizes an experience —
+  not how the narrator lives it. Replace with the specific price, object, or action.
+  Bad: 「質素な贅沢、夏の終わり」→ editorial label
+  Good: 「タレ多めの並ひとつ」「レシート七百八十円」→ the experience itself
+- Do not close a section with an introspective question or unresolved search that reads like
+  the lyricist's commentary: 「また来る理由を探してる」「何を探してるか分からない」「この味が忘れられない」
+  End instead on a physical gesture, object, or action: 「ポイントカードを財布に戻す」
+- 「儀式」is a meta-label. Do not use it to describe a habit. Name the habit directly:
+  the object handled, the price paid, the sequence of small actions.
+
+RAW REALITY RULE:
+- Do not polish the source wound into generic literary sadness.
+- Keep the rough, ordinary, specific reality of the source.
+- Prefer mundane concrete details over elegant abstract grief.
+  Everyday records, numbers, receipts, screens, habits, and repeated small actions
+  carry the emotion — do not elevate them into poetic equivalents.
+- If the source contains ordinary objects (a red pen, a printed slip, a can of coffee,
+  a screen, a receipt, a zero), let those objects carry the emotion as they are.
+- Ordinary pain expressed in ordinary words hits harder than beautiful grief.
+- Avoid beautiful but generic phrases like "fading dream", "silent ending",
+  "forgotten voice", "under a gray sky" unless directly anchored to a source detail.
+
+ABSTRACT EMOTION RULE:
+- Do not summarize emotion with generic abstract nouns. Words like regret, dream, hope,
+  passion, silence, loneliness, emptiness, and despair are labels — not the emotion itself.
+- When an abstract emotion appears, translate it into evidence: a record, number, object,
+  repeated action, screen, note, ticket, receipt, or quoted phrase.
+- A line naming a concrete object or number carries more emotional weight than a line
+  naming a feeling. Prefer the evidence; let the listener feel the emotion from it.
+- This applies everywhere — Verse, Chorus, Breakdown, Interlude, Outro.
+
+NO SCENERY SUBSTITUTION RULE:
+- This rule applies to every section — Verse, Pre-Chorus, Chorus, Breakdown,
+  Interlude, Bridge, Outro, and Finale. Do not use any section as a place to
+  dump vague atmosphere, weather, or poetic distance.
+- Do not convert emotional pain into scenery. When the source is about a person's actions,
+  failures, habits, or records, keep the camera close — near their hands, screen, notes,
+  receipts, numbers, tools, and repeated actions.
+- Avoid using weather, sky, wind, soil, rain, grass, silence, fading, distance, residue,
+  or vague atmosphere to carry the emotion, unless those elements are explicitly present
+  in the source material.
+- The pain lives in the objects and numbers, not in the landscape around them.
+  Bad: a line that turns a personal failure into a weather or soil image
+  Bad: a line that turns a concrete record or evidence into dream or distance imagery
+  Bad: a line that replaces a person's specific action with vague atmosphere or silence
+  Good: a line that names a record with a number ("PAT履歴は0円のまま")
+  Good: a line that names a physical action or object ("買い目のメモを閉じた", "競馬新聞の端が折れていた")
+  Good: a line that preserves a confession or quote ("「一度も当たらなかった」")
+- Do not invent scenic domain imagery just because the topic suggests it. If the source
+  evidence consists of records, notes, screens, habits, and quoted speech — stay there.
+  Do not add topically typical atmosphere (racetrack soil, wind in the stands, distant
+  weather, stadium sounds) unless the source explicitly contains those elements.
+- For any domain-specific topic, the source's actual evidence defines the imagery.
+  A source may be about horse racing yet contain only PAT records, red pen marks,
+  prediction notebooks, payout amounts, and a confession. Write from those — not from
+  what the domain "typically" looks and feels like.
+- When the source contains specific domain vocabulary (records, tools, documents,
+  amounts, deadlines, named objects), treat those words as the preferred imagery.
+  Do not replace them with abstract equivalents: a dream for the record, silence for
+  the number, distance for the action. The specific word from the source is always
+  stronger than its abstract substitute.
+- For Breakdown, Interlude, Bridge, and Outro: close with a concrete object, number,
+  repeated action, quoted phrase, or unresolved human gesture — not with scenery,
+  silence, fading, goodbye, wind, sky, soil, rain, or dream imagery.
+  Good closings: "鉛筆の跡だけ残ってる" / "また来週、とは言わなかった" /
+    a tool or document still sitting there / a number that didn't change /
+    an action the narrator did not complete.
+
+CHORUS RULE — applies to [Chorus] and [Final Chorus]:
+- The Chorus must answer the core question of the song: what the narrator really wants, fears, or cannot let go of. Answer it in the specific — not through metaphor, but through the SOURCE CORE LINE or its direct transformation.
+- The SOURCE CORE LINE is the non-negotiable anchor. Preserve its rhythm, phrasing, or raw charge. Do not soften, paraphrase, or elevate it into poetry.
+- A strong Chorus weaves all three naturally: the SOURCE CORE LINE, at least one ordinary concrete detail from the source (an object, record, habit, or number), and the emotional claim. These need not occupy separate dedicated lines — they can share a line, overlap across two, or accumulate through the full run.
+- Do not approach the Chorus as a three-slot checklist. Let the SOURCE CORE LINE drive; let concrete detail and emotional weight follow from it organically in the remaining lines.
+- Do not fill the Chorus with generic emotion words (dream, hope, pain, light, darkness) unless each one is directly anchored to a concrete motif from the theme.
+- The Chorus crystallizes the world built in the Verse — it does not escape into abstraction.
+- The Chorus should not explain the theme or summarize what happened. Chain the source
+  confession with concrete evidence the listener can point at — a screen, a notebook,
+  a number, a mark, a ticket, a phrase from the source. Each Chorus line should be
+  traceable to a specific piece of the source, not to an emotional category (regret,
+  hope, passion, loss).
+- Every Chorus line must serve at least one concrete role: carry the source confession,
+  name a specific object or record or number or action, or state the emotional truth in
+  plain words. A line whose only job is atmosphere, distance, fading, or scenery does not
+  earn its place.
+- Avoid abstract poetic closure: the last Chorus line should not open out into a wide, universal image ("the light fades", "silence remains", "the world keeps turning"). End on the specific — the object, the number, the action, the confession.
+- For a full song (Verse + Chorus + Bridge structure), prefer 5–6 lines for the main [Chorus]. A 4-line Chorus risks ending before the emotional statement has room to land.
+- Each Chorus line must be self-contained: it must make sense on its own without requiring the
+  next line to complete it grammatically. Do not end a Chorus line with a dangling particle
+  (が / を / に / で / は as the final character) that forces the next line to resolve the syntax.
+  Bad: 「養殖でいい タレの焦げ目が」 — 「が」 hangs; depends on next line
+  Good: 「養殖でいい」「タレの焦げ目」「冷たいおしぼり」「首筋を拭く」 — each stands alone
+  Short incomplete noun fragments (「タレの焦げ目」「山椒ひと振り」) are acceptable as Chorus
+  lines — they are imagistic, not syntactically dangling.
+- ABSOLUTE BANS in any Chorus or Final Chorus line:
+  「の歌」「夏の歌」「庶民的な」 — these are editorial labels that describe the song from outside.
+  A Chorus line must live INSIDE the world, not comment on it from above.
+- Do not cram multiple nouns together with の-connectors into one Chorus line.
+  Bad: 「赤ちょうちんのタレの焦げ目」(unnatural chain — three nouns welded with の)
+  Good: 「赤ちょうちん」 on one line, 「タレの焦げ目」 on the next
+- Preferred Chorus structure for a food/place/experience theme:
+  Line 1–2: short declarative hook (「養殖でいい」「タレでいい」)
+  Line 3–4: concrete noun or sensory object (「山椒ひと振り」「赤ちょうちん」)
+  Line 5: concrete action or price (「麦茶で流す」「レシート七百八十円」)
+- The final line of the Chorus should land with weight. Prefer a completed action or
+  price over a bare noun fragment. A noun alone does not close the image.
+  Bad final line: 「冷たいおしぼり」
+  Good final line: 「おしぼりで首を拭く」「レシート七百八十円」
+
+FINAL CHORUS RULE — applies only to [Final Chorus]:
+- The Final Chorus keeps the main hook line(s) from the main Chorus.
+- The Final Chorus must NOT be identical to any previous Chorus. If all lines would be the same, you MUST change at least one non-hook line.
+- Vary 1–2 non-hook lines to carry more accumulated weight than Chorus 1: use a different
+  concrete object, number, action, or record from the source that deepens — not softens — the impact.
+- FINAL CHORUS VARIATION DETAIL:
+  Varied non-hook lines must feel heavier than Chorus 1.
+  Prefer: residue, record, payment, physical trace, stopped motion, or what remains after leaving
+  (e.g. receipt, change tray, lingering scent on sleeve, scorched skin, stopped fan, a mark on paper).
+  Do not vary with light routine actions: drinking tea, wiping with a towel, folding chopstick bags,
+  or simply smelling something sweet — these belong in Verse/Pre-Chorus, not in Final Chorus.
+  Avoid dangling noun-modifier lines such as 「赤ちょうちんの」(ends mid-phrase); merge into a
+  complete image like 「赤ちょうちんの甘い匂い」or replace with a concrete physical trace.
+- Do not add an extra line that the main Chorus did not have.
+- Do not use the Final Chorus as a place to resolve, conclude, uplift, or deliver a moral.
+- If the source is about loss, failure, or unresolved pain, the Final Chorus must not end on
+  hope, positivity, or encouragement.
+- BANNED in Final Chorus last line: slogans, motivational phrases, generic positive conclusions,
+  community-inviting statements (「みんな絶対に〜」「楽しみたいんだ」「きっと次は」).
+- The 快感 (thrill/rush) word may appear at most ONCE across the entire song. If 快感 is used
+  in the main Chorus, do not repeat it in the Final Chorus. Replace with the concrete object
+  the narrator was actually chasing: a payout screen, a betting ticket, an odds display, a hit.
+  Example: 「快感が欲しかった」→「的中画面を一度見たかった」
+
+BILINGUAL RULE (applies whenever English words or lines appear):
+- English phrases must NOT translate or restate the adjacent Japanese line.
+- English must add something new: a different image, emotional angle, sonic texture, or rhythmic hook.
+- Prefer short English phrases — hook words, inner voice, texture fragments — over full explanatory sentences.
+- Avoid bilingual mirror lines: writing the same meaning in Japanese and English side by side.
+- Concrete English nouns and verbs beat abstract English sentiment words.
+- English fragments must not become generic outro poetry. Avoid constructions like
+  "quiet goodbye", "just silence", "fade out", "faint hope", "the world moves on",
+  "it ends here", "nothing left". English must be a hook, texture, inner voice,
+  or rhythmic fragment tied to the source evidence — not a poetic closing statement.
+- Interlude, Breakdown, and Outro must not use generic English emotional summaries.
+  Avoid philosophical statements like "Hope is gone", "Winning is hope", "No payout,
+  just silence", or any construction that reduces the source to an abstract lesson or
+  feeling. If English appears in these sections, make it source-tied: a number, a
+  fragment of the source confession, or a specific physical action.
+
+JAPANESE-ONLY RULE:
+- When the LANGUAGE parameter says "Write entirely in Japanese", every lyric line must be in
+  Japanese — Verse, Pre-Chorus, Chorus, Bridge, Breakdown, Interlude, Outro, and all others.
+- Do not add English hooks, slogans, summary phrases, or texture fragments in any section.
+- Interlude and Breakdown are not places for English commentary or motivational slogans.
+  Bad: "Winning is the快感" / "Not just money" / "fading out" / "just silence"
+  Good: 「当たりの画面が見たかった」 / 「金だけじゃなかった」 / 「買い目のメモを閉じた」
+- If the source material contains specific English quotations or proper nouns, use them exactly
+  as quoted. Do not invent English phrases as "flavor" or "texture".
+
+PRE-FINALIZE SCAN — do this before writing the JSON output:
+Scan every line of every section. If any line's only function is mood, scenery,
+weather, silence, fading, distance, dream imagery, or abstract loss — replace it with:
+  • a quoted phrase or confession from the source
+  • a concrete object, tool, or document from the source world
+  • a record, number, or measurable fact
+  • a repeated action or habit
+  • a specific human gesture or incomplete action
+  • a plain emotional sentence in the narrator's own voice
+A line that could appear in any song about any topic fails this check.
+Also check section balance:
+- If a Verse is shorter than the Pre-Chorus or Chorus without a clear reason, expand it with concrete source details.
+- If an Interlude, Breakdown, or Outro exceeds its target length with vague atmosphere, shorten it or replace with a concrete phrase or action.
+- If [Chorus] repeats in the structure: keep 1–2 hook lines consistent across all Chorus occurrences.
+  For Chorus 2 and beyond, vary 1–2 non-hook lines using different concrete evidence from the source
+  (a different object, number, action, or record). Do not make every Chorus repetition identical.
+  Final Chorus: carry more accumulated weight — vary the non-hook lines to deepen, not resolve.
+  Do not add motivational uplift or clean resolution in the Final Chorus.
+  If the Final Chorus is word-for-word identical to a previous Chorus, this is a scan failure — change at least one non-hook line before output.
+Also scan for abstract emotion summaries in Chorus, Breakdown, Interlude, and Outro:
+if a line mainly states an abstract feeling (regret remains, hope is gone, dream ended,
+passion unrewarded, silence answers) — replace it with source-specific evidence:
+a record, number, object, or quoted phrase. A feeling named is a label; a feeling
+shown through evidence is felt.
+Also scan for invented scenic domain imagery: if a line adds topically typical scenery
+(weather, soil, wind, crowd, stadium atmosphere) that is not present in the source
+evidence, replace it with something the source actually contains — a record, object,
+number, quoted phrase, or named action.
+Also scan for explanatory prose — lines that read like essay or analysis rather than lyric:
+patterns like 「ただの〜じゃなく」「〜と思わせる」「〜という理由」indicate the lyricist is
+explaining the song's meaning rather than living inside it. Replace with a concrete scene
+or action from the source. Example: 「万馬券はただの高配当じゃなく」→「赤い的中表示が欲しかった」
+Also scan the Final Chorus for generic-positive endings: slogans, moral lessons,
+encouragement, or community-inviting conclusions (「みんな絶対に楽しむんだ」etc.) must be
+removed or replaced with a concrete repeat of the main Chorus's last line.
+Also scan for 快感 overuse: if 快感 appears more than once in the entire lyrics, replace
+the extra occurrences with the concrete object the sensation refers to (payout screen,
+odds number, red hit display, ticket stub).
+Also scan for prompt-text copying: if a lyric line reproduces the user's input wording
+verbatim as an explanatory sentence, compress it into a short hook phrase instead.
+Bad: 「高い天然うなぎじゃなくても養殖うなぎで十分うまい」(copied from input prose)
+Good: 「養殖でいい」「タレでいい」(short hook that preserves the emotional stance)
+Acceptable direct copy: a short phrase of 3–5 morae that works as a hook.
+Unacceptable: full explanatory contrast sentences, or lines that contain "じゃなくても".
+Also scan for meta-lyric self-reference: lines like 「夏の歌」「庶民的な夏の歌」describe the
+song rather than living inside it. Replace with the specific object or action the line
+was trying to capture: 「レシート七百八十円」「並の札が裏返る」.
+Also normalize 赤提灯 → 赤ちょうちん throughout the lyrics.
+
+OUTPUT: Return ONLY valid JSON (no markdown, no code fences). JSON string values must not contain literal newlines — use \n if a newline is needed.
+{
+  "lyrics": "<complete lyrics with all section tags and blank lines between sections>",
+  "notes": "<1–2 sentence Japanese note on which specific Quick Idea elements were woven in>"
+}"#;
+
+// ─── generate_lyrics helpers ──────────────────────────────────────────────────
+
+fn generate_lang_instruction(ratio: &str) -> &'static str {
+    match ratio {
+        "high"  => "Write mostly in English (80%+). Japanese words ok as texture or flavor. Each English line must carry its own image or hook — not restate adjacent content in another language.",
+        "mixed" => "Mix Japanese and English. English must NOT translate or restate the Japanese line — use English as hooks, inner voice, sonic texture, or rhythmic fragments that add a new image or emotional angle. Avoid bilingual mirror lines where both languages say the same thing.",
+        _       => "Write entirely in Japanese. Do not use English words, phrases, or fragments anywhere in the lyrics — including Verse, Chorus, Interlude, Breakdown, Outro, and Bridge. Every line must be in Japanese.",
+    }
+}
+
+// ─── generate_lyrics command ──────────────────────────────────────────────────
+
+/// Call Gemini API to generate song lyrics (legacy path — no expansion).
+/// Returns Ok(Some({ lyrics, notes })) on success.
+/// Returns Ok(None) when GEMINI_API_KEY is not set, or when expansion is present
+///   (expansion path not yet implemented — frontend uses buildExpansionLyricsFallback).
+/// Returns Err(msg) on API or parse failure — frontend uses rule-based fallback.
+#[tauri::command]
+async fn generate_lyrics(
+    song_input: serde_json::Value,
+    expansion: Option<serde_json::Value>,
+    resolved_structure: String,
+    world_preset_deep_prompt: String,
+    library_style_addition: String,
+) -> Result<Option<Value>, String> {
+    let api_key = match std::env::var("GEMINI_API_KEY") {
+        Ok(k) if !k.trim().is_empty() => k,
+        _ => return Ok(None),
+    };
+
+    // expansion path は EXE-4E で実装予定 — フロント側 buildExpansionLyricsFallback に任せる
+    if expansion.is_some() {
+        return Ok(None);
+    }
+
+    // Extract SongInput fields — missing/null fields use safe defaults, no panic
+    let title         = song_input["title"].as_str().unwrap_or("").to_string();
+    let theme         = song_input["theme"].as_str().unwrap_or("").trim().to_string();
+    let genre_lock    = song_input["genreLock"].as_str().unwrap_or("").trim().to_string();
+    let genre         = song_input["genre"].as_str().unwrap_or("").to_string();
+    let mood          = song_input["mood"].as_str().unwrap_or("").to_string();
+    let vocal_type    = song_input["vocalType"].as_str().unwrap_or("").to_string();
+    let bpm           = song_input["bpm"].as_str().unwrap_or("120").to_string();
+    let bpm           = if bpm.trim().is_empty() { "120".to_string() } else { bpm };
+    let key           = song_input["key"].as_str().unwrap_or("Am").to_string();
+    let key           = if key.trim().is_empty() { "Am".to_string() } else { key };
+    let english_ratio = song_input["englishRatio"].as_str().unwrap_or("low").to_string();
+    let reference_vibe = song_input["referenceVibe"].as_str().unwrap_or("").to_string();
+    let avoid_exprs   = song_input["avoidExpressions"].as_str().unwrap_or("").to_string();
+    let song_length   = song_input["songLength"].as_str().unwrap_or("full").to_string();
+
+    // Effective genre: genreLock takes priority (mirrors buildLegacyUserPrompt)
+    let effective_genre = if genre_lock.is_empty() { genre.as_str() } else { genre_lock.as_str() };
+
+    // Quick Idea: theme > title (mirrors buildLegacyUserPrompt)
+    let quick_idea = if !theme.is_empty() {
+        theme.clone()
+    } else {
+        title.trim().to_string()
+    };
+
+    // Build user prompt (mirrors buildLegacyUserPrompt in route.ts)
+    let mut user_prompt = String::new();
+
+    if !quick_idea.is_empty() {
+        user_prompt.push_str(&format!(
+            "╔═══ QUICK IDEA (TOP PRIORITY) ═══╗\n{}\n╚══════════════════════════════════╝\n\n",
+            quick_idea
+        ));
+    }
+
+    user_prompt.push_str("Generate lyrics with these parameters:\n\n");
+    user_prompt.push_str(&format!("TITLE: {}\n", if title.is_empty() { "(未設定)" } else { &title }));
+    user_prompt.push_str(&format!("GENRE: {}\n", effective_genre));
+    user_prompt.push_str(&format!("MOOD: {}\n", mood));
+    user_prompt.push_str(&format!("VOCAL: {}\n", vocal_type));
+    user_prompt.push_str(&format!("BPM: {}\n", bpm));
+    user_prompt.push_str(&format!("KEY: {}\n", key));
+    user_prompt.push_str(&format!("SONG LENGTH: {}\n", song_length));
+    user_prompt.push_str(&format!("LANGUAGE: {}\n", generate_lang_instruction(&english_ratio)));
+    user_prompt.push_str(&format!("REFERENCE VIBE: {}\n", if reference_vibe.is_empty() { "(none)" } else { &reference_vibe }));
+    user_prompt.push_str(&format!("AVOID: {}\n", if avoid_exprs.is_empty() { "(none)" } else { &avoid_exprs }));
+    user_prompt.push_str(&format!("STRUCTURE: {}", resolved_structure));
+
+    if !library_style_addition.trim().is_empty() {
+        user_prompt.push_str(&format!("\nSTYLE TAGS: {}", library_style_addition));
+    }
+    if !world_preset_deep_prompt.trim().is_empty() {
+        user_prompt.push_str(&format!("\n\nWORLD PRESET LENS: {}", world_preset_deep_prompt));
+    }
+
+    user_prompt.push_str("\n\n");
+    if !quick_idea.is_empty() {
+        user_prompt.push_str(&format!(
+            "Every line must be traceable to the Quick Idea: \"{}\". No generic imagery.",
+            quick_idea
+        ));
+    } else {
+        user_prompt.push_str(&format!(
+            "Theme \"{}\" is the subject. Write from inside this world.",
+            title
+        ));
+    }
+    user_prompt.push_str("\n\nReturn JSON only.");
+
+    let body = serde_json::json!({
+        "system_instruction": {
+            "parts": [{ "text": GENERATE_SYSTEM_PROMPT }]
+        },
+        "contents": [{
+            "role": "user",
+            "parts": [{ "text": user_prompt }]
+        }],
+        "generationConfig": {
+            "maxOutputTokens": 3200,
+            "response_mime_type": "application/json",
+            "thinkingConfig": { "thinkingBudget": 0 }
+        }
+    });
+
+    // NOTE: URL contains api_key as query param — never log this URL.
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
+        api_key
+    );
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("HTTP client build error: {}", e))?;
+
+    let response = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        return Err(format!("Gemini API error {}: {}", status, text));
+    }
+
+    let resp_json: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Response parse error: {}", e))?;
+
+    let text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+        .as_str()
+        .ok_or_else(|| "Gemini returned empty content".to_string())?;
+
+    let parsed = extract_json_object(text)?;
+
+    let lyrics = parsed["lyrics"].as_str().unwrap_or("").to_string();
+    if lyrics.is_empty() {
+        return Err("Gemini returned empty lyrics".to_string());
+    }
+    let notes = parsed["notes"].as_str().unwrap_or("").to_string();
+
+    Ok(Some(serde_json::json!({
+        "lyrics": lyrics,
+        "notes": notes,
+    })))
+}
+
 // ─── App entry ───────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![forge_world, alchemy_transform, rewrite_lyrics])
+        .invoke_handler(tauri::generate_handler![forge_world, alchemy_transform, rewrite_lyrics, generate_lyrics])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
