@@ -1453,3 +1453,84 @@ Chorus 1 / Chorus 2 / Final Chorus がほぼ完全に反復している。
 | 中 | Emotional Arc — Verse の流れ改善 | 新フェーズ |
 | 低 | Music Direction Tags / Suno向け構造タグ補助 | 新フェーズ |
 | 低 | `identical_section_reuse` 検出 | 未着手 |
+
+---
+
+## セクション17: Chorus Variation / Final Chorus フェーズ 到達点（2026-05-31）
+
+### 17-1. 最新コミット状況
+
+| コミット | 内容 |
+|---|---|
+| `0f862f0` | Emotional Arc rules — Verse の流れ改善 |
+| `fa9c7ea` | Chorus Variation guidance — Chorus 反復の変化指示 |
+| `9401e8a` | selected structures の Final Chorus 化 |
+| `08b078a` | STRUCTURE 診断ログ追加 |
+| `60834c8` | Builder の最後の Chorus を自動 Final Chorus 化 |
+| `7317bea` | Final Chorus 重み付け補強（variation guidance 強化） |
+| `0c2ea12` | Final Chorus 完全一致禁止 guidance を FINAL CHORUS RULE / PRE-FINALIZE SCAN / repair prompt に追加 |
+| `8beb013` | `の` 終端 dangling noun-modifier の repair prompt 補強（CHORUS SELF-CONTAINED LINES / WEAK SENSORY FILLER / few-shot） |
+| `5e3be15` | `赤ちょうちんの\n甘い匄` → `赤ちょうちんの甘い匂い` の deterministic merge を UNAGI_SPECIFIC_REPLACEMENTS に追加 |
+
+現在の最新コミット: **`5e3be15`**
+
+---
+
+### 17-2. 現在の品質評価
+
+| 項目 | 評価 |
+|---|---|
+| うなぎテーマ全体 | 大きく改善。たたき台として有効な水準に到達 |
+| Final Chorus の物証化 | 「指先に山椒の粉が残る」「小銭が皿に残る」などが出るケースあり |
+| `赤ちょうちんの / 甘い匄` 2行分割 | deterministic merge により改善傾向 |
+| domain_leakage | none で安定 |
+| Final Chorus 完全一致 | 一部残るが、大幅に減少 |
+| near_duplicate | 一部残る（「暖簾」重複など）。たたき台用途では許容範囲 |
+| dangling_particle | 一部残る（`丼の底まで` 等）。人力編集で対応可能 |
+| generic positive ending | 発生なし |
+
+---
+
+### 17-3. 品質ゴールの再定義（たたき台方針）
+
+このフェーズ以降、MORA.exe の生成物は「人力で磨くためのたたき台」として位置づける。
+
+- **目標**: 自動生成で 70〜80点のたたき台を安定して出す
+- **非目標**: 自動生成で完成品を作る
+- 致命的事故を優先して潰す
+- 細かい歌詞表現の磨きは人力編集に残す
+
+---
+
+### 17-4. 許容する残課題
+
+以下は人力で数分〜十数分で修正可能な範囲として許容する：
+
+- Final Chorus の変化行がやや弱い（例: `割り箸の先`）
+- 1〜2行の弱い表現が残る
+- 多少の近接素材重複
+- dangling / weak line が少数残ること
+
+---
+
+### 17-5. 許容しない問題（致命的事故）
+
+以下が発生した場合は即座に修正対象とする：
+
+- domain leakage（テーマ外の物証混入）
+- セクション構造の崩壊
+- 意味不明な日本語
+- Chorus / Final Chorus の完全一致が頻発
+- 未完行・generic positive ending が大量に残る
+
+---
+
+### 17-6. 次フェーズ backlog（優先度付き）
+
+| 優先度 | 内容 | 備考 |
+|---|---|---|
+| 中 | `detectFinalChorusIdentical()` による Final Chorus 完全一致検出 → repair 起動 | ロジック変更。repair コスト・レイテンシ増に注意 |
+| 中 | `丼の底まで` の限定 deterministic cleanup | `UNAGI_SPECIFIC_REPLACEMENTS` に1件追加。安全 |
+| 低 | near_duplicate repair 指示の見直し | prompt 補強。効果は確率的 |
+| 低 | dangling_particle 残存時の追加 repair | repair 2段階化。ロジック変更大 |
+| 低 | Music Direction Tags | 新フェーズ |
