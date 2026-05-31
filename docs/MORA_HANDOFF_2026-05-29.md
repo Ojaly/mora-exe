@@ -1831,3 +1831,107 @@ const isTauri =
 | 低 | APIキー設定 UI | 初回起動時の案内 UI |
 
 **generate は最後に回す**（最も規模が大きく、フェーズ分割が必要）。
+
+---
+
+## セクション21: Phase EXE-3 完了 — rewrite_lyrics Rust/Tauri command 化（2026-05-31）
+
+### 21-1. 実施内容
+
+| 項目 | 内容 |
+|---|---|
+| フェーズ | Phase EXE-3 |
+| 目的 | EXE本番で Rewrite 機能を Gemini AI 品質で動作させる |
+| 変更ファイル | `src-tauri/src/lib.rs` / `lib/claudeRewrite.ts` のみ |
+| app/page.tsx | **変更不要**（`callClaudeRewrite` が `null` を返せば `applyRewriteMode` に自動 fallback する既存設計のため）|
+| route.ts / generate / alchemy / forge | 一切変更なし |
+
+---
+
+### 21-2. 追加した Rust command
+
+**command 名**: `rewrite_lyrics`
+
+```rust
+#[tauri::command]
+async fn rewrite_lyrics(
+    mode: String,
+    lyrics: String,
+    style_prompt: String,
+    _song_input: Value,       // passed by frontend; world_preset extracted separately
+    mora_warnings: Vec<i64>,
+    intensity: String,
+    section_target: String,
+    world_preset: String,
+) -> Result<Option<Value>, String>
+```
+
+| 戻り値 | 意味 |
+|---|---|
+| `Ok(Some({ rewrittenLyrics, notes, changedLines }))` | 成功 |
+| `Ok(None)` | `GEMINI_API_KEY` 未設定 → `null` → `applyRewriteMode` fallback |
+| `Err(msg)` | API失敗 / JSON parse失敗 → invoke reject → catch → `null` → fallback |
+
+**移植した helper 関数:**
+
+| Rust 関数 | 対応する route.ts 関数 |
+|---|---|
+| `rewrite_intensity_instruction()` | `intensityInstruction()` — 3分岐 |
+| `rewrite_section_instruction()` | `sectionInstruction()` — 5分岐 |
+| `rewrite_mode_instruction()` | `modeInstruction()` — 11モード（catchy / remove-ai / shorten-mora / strengthen-chorus / more-japanese / more-english / darker / danceable / poetic / ironic / ojaly） |
+| `rewrite_preset_deep()` | `PRESET_DEEP` — 6プリセット（neon / corporate / mythic / digital-motown / electro-waltz / gospel-irony）|
+
+- **APIキー**: `GEMINI_API_KEY` 環境変数
+- **モデル**: `gemini-2.5-flash` / `maxOutputTokens: 2500` / `response_mime_type: "application/json"` / `thinkingBudget: 0`
+- **タイムアウト**: 60秒
+- **JSON 抽出**: `extract_json_object()` 再利用（Phase EXE-1 実装済み）
+- **出力正規化**: `rewrittenLyrics ?? lyrics` / `notes ?? ""` / `changedLines ?? []`（route.ts と同じ fallback）
+
+---
+
+### 21-3. lib/claudeRewrite.ts の変更内容
+
+`callClaudeRewrite()` 内に Tauri 判定を追加。
+
+| 環境 | 経路 |
+|---|---|
+| EXE / `tauri:dev` | `invoke("rewrite_lyrics", { mode, lyrics, ... })` → `ClaudeRewriteResult \| null` |
+| Web / `npm run dev` | 既存 `fetch("/api/ai/rewrite")` をそのまま維持 |
+
+- `null` 返却時・invoke reject 時: `console.warn` して `null` を返す
+- `page.tsx` の `handleRewrite` は `result === null` で `applyRewriteMode` に切り替わる（変更不要）
+
+---
+
+### 21-4. 手動確認結果（2026-05-31）
+
+| 確認項目 | 結果 |
+|---|---|
+| `tauri:dev` 起動 | ✅ |
+| `GEMINI_API_KEY` 設定あり → rewrite 実行 | ✅ 歌詞が更新された |
+| **"Gemini AI" バッジ表示** | ✅ 確認 |
+| 変更メモが表示された | ✅ |
+| エラー表示なし | ✅ |
+
+---
+
+### 21-5. 現在の EXE 機能状態（Phase EXE-3 完了後）
+
+| 機能 | EXE本番の挙動 |
+|---|---|
+| generate | fetch 失敗 → rule-based fallback（サイレント）|
+| **forge（WorldForge）** | ✅ `invoke("forge_world")` → Gemini API |
+| **rewrite** | ✅ `invoke("rewrite_lyrics")` → Gemini API |
+| **alchemy（SourceAlchemy）** | ✅ `invoke("alchemy_transform")` → Gemini API |
+
+---
+
+### 21-6. 次フェーズ候補
+
+| 優先度 | 内容 | 備考 |
+|---|---|---|
+| 高 | `generate` の事前設計確認 | 1554行。いきなり実装しない。まず設計確認から |
+| 低 | `generate` の Rust command 化 | システムプロンプト・repair・CONCRETE POOL・deterministic cleanup を含む最大規模。フェーズ分割が必要 |
+| 低 | APIキー設定 UI | 初回起動時の案内 UI |
+
+**generate はまず事前設計確認から**（最も規模が大きく、フェーズ分割が必要）。
