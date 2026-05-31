@@ -2,6 +2,54 @@
 
 ---
 
+## 配布前最終確認（2026-05-31 追記）
+
+### 本番 EXE ビルド確認済み
+
+`npm run tauri:build` でビルド成功。生成物パス：
+
+| 種別 | パス |
+|---|---|
+| EXE（生の実行ファイル） | `src-tauri\target\release\mora-exe.exe` |
+| MSI インストーラー | `src-tauri\target\release\bundle\msi\MORA.exe_0.1.0_x64_en-US.msi` |
+| NSIS インストーラー | `src-tauri\target\release\bundle\nsis\MORA.exe_0.1.0_x64-setup.exe` |
+
+ビルド条件：
+- Next.js 静的エクスポート（`NEXT_OUTPUT=export`）✅
+- Rust release profile ✅
+- TypeScript エラーなし ✅
+
+### GEMINI_API_KEY 付き起動手順（EXE版）
+
+EXE 単体では `.env.local` を読まない。起動前に環境変数を設定する必要がある。
+
+**Windows — PowerShell での起動例:**
+```powershell
+$env:GEMINI_API_KEY = "AIza..."
+& "C:\Users\ojari\Documents\mora-exe\src-tauri\target\release\mora-exe.exe"
+```
+
+**インストーラー経由（MSI / NSIS）でインストール済みの場合:**
+```powershell
+$env:GEMINI_API_KEY = "AIza..."
+& "$env:LOCALAPPDATA\mora-exe\mora-exe.exe"   # インストール先は環境による
+```
+
+> ⚠️ `GEMINI_API_KEY` が未設定の場合、AI 機能（generate / rewrite / forge / alchemy）は fallback または無応答になる。rule-based fallback があるコマンドは動作する。
+
+### 既知の保留事項
+
+| 項目 | 状態 | 理由 |
+|---|---|---|
+| `repairAbstractDrift` | 保留 | Gemini 2回目 API 呼び出し・Rust 移植コスト大 |
+| `detectAbstractDrift` | 保留 | repair と一体のため |
+| `detectNearDuplicate` | 保留 | 同上 |
+| quality check / logging | 対応不要 | EXE ではコンソール非表示のためメリットなし |
+
+> repair 系は TS 版 dev server 経由では引き続き動作する。EXE 版のみ非対応。
+
+---
+
 ## EXE-4F: Tauri generate deterministic cleanup（2026-05-31 追記）
 
 ### 完了内容
