@@ -714,19 +714,25 @@ function detectAbstractDrift(lyrics: string): string | null {
   let kind: SectionKind = "other";
   let verseAbstractCount = 0;
 
-  // Pre-compute が/を-endings that are valid enjambments:
-  // if the next content line in the SAME section completes the clause (doesn't end with a particle),
-  // the particle is intentional.
-  // e.g. 「古びた扇風機が」+「首振る」, 「カサカサのレシートを」+「財布に戻す」
+  // Pre-compute が/を/に-endings that are valid enjambments:
+  // が/を: next content line in the SAME section doesn't end with a particle
+  //   e.g. 「古びた扇風機が」+「首振る」, 「カサカサのレシートを」+「財布に戻す」
+  // に: next content line contains a concrete action verb (NI_ACTION_VERBS)
+  //   e.g. 「テーブルの端に」+「小銭を出す」 → OK
+  //        「路地裏に」+「赤ちょうちん」    → NG (no action verb)
   const validEnjambments = new Set<string>();
   for (let ei = 0; ei < lines.length; ei++) {
     const et = lines[ei].trim();
-    if (!et || et.startsWith("[") || !/[がを]$/.test(et)) continue;
+    if (!et || et.startsWith("[")) continue;
+    const endsGaWo = /[がを]$/.test(et);
+    const endsNi   = /に$/.test(et);
+    if (!endsGaWo && !endsNi) continue;
     for (let ej = ei + 1; ej < lines.length; ej++) {
       const ent = lines[ej].trim();
       if (!ent) continue;
       if (ent.startsWith("[")) break; // section boundary — treat as dangling
-      if (!/[がをにでは]$/.test(ent)) validEnjambments.add(et);
+      if (endsGaWo && !/[がをにでは]$/.test(ent)) validEnjambments.add(et);
+      if (endsNi   && NI_ACTION_VERBS.some(v => ent.includes(v))) validEnjambments.add(et);
       break;
     }
   }
@@ -775,8 +781,8 @@ function detectAbstractDrift(lyrics: string): string | null {
     // Dangling particle: applies to ALL sections (line ends with raw particle, length > 3)
     // Exception: が-ending lines where the next content line in the same section completes the clause
     if (t.length > 3 && /[がをにでは]$/.test(t)) {
-      if (/[がを]$/.test(t) && validEnjambments.has(t)) {
-        // valid enjambment (e.g. 「古びた扇風機が」+「首振る」, 「カサカサのレシートを」+「財布に戻す」) — skip
+      if (/[がをに]$/.test(t) && validEnjambments.has(t)) {
+        // valid enjambment (e.g. 「古びた扇風機が」+「首振る」, 「テーブルの端に」+「小銭を出す」) — skip
       } else {
         reasons.push(`dangling particle: "${t.slice(0, 40)}"`);
       }
@@ -829,6 +835,19 @@ const NEAR_DUP_VERB_ENDINGS = [
   "戻す", "鳴る", "見る", "開ける", "数える", "折る",
 ];
 
+// Anchor evidence lines — Chorus フックとして意図的に使う物証行。
+// adjacent near_duplicate チェックで、片方がこれと完全一致する場合はスキップ。
+const ANCHOR_EVIDENCE_LINES = new Set([
+  "レシート七百八十円",
+  "小銭を数えて暖簾を出る",
+]);
+
+// に-enjambment が valid になる条件となる動作動詞
+const NI_ACTION_VERBS = [
+  "出す", "置く", "戻す", "入れる", "畳む", "折る",
+  "拾う", "拭く", "噛む", "飲む", "割る", "開ける",
+];
+
 function detectNearDuplicate(lyrics: string): string | null {
   function keyTokens(line: string): string[] {
     const kanji = line.match(/[一-鿿]{2,}/g) ?? [];
@@ -837,6 +856,8 @@ function detectNearDuplicate(lyrics: string): string | null {
   }
   const lines = lyrics.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("["));
   for (let i = 0; i < lines.length - 1; i++) {
+    // Skip if either line is an anchor evidence line (Chorus フック物証との近接は許容)
+    if (ANCHOR_EVIDENCE_LINES.has(lines[i]) || ANCHOR_EVIDENCE_LINES.has(lines[i + 1])) continue;
     const setA = new Set(keyTokens(lines[i]));
     const shared = keyTokens(lines[i + 1]).filter(w => setA.has(w));
     if (shared.length > 0) {
