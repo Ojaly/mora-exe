@@ -374,6 +374,14 @@ FINAL CHORUS RULE — applies only to [Final Chorus]:
 - The Final Chorus keeps the main hook line(s) from the main Chorus.
 - Vary 1–2 non-hook lines to carry more accumulated weight than Chorus 1: use a different
   concrete object, number, action, or record from the source that deepens — not softens — the impact.
+- FINAL CHORUS VARIATION DETAIL:
+  Varied non-hook lines must feel heavier than Chorus 1.
+  Prefer: residue, record, payment, physical trace, stopped motion, or what remains after leaving
+  (e.g. receipt, change tray, lingering scent on sleeve, scorched skin, stopped fan, a mark on paper).
+  Do not vary with light routine actions: drinking tea, wiping with a towel, folding chopstick bags,
+  or simply smelling something sweet — these belong in Verse/Pre-Chorus, not in Final Chorus.
+  Avoid dangling noun-modifier lines such as 「赤ちょうちんの」(ends mid-phrase); merge into a
+  complete image like 「赤ちょうちんの甘い匂い」or replace with a concrete physical trace.
 - Do not add an extra line that the main Chorus did not have.
 - Do not use the Final Chorus as a place to resolve, conclude, uplift, or deliver a moral.
 - If the source is about loss, failure, or unresolved pain, the Final Chorus must not end on
