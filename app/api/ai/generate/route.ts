@@ -1172,10 +1172,11 @@ async function repairAbstractDrift(
     `  Good final line: use one source-specific concrete object, record, number, place, mark,\n` +
     `  or physical trace from the current quick idea. Do not reuse examples from another theme.\n` +
     `  If the last Chorus line is a bare noun or routine daily action, replace it.\n` +
-    `- CHORUS SELF-CONTAINED LINES: If a Chorus line ends with a dangling particle (が/を/に/で/は\n` +
-    `  as the final character), fix it so the line stands alone grammatically.\n` +
+    `- CHORUS SELF-CONTAINED LINES: If a Chorus or Final Chorus line ends with a dangling particle or noun-modifier (が/を/に/で/は/の as the final character), fix it so the line stands alone grammatically.\n` +
     `  Bad: 「タレの焦げ目が」→ particle dangles\n` +
+    `  Bad: 「赤ちょうちんの」→ noun-modifier dangles (の at line end).\n` +
     `  Good: 「タレの焦げ目」(drop particle) or rephrase as complete image\n` +
+    `  Good: 「赤ちょうちんの甘い匂い」(merge with next line) or 「赤ちょうちん」(drop の).\n` +
     `  Short noun fragments are acceptable: 「山椒ひと振り」「冷たいおしぼり」stand alone fine.\n` +
     `- SECTION ENDINGS: Verse and Bridge must not close on introspective summary or open question.\n` +
     `  Replace with a concrete physical action the narrator performs:\n` +
@@ -1200,6 +1201,9 @@ async function repairAbstractDrift(
     `  → replace with the specific object or action: 「レシート七百八十円」「並の札が裏返る」\n` +
     `- WEAK SENSORY FILLER: 「心を撫でる」「撫でる」「静かな笑顔」「ふわり」「の」(line-end).\n` +
     `  Replace with concrete sensory action: 「丼の底まで タレを拾う」「箸袋を折る」\n` +
+    `  If a line ends with 「の」(dangling noun-modifier), either merge it with the next line into one complete image, or drop the 「の」 to form a clean noun fragment.\n` +
+    `  Bad: 「赤ちょうちんの」(standalone) + 「甘い匂い」(next line) — 「の」 dangles across lines.\n` +
+    `  Good: merge → 「赤ちょうちんの甘い匂い」 or drop → 「赤ちょうちん」\n` +
     `- NORMALIZE: Replace all 赤提灯 with 赤ちょうちん.\n` +
     `- NEAR DUPLICATE LINES: Do not repeat the same key noun or verb in consecutive lines.\n` +
     `  This includes verb-ending duplicates where both lines end with the same verb.\n` +
@@ -1279,6 +1283,7 @@ async function repairAbstractDrift(
     `  「この舌は知ってる」→「山椒ひと振り」\n` +
     `  「ざらざらした舌の記憶」→「焦げ目を奥歯で噛む」\n` +
     `  「赤ちょうちんのタレの焦げ目」→「赤ちょうちん」+「タレの焦げ目」(split into 2 lines)\n` +
+    `  [の-dangling across 2 lines] 「赤ちょうちんの」\\n「甘い匂い」→ merge: 「赤ちょうちんの甘い匂い」 or use: 「赤ちょうちん」\n` +
     `  「レシートまで含めた庶民的な夏の歌」→「レシート七百八十円」\n` +
     `  [Final Chorus extra line]「競馬をみんな絶対に楽しむんだ」→ DELETE this line (cap at 6)\n` +
     `  [Verb ending duplicate] 「カサカサのレシートを畳む」+「割り箸の袋を畳む」\n` +
