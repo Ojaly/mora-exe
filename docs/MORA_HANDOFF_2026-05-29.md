@@ -1148,3 +1148,110 @@ RACING_INPUT_SIGNALS        // 競馬プロンプト判定用
 - **UI・lib/ は一切変更なし**
 - 次のテストは「競馬プロンプト」で汎用性を確認することを推奨
 - 競馬プロンプトで domain_leakage が逆方向（競馬語が正しく出ているか）を確認すること
+
+---
+
+## 14. 競馬プロンプト副作用テスト完了 — 2026-05-31
+
+> **最新コミット: `5702fff`**
+> 競馬プロンプトでの副作用テストが完了。テーマ分岐修正により混入解消を確認。
+
+---
+
+### 14-1. このフェーズで実施したこと
+
+| コミット | 内容 |
+|---|---|
+| `ab81466` | `DETERMINISTIC_REPLACEMENTS` を `GLOBAL` / `UNAGI_SPECIFIC` に分割。`UNAGI_INPUT_SIGNALS` 判定時のみうなぎ置換を適用 |
+| `5702fff` | `ANCHOR_EVIDENCE_LINES` を分割（グローバル / `UNAGI_ANCHOR_EVIDENCE_LINES`）。`detectNearDuplicate` に `quickIdea` を渡しテーマ別アンカーを使用。`repairAbstractDrift` の Breakdown/Outro 候補を `isUnagi` / `isRacing` / generic の3分岐に分離 |
+
+---
+
+### 14-2. 競馬プロンプト再テスト結果（コミット `5702fff` 時点）
+
+**合格した確認項目:**
+
+- `domain_leakage:none` ✅
+- `near_duplicate:none` ✅（安定）
+- うなぎ用 Outro 混入なし ✅（`小銭を数えて暖簾を出る` / `袖口にタレの匂いが残る` 等が競馬歌詞に出なくなった）
+- 競馬語が自然に出ている ✅
+  - `PAT履歴` / `ハズレ券` / `パドック` / `馬券` / `穴馬` / `展開` / `払い戻し` / `的中表示`
+- 競馬用 Breakdown / Outro 候補が使われている ✅
+
+---
+
+### 14-3. 残課題（次フェーズでやること）
+
+#### 優先度：高
+
+| 課題 | 詳細 |
+|---|---|
+| `weak_poetic` の競馬抽象行が repair 後に残る | 以下のような行が検出されているが、repair で置換されずに残る |
+
+**NG 残存行（例）:**
+
+| 行 | 問題 |
+|---|---|
+| `人は静かに競馬から離れていく` | weak_poetic / 抽象的な人物描写 |
+| `たまに夢を見せること` | weak_poetic |
+| `期待だけが残る` | 抽象まとめ語 |
+| `それでも画面は変わらず` | 弱い叙述 |
+| `知識は深く情熱あった` | 説明口調 |
+| `なのに急に消えた` | 説明口調 |
+
+**置換候補（repair prompt に追加予定）:**
+
+| NG | 置換後 |
+|---|---|
+| `人は静かに競馬から離れていく` | `PAT履歴だけが白く残る` |
+| `人は競馬から離れていく` | `ハズレ券を引き出しに入れた` |
+| `たまに夢を見せること` | `赤ペンの印だけ残る` |
+| `夢を見せる` | `締切前の画面を閉じた` |
+| `期待だけが残る` | `払い戻しは0円のまま` |
+| `それでも画面は変わらず` | `当たり馬券だけが出なかった` |
+| `知識は深く情熱あった` | `赤ペンの跡だけ残る` |
+| `なのに急に消えた` | `買い目のメモを閉じた` |
+
+#### 優先度：高（次フェーズ本命）
+
+| 課題 | 詳細 |
+|---|---|
+| Chorus Variation | 3件とも Chorus がほぼ完全反復。フック行は残してよいが、2回目以降は物証や感情の重さを変える |
+
+**Chorus Variation 実装方針（未着手）:**
+
+- Chorus 1 / Chorus 2 / Final Chorus を完全一致させない
+- フック行（`PAT履歴は空白のまま` 等）は維持してよい
+- 2回目以降は物証・感情の重さを変化させる
+
+**例:**
+```
+Chorus 1:  PAT履歴は空白のまま
+Chorus 2:  払い戻しは0円のまま
+Final:     当たり馬券だけが出なかった
+```
+
+#### 優先度：中
+
+| 課題 | 詳細 |
+|---|---|
+| `identical_section_reuse` 検出 | 非Chorus セクションの完全一致反復（既存課題、未着手） |
+| Emotional Arc 実装 | Verse の箇条書き感の解消（既存課題、未着手） |
+
+---
+
+### 14-4. 次フェーズ実装順（推奨）
+
+1. **競馬用 `weak_poetic` concrete repair 強化** — repair prompt に競馬文脈の置換候補を追加
+2. **Chorus Variation** — Chorus 反復をバリエーション化（フレーズ系）
+3. **`identical_section_reuse` 検出** — 非Chorus 完全反復の検出
+4. **Emotional Arc** — Verse の流れ改善
+
+---
+
+### 14-5. 現時点のコード状態
+
+- **変更ファイル**: `app/api/ai/generate/route.ts` のみ
+- **UI・lib/ は一切変更なし**
+- `UNAGI_INPUT_SIGNALS` / `RACING_INPUT_SIGNALS` / `UNAGI_ANCHOR_EVIDENCE_LINES` はすべて同ファイルに定義済み
+- `applyDeterministicCleanup(lyrics, quickIdea)` / `detectNearDuplicate(lyrics, quickIdea)` / `repairAbstractDrift(apiKey, lyrics, quickIdea)` はすべて `quickIdea` を受け取り、テーマ別に動作する
