@@ -232,7 +232,7 @@ QUALITY:
   「今日これでいい」「払い戻しは0円」. This lands before the listener's brain can reject it.
 - Verse and Bridge must close on a physical action or object, not an introspective summary.
   Bad: 「今日の味覚を記憶する」「また来る理由を探してる」「何を探してるか分からない」
-  Good: 「割り箸の袋を畳んでる」「ポイントカードを財布に戻す」「小銭を数えて暖簾を出る」
+  Good: 「割り箸の袋を畳んでる」「ポイントカードを財布に戻す」
 
 META-LANGUAGE RULE:
 - Do not use analytical meta-words in the final lyrics: core, thesis, theme, claim,
@@ -250,7 +250,7 @@ ABSTRACT SUMMARY RULE:
   Good: 「タレ多めの並ひとつ」「レシート七百八十円」→ the experience itself
 - Do not close a section with an introspective question or unresolved search that reads like
   the lyricist's commentary: 「また来る理由を探してる」「何を探してるか分からない」「この味が忘れられない」
-  End instead on a physical gesture, object, or action: 「ポイントカードを財布に戻す」「小銭を数えて暖簾を出る」
+  End instead on a physical gesture, object, or action: 「ポイントカードを財布に戻す」
 - 「儀式」is a meta-label. Do not use it to describe a habit. Name the habit directly:
   the object handled, the price paid, the sequence of small actions.
 
@@ -350,7 +350,7 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 - The final line of the Chorus should land with weight. Prefer a completed action or
   price over a bare noun fragment. A noun alone does not close the image.
   Bad final line: 「冷たいおしぼり」
-  Good final line: 「おしぼりで首を拭く」「レシート七百八十円」「小銭を数えて暖簾を出る」
+  Good final line: 「おしぼりで首を拭く」「レシート七百八十円」
 
 FINAL CHORUS RULE — applies only to [Final Chorus]:
 - The Final Chorus is essentially a repeat of the main Chorus with at most ONE line changed.
@@ -593,6 +593,8 @@ const WEAK_POETIC_JP: RegExp[] = [
   /静かに.*離れていく/,
   /人は.*離れていく/,
   /人は.*から離れていく/,
+  /静かに.*から離れていく/,
+  /.*から離れていく$/,
   /夢を見せ/,
   /一言だけ残して/,
   /夏の終わり/,
@@ -717,8 +719,11 @@ function detectAbstractDrift(lyrics: string): string | null {
   let verseAbstractCount = 0;
 
   // Pre-compute が/を/に-endings that are valid enjambments:
-  // が/を: next content line in the SAME section doesn't end with a particle
-  //   e.g. 「古びた扇風機が」+「首振る」, 「カサカサのレシートを」+「財布に戻す」
+  // が: next content line in the SAME section doesn't end with a particle
+  //   e.g. 「古びた扇風機が」+「首振る」
+  // を: next content line contains a WO_ACTION_VERBS verb (stricter than が)
+  //   e.g. 「カサカサのレシートを」+「財布に戻す」 → OK
+  //        「熱い麦茶を」+「焦げ目を奥歯で噛む」  → NG (next line is independent clause)
   // に: next content line contains a concrete action verb (NI_ACTION_VERBS)
   //   e.g. 「テーブルの端に」+「小銭を出す」 → OK
   //        「路地裏に」+「赤ちょうちん」    → NG (no action verb)
@@ -726,15 +731,17 @@ function detectAbstractDrift(lyrics: string): string | null {
   for (let ei = 0; ei < lines.length; ei++) {
     const et = lines[ei].trim();
     if (!et || et.startsWith("[")) continue;
-    const endsGaWo = /[がを]$/.test(et);
-    const endsNi   = /に$/.test(et);
-    if (!endsGaWo && !endsNi) continue;
+    const endsGa = /が$/.test(et);
+    const endsWo = /を$/.test(et);
+    const endsNi = /に$/.test(et);
+    if (!endsGa && !endsWo && !endsNi) continue;
     for (let ej = ei + 1; ej < lines.length; ej++) {
       const ent = lines[ej].trim();
       if (!ent) continue;
       if (ent.startsWith("[")) break; // section boundary — treat as dangling
-      if (endsGaWo && !/[がをにでは]$/.test(ent)) validEnjambments.add(et);
-      if (endsNi   && NI_ACTION_VERBS.some(v => ent.includes(v))) validEnjambments.add(et);
+      if (endsGa && !/[がをにでは]$/.test(ent)) validEnjambments.add(et);
+      if (endsWo && WO_ACTION_VERBS.some(v => ent.includes(v))) validEnjambments.add(et);
+      if (endsNi && NI_ACTION_VERBS.some(v => ent.includes(v))) validEnjambments.add(et);
       break;
     }
   }
@@ -853,6 +860,15 @@ const UNAGI_ANCHOR_EVIDENCE_LINES = new Set([
 const NI_ACTION_VERBS = [
   "出す", "置く", "戻す", "入れる", "畳む", "折る",
   "拾う", "拭く", "噛む", "飲む", "割る", "開ける",
+];
+
+// を-enjambment が valid になる条件となる動作動詞
+// 次行がこれらの動詞を含む場合のみ「〜を」行末を valid enjambment と見なす。
+// 「熱い麦茶を」+「焦げ目を奥歯で噛む」のような独立節へのつなぎは NG。
+const WO_ACTION_VERBS = [
+  "戻す", "入れる", "畳む", "折る", "拭く", "飲む",
+  "閉じ", "消す", "確認", "数え", "開ける", "拾う",
+  "割る", "噛む", "出す", "置く", "向ける", "渡す",
 ];
 
 function detectNearDuplicate(lyrics: string, quickIdea: string): string | null {
