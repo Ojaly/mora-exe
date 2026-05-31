@@ -56,6 +56,9 @@ export default function SourceAlchemy({ onSetWorldSeed }: Props) {
   const [error,         setError]         = useState<string | null>(null);
   const [seedApplied,   setSeedApplied]   = useState(false);
 
+  const isTauri =
+    typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
   const handleTransmute = async () => {
     if (!sourceText.trim() || isTransmuting) return;
     setIsTransmuting(true);
@@ -63,25 +66,46 @@ export default function SourceAlchemy({ onSetWorldSeed }: Props) {
     setError(null);
 
     try {
-      const res = await fetch("/api/ai/alchemy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      if (isTauri) {
+        // EXE / tauri:dev — Rust command 経由で Gemini を呼ぶ
+        const { invoke } = await import("@tauri-apps/api/core");
+        const data = await invoke<AlchemyResult | null>("alchemy_transform", {
           sourceText:           sourceText.trim(),
           userReaction:         userReaction.trim(),
           desiredTone:          desiredTone.trim(),
           avoidDirectReference: avoidDirect,
-        }),
-      });
+        });
 
-      if (res.status === 503) {
-        setError("Source Alchemy requires Gemini API — .env.local に GEMINI_API_KEY を追加してください");
-        return;
+        if (data === null) {
+          setError(
+            "Source Alchemy requires Gemini API. EXE版ではシステム環境変数 GEMINI_API_KEY を設定してください。"
+          );
+          return;
+        }
+
+        setResult(data);
+      } else {
+        // Web / dev server — Next.js API route 経由
+        const res = await fetch("/api/ai/alchemy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceText:           sourceText.trim(),
+            userReaction:         userReaction.trim(),
+            desiredTone:          desiredTone.trim(),
+            avoidDirectReference: avoidDirect,
+          }),
+        });
+
+        if (res.status === 503) {
+          setError("Source Alchemy requires Gemini API — .env.local に GEMINI_API_KEY を追加してください");
+          return;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data: AlchemyResult = await res.json();
+        setResult(data);
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data: AlchemyResult = await res.json();
-      setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Transmutation failed");
     } finally {

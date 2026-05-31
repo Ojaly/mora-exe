@@ -1652,3 +1652,101 @@ bundle 生成完了
 | オフライン動作不可 | Claude API 呼び出しがあるため完全オフラインでは動かない。ユーザーへの説明が必要 |
 | ユーザー環境でのキー設定 | 初回設定 UI または README での案内が必要 |
 | `.env.local` が Rust プロセスで読まれない | Next.js は `.env.local` を読むが、Rust プロセスはシステム環境変数のみ参照 |
+
+---
+
+## セクション19: Phase EXE-1 完了 — Source Alchemy Rust command 化（2026-05-31）
+
+### 19-1. 実施内容
+
+| 項目 | 内容 |
+|---|---|
+| フェーズ | Phase EXE-1 / Step 1〜3 |
+| 目的 | EXE本番で Source Alchemy の `Failed to fetch` エラーを解消 |
+| 変更ファイル | `src-tauri/src/lib.rs` / `components/SourceAlchemy.tsx` のみ |
+| route.ts・その他 | 一切変更なし |
+
+---
+
+### 19-2. 追加した Rust command
+
+**command 名**: `alchemy_transform`
+
+```rust
+#[tauri::command]
+async fn alchemy_transform(
+    source_text: String,
+    user_reaction: String,
+    desired_tone: String,
+    avoid_direct_reference: bool,
+) -> Result<Option<serde_json::Value>, String>
+```
+
+| 戻り値 | 意味 |
+|---|---|
+| `Ok(Some(value))` | Gemini から取得した AlchemyResult JSON |
+| `Ok(None)` | `GEMINI_API_KEY` 未設定 — フロントでエラーメッセージ表示 |
+| `Err(msg)` | API失敗 / JSON parse失敗 — フロントで `setError(msg)` |
+
+- **Gemini API**: `gemini-2.5-flash` / `maxOutputTokens: 2500` / `response_mime_type: "application/json"` / `thinkingBudget: 0`
+- **APIキー**: `std::env::var("GEMINI_API_KEY")` — システム環境変数のみ参照（`.env.local` は Rust から読めない）
+- **APIキーをログに出さない**: URL に key パラメータが含まれるため、URL を `eprintln!` / `println!` に出力しない
+- **タイムアウト**: 60秒（forge_world の 30秒より余裕を持たせた）
+- **JSON抽出**: `extract_json_object()` ヘルパーを追加（コードフェンス除去 + string-aware ブラケット深さ探索 + `serde_json::from_str`）
+- **`invoke_handler!`**: `tauri::generate_handler![forge_world, alchemy_transform]`
+
+---
+
+### 19-3. フロント側の変更（SourceAlchemy.tsx）
+
+`handleTransmute` 内に Tauri 判定を追加し、環境に応じて経路を分岐。
+
+```typescript
+const isTauri =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+```
+
+| 環境 | 経路 | APIキーの場所 |
+|---|---|---|
+| EXE / `tauri:dev` | `invoke("alchemy_transform")` | システム環境変数 `GEMINI_API_KEY` |
+| Web / `npm run dev` | `fetch("/api/ai/alchemy")` | `.env.local` の `GEMINI_API_KEY` |
+
+- `invoke` が `null` を返した場合（キー未設定）: `"Source Alchemy requires Gemini API. EXE版ではシステム環境変数 GEMINI_API_KEY を設定してください。"` を表示
+- `invoke` が reject された場合（API失敗）: 既存の `catch` で `setError(msg)` — fetch 失敗と同じ経路
+
+---
+
+### 19-4. 手動確認結果（2026-05-31）
+
+| 確認項目 | 結果 |
+|---|---|
+| `tauri:dev` 起動 | ✅ |
+| `GEMINI_API_KEY` 設定あり → TRANSMUTE 実行 | ✅ TRANSMUTATION RESULT 表示 |
+| `Generated World Seed` 表示 | ✅ |
+| `Set as World Seed` で World Seed に反映 | ✅ |
+| `Failed to fetch` エラー | ✅ 解消（出ていない） |
+| `GEMINI_API_KEY` なし → エラーメッセージ表示 | ✅ EXE版案内メッセージが UI に出た |
+
+---
+
+### 19-5. 現在の EXE 機能状態（Phase EXE-1 完了後）
+
+| 機能 | EXE本番の挙動 |
+|---|---|
+| generate | fetch 失敗 → rule-based fallback（サイレント）|
+| forge（WorldForge） | fetch 失敗 → `ruleBasedForge(seed)`（サイレント）|
+| rewrite | fetch 失敗 → rule-based fallback（サイレント）|
+| **alchemy（SourceAlchemy）** | **✅ `invoke("alchemy_transform")` → Gemini API（解消）** |
+
+---
+
+### 19-6. 次フェーズ候補
+
+| 優先度 | 内容 | 備考 |
+|---|---|---|
+| 高 | `forge_world` の Gemini 対応版への更新 | 現在は Anthropic API を呼んでいる。`GEMINI_API_KEY` に統一し、`WorldForge.tsx` の invoke パスを有効化 |
+| 中 | `rewrite` の Rust command 化 | 339行。中程度の規模 |
+| 低 | `generate` の Rust command 化 | 1554行。最大規模のため最後 |
+| 低 | APIキー設定 UI | 初回起動時の案内 UI |
+
+**generate は最後に回す**（システムプロンプト・repair・CONCRETE POOL・deterministic cleanup を含む最大規模）。
