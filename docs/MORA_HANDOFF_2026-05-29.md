@@ -1750,3 +1750,84 @@ const isTauri =
 | 低 | APIキー設定 UI | 初回起動時の案内 UI |
 
 **generate は最後に回す**（システムプロンプト・repair・CONCRETE POOL・deterministic cleanup を含む最大規模）。
+
+---
+
+## セクション20: Phase EXE-2 完了 — forge_world Gemini 統一（2026-05-31）
+
+### 20-1. 実施内容
+
+| 項目 | 内容 |
+|---|---|
+| フェーズ | Phase EXE-2 |
+| 目的 | `forge_world` を `ANTHROPIC_API_KEY` から `GEMINI_API_KEY` に統一し、Tauri invoke パスを有効化 |
+| 変更ファイル | `src-tauri/src/lib.rs` / `components/WorldForge.tsx` のみ |
+| generate / rewrite / alchemy | 一切変更なし |
+
+---
+
+### 20-2. `forge_world` の変更内容（lib.rs）
+
+| 変更点 | Before | After |
+|---|---|---|
+| APIキー | `ANTHROPIC_API_KEY` | `GEMINI_API_KEY` |
+| エンドポイント | `api.anthropic.com/v1/messages` | Gemini REST（`gemini-2.5-flash`）|
+| リクエスト body | Anthropic 形式 | Gemini 形式（`system_instruction` / `generationConfig`）|
+| `maxOutputTokens` | 1400 | 2000 |
+| タイムアウト | 30秒 | 60秒 |
+| レスポンス取得パス | `resp_json["content"][0]["text"]` | `resp_json["candidates"][0]["content"]["parts"][0]["text"]` |
+| JSON 抽出 | コードフェンス trim + `from_str` | `extract_json_object()` 再利用（Phase EXE-1 実装済み）|
+| `musicDirection.source` | `"claude"`（型に存在しない値） | `"gemini"`（型定義 `"gemini" \| "rule"` に準拠）|
+| system prompt 例文 | `"fluorescent loneliness"` | `"vending-machine loneliness"`（route.ts に同期）|
+
+- **APIキーをログに出さない**: URL に key パラメータが含まれるため `eprintln!` 等への出力なし
+- **`GEMINI_API_KEY` 未設定**: `Ok(None)` → フロントで `ruleBasedForge(seed)` にサイレント fallback
+
+---
+
+### 20-3. WorldForge.tsx の変更内容
+
+| 環境 | 経路 |
+|---|---|
+| EXE / `tauri:dev` | `invoke("forge_world", { worldSeed })` → Gemini API |
+| Web / `npm run dev` | `fetch("/api/ai/forge")` → Next.js route（変更なし）|
+
+- `isTauri` 判定: `__TAURI_INTERNALS__` in window（Phase EXE-1 と同じ方式）
+- `null` 返却時（キー未設定）: `ruleBasedForge(seed)` にサイレント fallback（エラー表示なし）
+- invoke reject 時: 既存の `catch` → `ruleBasedForge(seed)`（変更なし）
+- Tauri invoke path を無効化していたコメントは削除済み
+
+---
+
+### 20-4. 手動確認結果（2026-05-31）
+
+| 確認項目 | 結果 |
+|---|---|
+| `tauri:dev` 起動 | ✅ |
+| `GEMINI_API_KEY` 設定あり → FORGE WORLD 実行 | ✅ Forged World が表示された |
+| **"AI" バッジ表示**（`source === "gemini"` 判定） | ✅ 表示確認 |
+| Library に Forge 結果由来のタグが追加 | ✅ |
+| `Failed to fetch` エラー | ✅ 解消（出ていない）|
+
+---
+
+### 20-5. 現在の EXE 機能状態（Phase EXE-2 完了後）
+
+| 機能 | EXE本番の挙動 |
+|---|---|
+| generate | fetch 失敗 → rule-based fallback（サイレント）|
+| **forge（WorldForge）** | **✅ `invoke("forge_world")` → Gemini API（AI バッジ）/ キーなしは RULE バッジで fallback** |
+| rewrite | fetch 失敗 → rule-based fallback（サイレント）|
+| alchemy（SourceAlchemy） | ✅ `invoke("alchemy_transform")` → Gemini API（Phase EXE-1 完了）|
+
+---
+
+### 20-6. 次フェーズ候補
+
+| 優先度 | 内容 | 備考 |
+|---|---|---|
+| 高 | `rewrite` の Rust command 化 | 339行。中程度の規模。EXE で rule-based fallback のまま |
+| 低 | `generate` の Rust command 化 | 1554行。システムプロンプト・repair・CONCRETE POOL・deterministic cleanup を含む最大規模。最後に回す |
+| 低 | APIキー設定 UI | 初回起動時の案内 UI |
+
+**generate は最後に回す**（最も規模が大きく、フェーズ分割が必要）。

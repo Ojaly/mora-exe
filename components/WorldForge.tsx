@@ -5,9 +5,7 @@ import { WorldExpansion } from "@/types";
 import MusicDirectionPanel from "@/components/MusicDirectionPanel";
 import { ruleBasedForge } from "@/lib/ruleBasedForge";
 
-// SAFE SWITCH: Tauri invoke path removed until forge_world timeout/env is verified.
-// To re-enable: detect `typeof window !== "undefined" && "__TAURI_INTERNALS__" in window`
-// and add a dynamic import("@tauri-apps/api/core") invoke branch back to handleForge.
+// Tauri invoke path re-enabled (Phase EXE-2): GEMINI_API_KEY verified, timeout set to 60s.
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +77,9 @@ export default function WorldForge({
   // Derive source from expansion instead of keeping separate state
   const source = expansion?.musicDirection.source ?? null;
 
+  const isTauri =
+    typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
   // ─── Forge handler ────────────────────────────────────────────────────────
 
   const handleForge = async () => {
@@ -89,15 +90,23 @@ export default function WorldForge({
     const seed = worldSeed.trim();
 
     try {
-      // ── Dev / web: use Next.js API route ────────────────────────────────
-      const res = await fetch("/api/ai/forge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ worldSeed: seed }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: WorldExpansion = await res.json();
-      onExpansionChange(data);
+      if (isTauri) {
+        // EXE / tauri:dev — Rust command 経由で Gemini を呼ぶ
+        const { invoke } = await import("@tauri-apps/api/core");
+        const data = await invoke<WorldExpansion | null>("forge_world", { worldSeed: seed });
+        // null = GEMINI_API_KEY 未設定 → rule-based にサイレント fallback
+        onExpansionChange(data !== null ? data : ruleBasedForge(seed));
+      } else {
+        // Web / dev server — Next.js API route 経由
+        const res = await fetch("/api/ai/forge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ worldSeed: seed }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: WorldExpansion = await res.json();
+        onExpansionChange(data);
+      }
     } catch (err) {
       console.error("[WorldForge] forge failed:", err);
       onExpansionChange(ruleBasedForge(seed));

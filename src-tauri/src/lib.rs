@@ -20,11 +20,11 @@ RULES:
   - instruments: 2-4 instruments that exist in this world's texture
   - moodWords: 3-5 emotional/atmospheric adjectives
 - stylePromptDraft: ONE prose paragraph, no bracket tags. Format: "{genreHint} with {atmosphere}, {BPM} BPM. {vocalStyle}. {instruments}. {texture/soundDirection descriptors}. {moodWords}."
-  Example: "Decadent downtempo neo-soul with humid fluorescent loneliness, 72 BPM. Hushed male vocal, close-mic. Sparse piano, low bass drone, brushed percussion. Intimate, ritualistic, obsessive comfort-seeking."
+  Example: "Decadent downtempo neo-soul with humid vending-machine loneliness, 72 BPM. Hushed male vocal, close-mic. Sparse piano, low bass drone, brushed percussion. Intimate, ritualistic, obsessive comfort-seeking."
 - lyricsDirection: JP sentence on how lyrics should approach this world emotionally
 - AVOID generic imagery: "光の海" "starlight" "feel alive" "dance in the rain" "burning soul"
 
-OUTPUT: Valid JSON only — no markdown fences:
+OUTPUT: Valid JSON only — no markdown fences. JSON string values must not contain literal newlines — use \n if a newline is needed.
 {
   "scene": ["3-4 cinematic fragments (JP preferred, under 25 chars each)"],
   "emotion": ["3-5 atmosphere/emotion words (EN)"],
@@ -36,7 +36,7 @@ OUTPUT: Valid JSON only — no markdown fences:
     "genreHint": "world-specific genre feel (EN, 3-6 words)",
     "atmosphere": "2-4 sensory descriptors (EN)",
     "tempoFeel": "tempo character (EN)",
-    "bpmEstimate": 72,
+    "bpmEstimate": <number or null>,
     "vocalStyle": "specific vocal texture + mic treatment (EN)",
     "instruments": ["2-4 instruments"],
     "moodWords": ["3-5 mood words (EN)"]
@@ -47,38 +47,51 @@ OUTPUT: Valid JSON only — no markdown fences:
 
 // ─── forge_world command ──────────────────────────────────────────────────────
 
-/// Call Claude API to expand a world seed into a WorldExpansion object.
+/// Call Gemini API to expand a world seed into a WorldExpansion object.
 /// Returns Ok(Some(expansion)) on success.
-/// Returns Ok(None) when ANTHROPIC_API_KEY is not set — frontend uses rule-based fallback.
+/// Returns Ok(None) when GEMINI_API_KEY is not set — frontend uses rule-based fallback.
 /// Returns Err(msg) on API or parse failure — frontend uses rule-based fallback.
 #[tauri::command]
 async fn forge_world(world_seed: String) -> Result<Option<Value>, String> {
-    // Read API key from environment — never exposed to frontend
-    let api_key = match std::env::var("ANTHROPIC_API_KEY") {
+    let api_key = match std::env::var("GEMINI_API_KEY") {
         Ok(k) if !k.trim().is_empty() => k,
-        _ => return Ok(None), // no key → signal frontend to use rule-based
+        _ => return Ok(None),
     };
 
+    let user_prompt = format!(
+        "World Seed: \"{}\"\n\nExpand this world. Return JSON only.",
+        world_seed
+    );
+
+    let body = serde_json::json!({
+        "system_instruction": {
+            "parts": [{ "text": FORGE_SYSTEM_PROMPT }]
+        },
+        "contents": [{
+            "role": "user",
+            "parts": [{ "text": user_prompt }]
+        }],
+        "generationConfig": {
+            "maxOutputTokens": 2000,
+            "response_mime_type": "application/json",
+            "thinkingConfig": { "thinkingBudget": 0 }
+        }
+    });
+
+    // NOTE: URL contains api_key as query param — never log this URL.
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
+        api_key
+    );
+
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
+        .timeout(Duration::from_secs(60))
         .build()
         .map_err(|e| format!("HTTP client build error: {}", e))?;
 
-    let body = serde_json::json!({
-        "model": "claude-sonnet-4-6",
-        "max_tokens": 1400,
-        "system": FORGE_SYSTEM_PROMPT,
-        "messages": [{
-            "role": "user",
-            "content": format!("World Seed: \"{}\"\n\nExpand this world. Return JSON only.", world_seed)
-        }]
-    });
-
     let response = client
-        .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", &api_key)
-        .header("anthropic-version", "2023-06-01")
-        .header("content-type", "application/json")
+        .post(&url)
+        .header("Content-Type", "application/json")
         .json(&body)
         .send()
         .await
@@ -87,7 +100,7 @@ async fn forge_world(world_seed: String) -> Result<Option<Value>, String> {
     if !response.status().is_success() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
-        return Err(format!("Anthropic API error {}: {}", status, text));
+        return Err(format!("Gemini API error {}: {}", status, text));
     }
 
     let resp_json: Value = response
@@ -95,25 +108,16 @@ async fn forge_world(world_seed: String) -> Result<Option<Value>, String> {
         .await
         .map_err(|e| format!("Response parse error: {}", e))?;
 
-    let text = resp_json["content"][0]["text"]
+    let text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
         .as_str()
-        .ok_or_else(|| "No text field in API response".to_string())?;
+        .ok_or_else(|| "Gemini returned empty content".to_string())?;
 
-    // Strip markdown code fences if present
-    let raw = text
-        .trim()
-        .trim_start_matches("```json")
-        .trim_start_matches("```")
-        .trim_end_matches("```")
-        .trim();
+    let mut expansion = extract_json_object(text)?;
 
-    let mut expansion: Value =
-        serde_json::from_str(raw).map_err(|e| format!("JSON parse error: {}", e))?;
-
-    // Ensure musicDirection.source = "claude"
+    // Ensure musicDirection.source = "gemini" (matches MusicDirection type: "gemini" | "rule")
     if let Some(md) = expansion.get_mut("musicDirection") {
         if let Some(obj) = md.as_object_mut() {
-            obj.insert("source".to_string(), Value::String("claude".to_string()));
+            obj.insert("source".to_string(), Value::String("gemini".to_string()));
         }
     }
 
