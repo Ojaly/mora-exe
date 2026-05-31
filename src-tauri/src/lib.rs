@@ -908,6 +908,149 @@ fn generate_lang_instruction(ratio: &str) -> &'static str {
     }
 }
 
+// ─── Deterministic cleanup (mirrors applyDeterministicCleanup in route.ts) ───
+
+/// Unagi signals — mirrors UNAGI_INPUT_SIGNALS in route.ts.
+const UNAGI_SIGNALS: &[&str] = &[
+    "うなぎ", "鰻", "養殖", "タレ", "山椒", "赤ちょうちん",
+    "おしぼり", "麦茶", "暖簾", "レシート七百八十円",
+];
+
+/// Replaces the first occurrence of `prefix + (any chars, greedy) + suffix` in `line`
+/// with `replacement`. Mimics JS /prefix.*suffix/g (no multiline) on a single line.
+fn replace_infix_in_line(line: &str, prefix: &str, suffix: &str, replacement: &str) -> String {
+    if let Some(start) = line.find(prefix) {
+        let after = &line[start + prefix.len()..];
+        // Greedy: use rfind to consume as many chars as possible before suffix.
+        if let Some(rel) = after.rfind(suffix) {
+            let end = start + prefix.len() + rel + suffix.len();
+            return format!("{}{}{}", &line[..start], replacement, &line[end..]);
+        }
+    }
+    line.to_string()
+}
+
+/// Applies end-of-line anchored replacement rules.
+/// Mirrors the `/pattern[ \t]*$/gm` and `/^...$` patterns in UNAGI_SPECIFIC_REPLACEMENTS.
+fn apply_line_end_cleanup(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut first = true;
+    for line in text.split('\n') {
+        if !first {
+            out.push('\n');
+        }
+        first = false;
+
+        // Strip trailing spaces/tabs to check end-anchored patterns.
+        // The replacement subsumes those trailing chars (mirrors JS `[ \t]*$`).
+        let te = line.trim_end_matches(|c: char| c == ' ' || c == '\t');
+
+        // /^七百八十円[ \t]*$/gm — full-line match (both ^ and $ anchors)
+        if te == "七百八十円" {
+            out.push_str("カサカサのレシート");
+            continue;
+        }
+
+        // /冷たい麦茶で[ \t]*$/gm → "冷たい麦茶をひと口飲む"
+        if te.ends_with("冷たい麦茶で") {
+            let pre = &te[..te.len() - "冷たい麦茶で".len()];
+            out.push_str(pre);
+            out.push_str("冷たい麦茶をひと口飲む");
+            continue;
+        }
+
+        // /ひやりと冷たい[ \t]+おしぼりが[ \t]*$/gm → "おしぼりで首を拭く"
+        // Requires at least one space/tab between "ひやりと冷たい" and "おしぼりが".
+        if te.ends_with("おしぼりが") {
+            let wo_end = &te[..te.len() - "おしぼりが".len()];
+            if wo_end.ends_with(' ') || wo_end.ends_with('\t') {
+                let wo_sp = wo_end.trim_end_matches(|c: char| c == ' ' || c == '\t');
+                if wo_sp.ends_with("ひやりと冷たい") {
+                    let pre = &wo_sp[..wo_sp.len() - "ひやりと冷たい".len()];
+                    out.push_str(pre);
+                    out.push_str("おしぼりで首を拭く");
+                    continue;
+                }
+            }
+        }
+
+        // /冷たいおしぼりが[ \t]*$/gm → "おしぼりで首を拭く"
+        if te.ends_with("冷たいおしぼりが") {
+            let pre = &te[..te.len() - "冷たいおしぼりが".len()];
+            out.push_str(pre);
+            out.push_str("おしぼりで首を拭く");
+            continue;
+        }
+
+        // /冷たいおしぼり首筋に[ \t]*$/gm → "おしぼりで首を拭く"
+        if te.ends_with("冷たいおしぼり首筋に") {
+            let pre = &te[..te.len() - "冷たいおしぼり首筋に".len()];
+            out.push_str(pre);
+            out.push_str("おしぼりで首を拭く");
+            continue;
+        }
+
+        // /舌が痺れ[ \t]*$/gm → "舌が痺れる"
+        if te.ends_with("舌が痺れ") {
+            let pre = &te[..te.len() - "舌が痺れ".len()];
+            out.push_str(pre);
+            out.push_str("舌が痺れる");
+            continue;
+        }
+
+        // No pattern matched — keep original line (preserves any trailing whitespace).
+        out.push_str(line);
+    }
+    out
+}
+
+/// Mirrors `applyDeterministicCleanup` from app/api/ai/generate/route.ts.
+/// Applies normalization passes without any AI call:
+///   1. Global replacements — safe for all themes
+///   2. Unagi-specific replacements — only when quick_idea contains an unagi signal
+///
+/// repair / detectAbstractDrift / quality-check are intentionally NOT included here.
+fn apply_generate_deterministic_cleanup(lyrics: &str, quick_idea: &str) -> String {
+    let mut text = lyrics.to_string();
+
+    // ── Global: GLOBAL_DETERMINISTIC_REPLACEMENTS ─────────────────────────────
+    // /赤提灯/g → "赤ちょうちん"
+    text = text.replace("赤提灯", "赤ちょうちん");
+
+    // ── Unagi-specific: UNAGI_SPECIFIC_REPLACEMENTS ───────────────────────────
+    if !UNAGI_SIGNALS.iter().any(|s| quick_idea.contains(s)) {
+        return text;
+    }
+
+    // Exact-phrase replacements — order mirrors UNAGI_SPECIFIC_REPLACEMENTS (more specific first)
+
+    // /レシートまで含めた.*歌/g → "レシート七百八十円"
+    {
+        let lines: Vec<String> = text
+            .split('\n')
+            .map(|l| replace_infix_in_line(l, "レシートまで含めた", "歌", "レシート七百八十円"))
+            .collect();
+        text = lines.join("\n");
+    }
+
+    text = text.replace("最高級じゃなくても",   "並の札を裏返す");
+    text = text.replace("あの夏の日と同じ",     "麦茶の氷が鳴る");
+    text = text.replace("このままの夏",         "タレ多めの並ひとつ");
+    text = text.replace("喉を静かに潤す",       "麦茶をひと口飲む");
+    text = text.replace("この舌は知ってる",     "山椒ひと振り");
+    text = text.replace("ざらざらした舌の記憶", "焦げ目を奥歯で噛む");
+    text = text.replace("この味でいい",         "タレ多めの並ひとつ");
+
+    // Line-end anchored patterns (/pattern[ \t]*$/gm  and  /^...$/)
+    text = apply_line_end_cleanup(&text);
+
+    // /赤ちょうちんの\n甘い匂い/g → "赤ちょうちんの甘い匂い"
+    // Literal newline in string — plain replace is sufficient.
+    text = text.replace("赤ちょうちんの\n甘い匂い", "赤ちょうちんの甘い匂い");
+
+    text
+}
+
 // ─── generate_lyrics command ──────────────────────────────────────────────────
 
 /// Call Gemini API to generate song lyrics.
@@ -1064,8 +1207,18 @@ async fn generate_lyrics(
     }
     let notes = parsed["notes"].as_str().unwrap_or("").to_string();
 
+    // Deterministic cleanup — mirrors applyDeterministicCleanup in route.ts.
+    // Applied to both legacy and expansion paths (song_input is always present).
+    // repair / quality-check are intentionally NOT performed here.
+    let cleanup_quick_idea = {
+        let theme = song_input["theme"].as_str().unwrap_or("").trim().to_string();
+        let title = song_input["title"].as_str().unwrap_or("").trim().to_string();
+        if !theme.is_empty() { theme } else { title }
+    };
+    let cleaned_lyrics = apply_generate_deterministic_cleanup(&lyrics, &cleanup_quick_idea);
+
     Ok(Some(serde_json::json!({
-        "lyrics": lyrics,
+        "lyrics": cleaned_lyrics,
         "notes": notes,
     })))
 }

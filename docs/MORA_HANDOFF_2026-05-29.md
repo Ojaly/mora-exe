@@ -1,5 +1,59 @@
 # MORA.exe 開発引継ぎメモ — 2026-05-29
 
+---
+
+## EXE-4F: Tauri generate deterministic cleanup（2026-05-31 追記）
+
+### 完了内容
+
+| 項目 | 内容 |
+|---|---|
+| 対象ファイル | `src-tauri/src/lib.rs` |
+| 追加関数 | `apply_generate_deterministic_cleanup(lyrics, quick_idea)` |
+| helper | `replace_infix_in_line()` / `apply_line_end_cleanup()` / `UNAGI_SIGNALS` |
+| 依存追加 | なし（`regex` クレート不使用） |
+| 適用タイミング | `generate_lyrics` 返却直前（legacy / expansion 両パス共通） |
+
+### 移植した cleanup 内容
+
+**Global（全テーマ）:**
+- `/赤提灯/g` → `赤ちょうちん`
+
+**Unagi-specific（UNAGI_SIGNALS hit 時のみ）:**
+- `/レシートまで含めた.*歌/g` → `レシート七百八十円`
+- plain replace 7件（`最高級じゃなくても` / `あの夏の日と同じ` / `このままの夏` / `喉を静かに潤す` / `この舌は知ってる` / `ざらざらした舌の記憶` / `この味でいい`）
+- 行末アンカー6件（`/^七百八十円$/` / `冷たい麦茶で$` / `おしぼりが$`系 / `舌が痺れ$`）
+- `/赤ちょうちんの\n甘い匂い/` → `赤ちょうちんの甘い匂い`
+
+### 未対応・保留
+
+| 機能 | 判断 |
+|---|---|
+| `repairAbstractDrift` | 保留（Gemini 2回目呼び出し・移植コスト大） |
+| `detectAbstractDrift` | 保留 |
+| `detectNearDuplicate` | 保留 |
+| quality check / logging | 不要（EXEではコンソール非表示） |
+
+### ビルド確認
+
+- `cargo check` (フルリコンパイル) — warning なし ✅
+- `npm run build` — TypeScript OK / Static pages OK ✅
+
+### EXE/Tauri AI機能 パリティ状態（このコミット時点）
+
+| コマンド | 状態 |
+|---|---|
+| `alchemy_transform` | ✅ |
+| `forge_world` | ✅ |
+| `rewrite_lyrics` | ✅ |
+| `generate_lyrics` (legacy) | ✅ + deterministic cleanup |
+| `generate_lyrics` (expansion) | ✅ + deterministic cleanup |
+| generate repair | 保留 |
+
+EXE/Tauri 版の主要 AI 機能はこれで**実用ライン到達**。
+
+---
+
 ## 1. 現在の Git 状態
 
 | 項目 | 状態 |
