@@ -1255,3 +1255,112 @@ Final:     当たり馬券だけが出なかった
 - **UI・lib/ は一切変更なし**
 - `UNAGI_INPUT_SIGNALS` / `RACING_INPUT_SIGNALS` / `UNAGI_ANCHOR_EVIDENCE_LINES` はすべて同ファイルに定義済み
 - `applyDeterministicCleanup(lyrics, quickIdea)` / `detectNearDuplicate(lyrics, quickIdea)` / `repairAbstractDrift(apiKey, lyrics, quickIdea)` はすべて `quickIdea` を受け取り、テーマ別に動作する
+
+---
+
+## 15. Concrete Pool 導入・汎用品質改善フェーズ — 2026-05-31
+
+> **最新コミット: `45f72b0`**
+> Concrete Pool の導入と weak_poetic 修正強化、を-enjambment 厳格化、SYSTEM_PROMPT のうなぎ語彙除去を完了。次スレでは生成テスト結果の確認から再開。
+
+---
+
+### 15-1. このフェーズで実施したコミット一覧
+
+| コミット | 内容 |
+|---|---|
+| `ab81466` | `DETERMINISTIC_REPLACEMENTS` を `GLOBAL` / `UNAGI_SPECIFIC` に分割。`UNAGI_INPUT_SIGNALS` 判定時のみうなぎ置換を適用 |
+| `5702fff` | Breakdown/Outro repair 候補を `isUnagi` / `isRacing` / generic の3分岐に分離。`ANCHOR_EVIDENCE_LINES` をうなぎ専用に分割 |
+| `104bf95` | `extractConcreteVocabulary()` を追加。repair prompt に CONCRETE POOL ブロックを挿入（SOURCE → CONCRETE POOL → REPAIR RULES） |
+| `aef36c0` | weak_poetic repair rule に CONCRETE POOL 使用を明記。`WEAK_POETIC_JP` に `人は.*離れていく` 系2パターン追加。ABSTRACT SUMMARY / SECTION ENDINGS の `小銭を数えて暖簾を出る` を CONCRETE POOL 参照に変更 |
+| `45f72b0` | `WEAK_POETIC_JP` に `/静かに.*から離れていく/` / `/.*から離れていく$/` を追加。`を`-enjambment を `WO_ACTION_VERBS` 条件付きに厳格化（`が` / `を` / `に` を独立分岐に分離）。SYSTEM_PROMPT 3か所から `小銭を数えて暖簾を出る` を削除 |
+
+---
+
+### 15-2. 現時点の設計状態
+
+#### Concrete Pool の仕組み
+
+```
+quickIdea + lyrics（非抽象行） → extractConcreteVocabulary() → 最大25トークン
+→ repair prompt の CONCRETE POOL ブロックに挿入
+→ Gemini が抽象行を Pool 内語彙で置換するよう誘導（Prefer 強度）
+```
+
+#### enjambment 判定（3粒子それぞれ独立）
+
+| 粒子 | valid 条件 |
+|---|---|
+| `が` | 次行が助詞で終わらない |
+| `を` | 次行に `WO_ACTION_VERBS` が含まれる（厳格） |
+| `に` | 次行に `NI_ACTION_VERBS` が含まれる |
+
+`「熱い麦茶を」+「焦げ目を奥歯で噛む」` → `WO_ACTION_VERBS` なし → `dangling particle` 検出 ✅  
+`「カサカサのレシートを」+「財布に戻す」` → `戻す` あり → valid ✅
+
+#### `小銭を数えて暖簾を出る` の残存箇所（`45f72b0` 時点）
+
+| 場所 | 状態 |
+|---|---|
+| SYSTEM_PROMPT 3か所（旧 235, 253, 353行） | ✅ **削除済み** |
+| `UNAGI_ANCHOR_EVIDENCE_LINES` | ✅ うなぎ専用 |
+| `breakdownOutroRule`（`isUnagi`） | ✅ うなぎ専用 |
+| repair CHORUS FINAL LINE / NEAR DUPLICATE / SENSORY FILLER / FEW-SHOT | うなぎ文脈内・低リスク留置 |
+
+---
+
+### 15-3. 次スレで最初に確認すること
+
+`45f72b0` 後の生成テストが未完了。次スレで以下を確認してから実装判断する。
+
+#### 競馬プロンプト 3件で確認
+
+- `静かに競馬から離れていく` / `〜から離れていく` 系が消えているか
+- `小銭を数えて` が競馬側に出なくなったか
+- `domain_leakage:none` / `near_duplicate:none` が維持されているか
+- 競馬の具体物（PAT履歴 / ハズレ券 / 締切前の画面 / 的中表示）が安定して出るか
+
+#### うなぎプロンプト 1〜2件で確認
+
+- `「熱い麦茶を」+「焦げ目を奥歯で噛む」` のような不自然な `を` enjambment が消えているか
+- `「カサカサのレシートを」+「財布に戻す」` のような自然な `を` enjambment は許可されているか
+- うなぎ品質が劣化していないか
+
+---
+
+### 15-4. 次フェーズ候補（優先度順）
+
+| 優先度 | 内容 | 状態 |
+|---|---|---|
+| 高 | 生成テスト確認（15-3） | **次スレ最初のタスク** |
+| 高 | weak_poetic concrete repair のさらなる強化（必要なら） | 生成結果を見て判断 |
+| 中 | Chorus Variation — Chorus 1 / 2 / Final の完全反復を防ぐ | 未着手 |
+| 中 | `identical_section_reuse` 検出 | 未着手 |
+| 低 | Emotional Arc — Verse の流れ改善 | 未着手 |
+| 低 | FEW-SHOT のうなぎ語彙を段階的に削減 | 未着手 |
+
+---
+
+### 15-5. 変更ファイルとコード状態
+
+- **変更ファイル**: `app/api/ai/generate/route.ts` のみ（全フェーズ通じて）
+- **UI・lib/ は一切変更なし**
+- 主要な定数・関数一覧:
+
+```typescript
+GLOBAL_DETERMINISTIC_REPLACEMENTS   // 全テーマ共通置換（赤提灯のみ）
+UNAGI_INPUT_SIGNALS                 // うなぎ判定用
+UNAGI_SPECIFIC_REPLACEMENTS         // うなぎ専用置換
+RACING_INPUT_SIGNALS                // 競馬判定用
+RACING_DOMAIN_TERMS                 // 競馬語 domain_leakage 検出用
+ANCHOR_EVIDENCE_LINES               // 全テーマ near_dup 例外
+UNAGI_ANCHOR_EVIDENCE_LINES         // うなぎ専用 near_dup 例外
+ABSTRACT_QUICK_PATTERNS             // Concrete Pool 抽出時の除外パターン
+NI_ACTION_VERBS                     // に-enjambment valid 条件
+WO_ACTION_VERBS                     // を-enjambment valid 条件（厳格）
+extractConcreteVocabulary()         // quickIdea + lyrics からテーマ語を抽出
+isLikelyAbstractLine()              // 軽量抽象行判定
+applyDeterministicCleanup(lyrics, quickIdea)
+detectNearDuplicate(lyrics, quickIdea)
+repairAbstractDrift(apiKey, lyrics, quickIdea)  // CONCRETE POOL 挿入済み
+```
