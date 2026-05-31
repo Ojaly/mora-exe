@@ -163,6 +163,24 @@ HARD RULES:
 - Blank line after each section's content, before the next tag.
 - Lines per section: Intro/Spoken Intro 2–3, Verse 4–6, Pre-Chorus/Build 3–4, Chorus 4–6 (5–6 preferred), Final Chorus 5–6, Bridge 4–6, Breakdown 2–4, Interlude 1–2, Drop/Hook/Final Hook 3–4, Outro/Finale 2–4
 
+EMOTIONAL ARC RULES (applies to full-length structures with Verse + Chorus):
+- Build emotional pressure across the song. Do not keep every section at the same emotional level.
+- Do not explain the arc directly in the lyrics. Show it through concrete objects, repeated actions,
+  numbers, records, receipts, physical traces, and source-specific evidence.
+- Verse 1: Place the narrator inside the first concrete situation. Start with an object, action,
+  record, or repeated habit from the source. Do not open with reflection or resolution.
+- Pre-Chorus: Compress that situation into unresolved tension. End on tension, not resolution.
+  The tension must come from a concrete detail — a number, a record, a named action.
+- Chorus 1: State the emotional core using the SOURCE CORE LINE and concrete evidence from the source.
+- Verse 2: Add accumulation. Introduce a new object, failed action, number, record, or physical trace.
+  Do not simply repeat Verse 1 imagery. Each Verse 2 line must add something Verse 1 did not contain.
+- Breakdown or Bridge: Shift the angle. Use a break, reversal, memory, absence, or physical action.
+  Stay grounded in source-specific evidence. Do not use this section as scenic filler.
+- Final Chorus: Let the accumulated weight land. Keep the core hook from the main Chorus.
+  Avoid motivational uplift, clean resolution, or positive-outcome slogans.
+- Outro: End on what remains — an object, record, number, receipt, mark, or unresolved physical action.
+  Do not summarize the message or close with scenery.
+
 BANNED PHRASES: "lose control" "feel alive" "in my veins" "break free" "take me higher"
   "warrior" "rise above" "burning inside" "meant to be" "forever and always"
   "neon-lit streets" "rain-soaked streets" "fluorescent flicker"
