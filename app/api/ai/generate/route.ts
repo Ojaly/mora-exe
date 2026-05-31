@@ -837,7 +837,12 @@ const NEAR_DUP_VERB_ENDINGS = [
 
 // Anchor evidence lines — Chorus フックとして意図的に使う物証行。
 // adjacent near_duplicate チェックで、片方がこれと完全一致する場合はスキップ。
+// Global anchor: レシート七百八十円 is never a false near_dup (unagi-domain only, won't appear in racing)
 const ANCHOR_EVIDENCE_LINES = new Set([
+  "レシート七百八十円",
+]);
+// Unagi-specific anchor: applied only when quickIdea contains unagi signals
+const UNAGI_ANCHOR_EVIDENCE_LINES = new Set([
   "レシート七百八十円",
   "小銭を数えて暖簾を出る",
 ]);
@@ -848,7 +853,10 @@ const NI_ACTION_VERBS = [
   "拾う", "拭く", "噛む", "飲む", "割る", "開ける",
 ];
 
-function detectNearDuplicate(lyrics: string): string | null {
+function detectNearDuplicate(lyrics: string, quickIdea: string): string | null {
+  const anchorLines = UNAGI_INPUT_SIGNALS.some(s => quickIdea.includes(s))
+    ? UNAGI_ANCHOR_EVIDENCE_LINES
+    : ANCHOR_EVIDENCE_LINES;
   function keyTokens(line: string): string[] {
     const kanji = line.match(/[一-鿿]{2,}/g) ?? [];
     const kana  = line.match(/[゠-ヿ]{2,}/g) ?? [];
@@ -857,7 +865,7 @@ function detectNearDuplicate(lyrics: string): string | null {
   const lines = lyrics.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("["));
   for (let i = 0; i < lines.length - 1; i++) {
     // Skip if either line is an anchor evidence line (Chorus フック物証との近接は許容)
-    if (ANCHOR_EVIDENCE_LINES.has(lines[i]) || ANCHOR_EVIDENCE_LINES.has(lines[i + 1])) continue;
+    if (anchorLines.has(lines[i]) || anchorLines.has(lines[i + 1])) continue;
     const setA = new Set(keyTokens(lines[i]));
     const shared = keyTokens(lines[i + 1]).filter(w => setA.has(w));
     if (shared.length > 0) {
@@ -934,6 +942,31 @@ async function repairAbstractDrift(
   lyrics: string,
   quickIdea: string,
 ): Promise<{ text: string; finishReason?: string } | null> {
+  const isUnagi  = UNAGI_INPUT_SIGNALS.some(s => quickIdea.includes(s));
+  const isRacing = RACING_INPUT_SIGNALS.some(s => quickIdea.includes(s));
+
+  const breakdownOutroRule = isUnagi
+    ? `- BREAKDOWN / OUTRO: Do not place Chorus climax lines as standalone Breakdown/Outro content.\n` +
+      `  NG in Breakdown/Outro (these are Chorus territory): 「レシート七百八十円」\n` +
+      `  「タレ多めの並ひとつ」「赤ちょうちん」「麦茶で流す」「養殖でいい タレでいい」\n` +
+      `  Replace with perspective shift — sound, sensation, departure, or payment:\n` +
+      `  「タレ多めの並ひとつ」→ 「レジ横の小銭皿が鳴る」\n` +
+      `  「レシート七百八十円」→ 「焦げた皮を奥歯で噛む」\n` +
+      `  「麦茶で流す」→ 「暖簾の外で煙を吸う」\n` +
+      `  Good Breakdown: 「レジ横の小銭皿が鳴る」「焦げた皮を奥歯で噛む」「店の奥で換気扇が止まる」\n` +
+      `  「湯気の向こうで箸を割る」「指先に山椒の粉が残る」\n` +
+      `  Good Outro: 「小銭を数えて暖簾を出る」「袖口にタレの匂いが残る」\n` +
+      `  「レシートを折って財布に戻す」「指先にタレの匂いが残る」\n`
+    : isRacing
+    ? `- BREAKDOWN / OUTRO: Do not place Chorus climax lines as standalone Breakdown/Outro content.\n` +
+      `  Replace with a perspective shift — waiting, checking, or departure specific to racing:\n` +
+      `  Good Breakdown: 「赤い的中表示を待っていた」「締切前の画面を閉じた」\n` +
+      `  「買い目のメモだけ残っていた」「ハズレ券を引き出しに戻す」「PAT口座の残高を確認した」\n` +
+      `  Good Outro: 「日曜の夜に印を消す」「PAT履歴だけが白く残る」\n` +
+      `  「ハズレ券を引き出しに入れた」「締切前の画面を閉じた」「当たり馬券だけが出なかった」\n`
+    : `- BREAKDOWN / OUTRO: Do not place Chorus climax lines as standalone Breakdown/Outro content.\n` +
+      `  Replace with a concrete action, object, or departure drawn from the SOURCE.\n`;
+
   const systemPrompt =
     "You are a lyrics repair specialist. Fix abstract emotional drift. Return only valid JSON.";
   const userPrompt =
@@ -1030,17 +1063,7 @@ async function repairAbstractDrift(
     `  「また来る理由を探してる」→「ポイントカードを財布に戻す」\n` +
     `  「何を探してるか分からない」→「小銭を数えて暖簾を出る」\n` +
     `  「この味が忘れられない」→「空の重箱に山椒だけ残った」\n` +
-    `- BREAKDOWN / OUTRO: Do not place Chorus climax lines as standalone Breakdown/Outro content.\n` +
-    `  NG in Breakdown/Outro (these are Chorus territory): 「レシート七百八十円」\n` +
-    `  「タレ多めの並ひとつ」「赤ちょうちん」「麦茶で流す」「養殖でいい タレでいい」\n` +
-    `  Replace with perspective shift — sound, sensation, departure, or payment:\n` +
-    `  「タレ多めの並ひとつ」→ 「レジ横の小銭皿が鳴る」\n` +
-    `  「レシート七百八十円」→ 「焦げた皮を奥歯で噛む」\n` +
-    `  「麦茶で流す」→ 「暖簾の外で煙を吸う」\n` +
-    `  Good Breakdown: 「レジ横の小銭皿が鳴る」「焦げた皮を奥歯で噛む」「店の奥で換気扇が止まる」\n` +
-    `  「湯気の向こうで箸を割る」「指先に山椒の粉が残る」\n` +
-    `  Good Outro: 「小銭を数えて暖簾を出る」「袖口にタレの匂いが残る」\n` +
-    `  「レシートを折って財布に戻す」「指先にタレの匂いが残る」\n` +
+    breakdownOutroRule +
     `- SEASONAL FILLER: Replace weather/season filler with source-specific concrete details.\n` +
     `  「夏の終わり」「熱い日々」「また来年も」「過ぎ去る季節」→ an object, number, or action.\n` +
     `- NO PROMPT COPY: Do not reproduce user input prose verbatim as lyrics.\n` +
@@ -1366,7 +1389,7 @@ export async function POST(req: NextRequest) {
 
     // Final quality check (always runs)
     const finalResidual    = detectAbstractDrift(finalLyrics);
-    const nearDupResult    = detectNearDuplicate(finalLyrics);
+    const nearDupResult    = detectNearDuplicate(finalLyrics, quickIdea);
     const domainLeakResult = detectDomainLeakage(finalLyrics, quickIdea);
     const qualityWarning   = finalResidual || nearDupResult;
     console.log(
