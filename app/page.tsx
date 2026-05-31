@@ -872,7 +872,19 @@ export default function Home() {
     if (structureMode === "builder") {
       const valid = builderSections.filter(Boolean);
       if (valid.length === 0) return undefined;
-      return valid.map((s) => `[${s}]`).join("\n");
+
+      const hasFinalChorus = valid.includes("Final Chorus");
+      const chorusCount = valid.filter((s) => s === "Chorus").length;
+      const normalized: typeof valid =
+        !hasFinalChorus && chorusCount >= 2
+          ? valid.map((s, i) =>
+              s === "Chorus" && i === valid.lastIndexOf("Chorus")
+                ? "Final Chorus"
+                : s
+            )
+          : valid;
+
+      return normalized.map((s) => `[${s}]`).join("\n");
     }
     // preset
     return getPresetStructure(structurePreset, input.songLength);
