@@ -820,6 +820,12 @@ MORA.exe は「元ネタの抽象的な面白さを、具体物・動作・物�
 | `0fbe337` | deterministic cleanup 追加、quality_warning ログ追加 |
 | `ca45629` | 季節フィラー / 擬感覚記憶フレーズ、Chorus 名詞チェーン禁止 |
 | `4562b7c` | near_duplicate 検出、dangling_particle 全セクション化、感覚表現禁止 |
+| `add133e` | 動詞終端 near_duplicate（NEAR_DUP_VERB_ENDINGS）、verb重複 few-shot 追加 |
+| `c1c932f` | domain_leakage 検出、WEAK_POETIC_JP 全セクション適用、Chorus 最終行ルール |
+| `dab8cfd` | near_dup を quality_warning に統合、deterministic 拡張、repair 候補追加 |
+| `2450c93` | が-enjambment 例外、abstract_summary 拡張、BREAKDOWN/OUTRO ルール |
+| `2058a92` | を-enjambment 拡張、Pass 2 同一行反復検出、冷たい麦茶で 補完 |
+| `30463bf` | ANCHOR_EVIDENCE_LINES、NI_ACTION_VERBS、に-enjambment 限定許可 |
 
 ---
 
@@ -1019,3 +1025,126 @@ localhost:3000
 - `レシート七百八十円` / `小銭を数えて暖簾を出る` 等が自然に出る
 - `この味でいい` / `これでいい` が出ない
 - Chorus 末尾の価格を Interlude が単純反復しない
+
+---
+
+## 13. うなぎ品質改善フェーズ完了 — 2026-05-31
+
+> **最新コミット: `30463bf`**
+> うなぎプロンプトでの品質改善フェーズが合格ライン到達。次スレッドから参照。
+
+---
+
+### 13-1. 現在の最終ログ形式
+
+```
+[mora/generate] final — quality_warning:none | domain_leakage:none | near_duplicate:none | deterministic_replacements:N
+```
+
+| キー | 意味 |
+|---|---|
+| `quality_warning` | abstract drift または near_duplicate が残存（どちらか detected で detected） |
+| `domain_leakage` | 入力に競馬語なし・出力に競馬語あり（`買い目`/`馬券`/`PAT履歴` 等） |
+| `near_duplicate` | 隣接行の漢字2+/カタカナ2+ 共通トークン、動詞終端重複、または同一行の複数セクション反復 |
+| `deterministic_replacements` | deterministic cleanup で置換した件数（0でも正常） |
+
+---
+
+### 13-2. コミット `4562b7c` 以降の追加実装まとめ
+
+#### 検出強化
+
+| 追加項目 | 内容 |
+|---|---|
+| `NEAR_DUP_VERB_ENDINGS` | 動詞終端（畳む/拭く/飲む 等12語）の隣接重複を検出 |
+| `detectDomainLeakage()` | 入力に競馬語がないのに出力に競馬語が出たら `domain_leakage:detected` |
+| WEAK_POETIC_JP 全セクション適用 | 以前は Chorus/Bridge のみ。Verse/Pre-Chorus の弱詩的表現も検出対象に |
+| `ABSTRACT_SUMMARY_JP` 拡張 | `この味でいい` / `これでいい` / `この場所だけは` / `変わらないまま` を追加 |
+| `WEAK_POETIC_JP` 拡張 | `衣纏う` / `まとう` を追加 |
+| Pass 2 repeated-line 検出 | 非Chorus セクションで同一行テキストが2回以上出現したら `repeated line` |
+| `ANCHOR_EVIDENCE_LINES` | `レシート七百八十円` 等の Chorus フック行は near_dup の片方として扱わない |
+| valid enjambment 拡張 | `が/を/に` 終端への対応。`に` は次行が `NI_ACTION_VERBS` を含む場合のみ許可 |
+
+#### Deterministic Cleanup 追加パターン
+
+| 検出パターン | 置換後 |
+|---|---|
+| `レシートまで含めた.*歌` | `レシート七百八十円` |
+| `^七百八十円$`（単独行） | `カサカサのレシート` |
+| `冷たい麦茶で`（行末） | `冷たい麦茶をひと口飲む` |
+| `ひやりと冷たい おしぼりが`（行末） | `おしぼりで首を拭く` |
+| `冷たいおしぼりが`（行末） | `おしぼりで首を拭く` |
+| `この味でいい` | `タレ多めの並ひとつ` |
+
+#### repair prompt 追加ルール
+
+| ルール | 内容 |
+|---|---|
+| CHORUS FINAL LINE | `麦茶をひと口飲む`/`おしぼりで首を拭く` 等は Chorus 末尾 NG。価格・物証を優先 |
+| BREAKDOWN/OUTRO | `レシート七百八十円`/`赤ちょうちん` 等 Chorus 決め行を Breakdown/Outro に流用しない |
+| NEAR DUPLICATE SAME-LINE | 同一行が非Chorus で2回以上 → 2回目以降を別動作へ（`おしぼりで首を拭く`×3 など） |
+| DOMAIN INTEGRITY | 競馬語（買い目/馬券等）が eel 文脈に漏れた場合の置換候補を明示 |
+| 麦茶近接反復 | `麦茶` が近接2行に出たら1つを `湯気の向こうで箸を割る` / `レジ横の小銭皿が鳴る` 等に |
+
+---
+
+### 13-3. 検出定数一覧（現時点）
+
+```typescript
+// app/api/ai/generate/route.ts 内
+ABSTRACT_SIGNALS_EN         // 英語スローガン
+ABSTRACT_LINE_JP            // JP 抽象行（行頭パターン）
+WEAK_POETIC_JP              // 弱詩的表現 ← 全セクション適用に変更
+ABSTRACT_SUMMARY_JP         // 抽象まとめ語 ← 拡張済み
+SLOGANY_ENDING_JP           // Final Chorus ポジティブ標語
+EXPLANATORY_PROSE_JP        // 説明口調
+META_LYRIC_JP               // メタ歌詞自己言及
+MIXED_LANG_WEIRD            // 不自然な日英混在
+NEAR_DUP_VERB_ENDINGS       // 動詞終端重複検出用
+ANCHOR_EVIDENCE_LINES       // near_dup 例外とする Chorus フック物証行
+NI_ACTION_VERBS             // に-enjambment が valid になる動作動詞
+DETERMINISTIC_REPLACEMENTS  // 確定置換テーブル ← 拡張済み
+RACING_DOMAIN_TERMS         // domain_leakage 検出用（競馬語）
+RACING_INPUT_SIGNALS        // 競馬プロンプト判定用
+```
+
+---
+
+### 13-4. うなぎプロンプト到達点（合格確認済み）
+
+3回生成の合格条件（コミット `30463bf` 時点で安定確認）：
+
+- `quality_warning:none`
+- `domain_leakage:none`
+- `near_duplicate:none`（`レシート七百八十円` ↔ `カサカサのレシート` は anchor 例外）
+- `養殖でいい タレでいい` 短フックが Chorus に安定出現
+- `レシート七百八十円` が Chorus 末尾に安定
+- Breakdown / Outro が「帰り際・会計・身体感覚」に具体化
+- `おしぼりで首を拭く` の3連発は解消
+- `麦茶をひと口飲む` が Chorus 末尾に入る問題は解消
+- 競馬語の混入なし
+
+---
+
+### 13-5. 次フェーズ候補（未着手）
+
+優先度順：
+
+| 優先度 | 内容 |
+|---|---|
+| 高 | 競馬プロンプトでの汎用性テスト（うなぎ合格後の次ステップ） |
+| 中 | `identical_section_reuse` 検出（非Chorus セクションの完全一致反復） |
+| 中 | Chorus バリエーション固定化の緩和（few-shot で複数パターンを示す） |
+| 低 | Emotional Arc / lyric flow 改善（Verse の箇条書き感の解消） |
+| 低 | Chorus Variation ルール |
+| 低 | Suno 向け演出タグ最適化 |
+
+---
+
+### 13-6. 次スレッドへの引継ぎ
+
+- **最新実装コミット**: `30463bf`
+- **変更ファイル**: `app/api/ai/generate/route.ts` のみ
+- **UI・lib/ は一切変更なし**
+- 次のテストは「競馬プロンプト」で汎用性を確認することを推奨
+- 競馬プロンプトで domain_leakage が逆方向（競馬語が正しく出ているか）を確認すること
