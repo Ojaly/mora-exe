@@ -372,6 +372,7 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
 
 FINAL CHORUS RULE — applies only to [Final Chorus]:
 - The Final Chorus keeps the main hook line(s) from the main Chorus.
+- The Final Chorus must NOT be identical to any previous Chorus. If all lines would be the same, you MUST change at least one non-hook line.
 - Vary 1–2 non-hook lines to carry more accumulated weight than Chorus 1: use a different
   concrete object, number, action, or record from the source that deepens — not softens — the impact.
 - FINAL CHORUS VARIATION DETAIL:
@@ -437,6 +438,7 @@ Also check section balance:
   (a different object, number, action, or record). Do not make every Chorus repetition identical.
   Final Chorus: carry more accumulated weight — vary the non-hook lines to deepen, not resolve.
   Do not add motivational uplift or clean resolution in the Final Chorus.
+  If the Final Chorus is word-for-word identical to a previous Chorus, this is a scan failure — change at least one non-hook line before output.
 Also scan for abstract emotion summaries in Chorus, Breakdown, Interlude, and Outro:
 if a line mainly states an abstract feeling (regret remains, hope is gone, dream ended,
 passion unrewarded, silence answers) — replace it with source-specific evidence:
@@ -1125,6 +1127,7 @@ async function repairAbstractDrift(
     `  - Bad last lines: 「競馬をみんな絶対に楽しむんだ」「また来週を楽しみたいんだ」「きっと次は当たるから」\n` +
     `  - If the source is about loss, the Final Chorus must not end on hope or uplift.\n` +
     `  - Good last line: repeat the main Chorus's last line, or use a concrete object/record.\n` +
+    `  - If the Final Chorus is identical to a previous Chorus, preserve hook lines and rewrite exactly one non-hook line using a heavier physical trace (residue, receipt, payment, body mark, stopped object).\n` +
     `- 快感 LIMIT: 快感 may appear at most once in the entire song. If it appears more than once,\n` +
     `  replace extra occurrences with concrete imagery: 「的中画面を一度見たかった」\n` +
     `  「赤い的中表示を待っていた」「払い戻しの数字を見たかった」\n` +
