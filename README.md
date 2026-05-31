@@ -228,13 +228,14 @@ Custom blueprint（入力あり）
 
 ### 依存関係
 
-| パッケージ | バージョン |
-|-----------|-----------|
-| Next.js   | 16.2.6    |
-| React     | 19.2.4    |
-| TypeScript | ^5       |
-| Tailwind CSS | ^4    |
-| @anthropic-ai/sdk | ^0.98.0 |
+| パッケージ | バージョン | 用途 |
+|-----------|-----------|------|
+| Next.js      | 16.2.6 | フロントエンド / Route Handler |
+| React        | 19.2.4 | UI |
+| TypeScript   | ^5     | 型付け |
+| Tailwind CSS | ^4     | スタイリング |
+| Tauri        | v2     | Windows EXE ラッパー |
+| Gemini API   | REST（fetch） | AI 機能（generate / rewrite / forge / alchemy） |
 
 ### セットアップ
 
@@ -254,29 +255,100 @@ npm run dev
 > `dev` スクリプトは `next dev --webpack` で起動する（Turbopack 禁止）。  
 > 起動ログに `webpack` が表示されることを確認する。
 
-### Claude API 設定
+### API キー設定
+
+#### ブラウザ版（`npm run dev`）
 
 プロジェクトルート（`mora-exe/` 直下）に `.env.local` を作成：
 
 ```env
-ANTHROPIC_API_KEY=your_api_key_here
+GEMINI_API_KEY=AIza...
 ```
 
-APIキーは [Anthropic Console](https://console.anthropic.com/) で発行。  
+APIキーは [Google AI Studio](https://aistudio.google.com/) で発行。  
 **`.env.local` は絶対にコミットしない**（`.gitignore` の `.env*` ルールで管理外）。
 
 **未設定時の動作：**
 
 | 機能 | 未設定時の動作 |
 |------|--------------|
-| World Forge | rule-based フォールバック（regex + 辞書）で動作 |
-| Generate (Lyrics) | `buildExpansionLyricsFallback` または mood pool で動作 |
-| Rewrite | rule-based フォールバック（`lib/rewriteModes.ts`）で動作 |
-| Source Alchemy | **動作しない**（Claude 必須） |
+| World Forge    | rule-based フォールバック（regex + 辞書）で動作 |
+| Generate       | rule-based フォールバックで動作 |
+| Rewrite        | rule-based フォールバック（`lib/rewriteModes.ts`）で動作 |
+| Source Alchemy | **動作しない**（Gemini 必須） |
 
 **セキュリティ：**
 - API キーはサーバーサイド（`app/api/` Route）のみで使用。フロントエンドに露出しない
 - `.env.local` を絶対にコミットしないこと
+
+#### EXE版（Tauri）
+
+EXE は `.env.local` を読まない。起動前に環境変数として渡す：
+
+```powershell
+$env:GEMINI_API_KEY = "AIza..."
+& ".\mora-exe.exe"
+```
+
+> ⚠️ API キーを EXE に埋め込まないこと。常に環境変数で渡す運用を徹底する。  
+> 未設定の場合、AI 機能は fallback または無応答になる。
+
+---
+
+## EXE版（Tauri デスクトップアプリ）
+
+MORA.exe は Tauri v2 を用いた Windows デスクトップ EXE としてビルド・配布できる。  
+AI 機能（generate / rewrite / forge / alchemy）はすべて Rust から Gemini API を直接呼ぶため、  
+Next.js dev server は不要。
+
+### EXE版で対応済みの AI 機能
+
+| 機能 | Tauri コマンド | 状態 |
+|------|--------------|------|
+| Source Alchemy          | `alchemy_transform` | ✅ |
+| World Forge             | `forge_world`       | ✅ |
+| Rewrite                 | `rewrite_lyrics`    | ✅ |
+| Generate（legacy）      | `generate_lyrics`   | ✅ |
+| Generate（expansion）   | `generate_lyrics`   | ✅ |
+
+### 本番ビルド
+
+```powershell
+npm run tauri:build
+```
+
+ビルド生成物：
+
+| 種別 | パス |
+|------|------|
+| EXE（実行ファイル）  | `src-tauri\target\release\mora-exe.exe` |
+| MSI インストーラー   | `src-tauri\target\release\bundle\msi\MORA.exe_0.1.0_x64_en-US.msi` |
+| NSIS インストーラー  | `src-tauri\target\release\bundle\nsis\MORA.exe_0.1.0_x64-setup.exe` |
+
+### EXE版の起動
+
+```powershell
+# 起動前に GEMINI_API_KEY を設定する
+$env:GEMINI_API_KEY = "AIza..."
+& "src-tauri\target\release\mora-exe.exe"
+```
+
+インストーラー経由でインストール済みの場合：
+
+```powershell
+$env:GEMINI_API_KEY = "AIza..."
+& "$env:LOCALAPPDATA\mora-exe\mora-exe.exe"   # インストール先は環境による
+```
+
+### EXE版の保留事項
+
+以下は TS 版（dev server 経由）では動作するが、EXE 版では未対応：
+
+| 項目 | 理由 |
+|------|------|
+| `repairAbstractDrift`（Gemini 2回目呼び出し） | 移植コスト大・latency 懸念 |
+| `detectAbstractDrift` / `detectNearDuplicate` | repair と一体のため保留 |
+| quality check / logging | EXE ではコンソール非表示のため不要 |
 
 ---
 
@@ -360,8 +432,9 @@ Claude API 未設定時は rule-based フォールバックになる。rule-base
 
 ## 開発メモ
 
-- **本線はブラウザ版 Next.js。** Tauri / EXE / Rust invoke は現時点では触らない
-- Claude API は `app/api/ai/` の Next.js Route Handler 経由。フロントから直接 API を呼ばない
+- **ブラウザ版（Next.js）と EXE版（Tauri）の両方が実用ライン。** EXE/Tauri 主要 AI 機能移行完了済み（`src-tauri/src/lib.rs`）
+- ブラウザ版の AI は `app/api/ai/` の Next.js Route Handler 経由。フロントから直接 API を呼ばない
+- EXE版の AI は Rust の Tauri コマンド（`forge_world` / `alchemy_transform` / `rewrite_lyrics` / `generate_lyrics`）から Gemini API を直接呼ぶ
 - `npm run dev` のログで `webpack` 起動を確認する（`turbopack` と表示されていたら停止して `package.json` を確認）
 - localStorage キー一覧：`mora-library-ids` / `mora-structure-mode` / `mora-structure-preset` / `mora-structure-custom`
 - Hydration mismatch 対策として、localStorage を読む処理は `useEffect` 内のみ。`useState` 初期値で `localStorage` を直接読まない
