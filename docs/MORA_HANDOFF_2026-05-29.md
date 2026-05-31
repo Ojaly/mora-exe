@@ -2028,3 +2028,118 @@ async fn generate_lyrics(
 | 低 | APIキー設定 UI | 初回起動時の案内 UI |
 
 **expansion path は WorldExpansion の全フィールドを Rust に渡す設計が必要なため、いきなり実装しない。**
+
+---
+
+## セクション23: Phase EXE-4E 完了 — generate expansion path Tauri command 対応（2026-05-31）
+
+### 23-1. 実施内容
+
+| フェーズ | 内容 |
+|---|---|
+| EXE-4E 事前設計確認 | expansion path の全フィールド・依存関係を確認。案A/B/C を比較し案Bを採用 |
+| EXE-4E-1 | `buildExpansionUserPrompt` / `resolveStructure` / `langInstruction` / `LibraryContext` を `lib/buildExpansionPrompt.ts` に切り出し export |
+| EXE-4E-2 | TS側で `expansionUserPrompt` 文字列を組み立て、Rust `generate_lyrics` invoke に渡す方式を実装 |
+
+---
+
+### 23-2. 設計決定（案B採用）
+
+| 案 | 内容 | 採用理由 |
+|---|---|---|
+| 案A | Rust側で `WorldExpansion` JSON から全フィールドを展開 | ❌ 実装量大・型ドリフトリスク |
+| **案B** | **TS側で `buildExpansionUserPrompt()` を呼び、文字列を invoke に渡す** | ✅ 既存TS関数を再利用・Rust変更最小・品質がWebと同等 |
+| 案C | expansion path は未対応のまま | ❌ EXEでのForge後生成がrule-based fallbackのまま |
+
+---
+
+### 23-3. 変更ファイル
+
+| ファイル | 変更内容 |
+|---|---|
+| `lib/buildExpansionPrompt.ts` | **新規作成**。`langInstruction` / `resolveStructure` / `buildExpansionUserPrompt` / `LibraryContext` を export |
+| `app/api/ai/generate/route.ts` | `buildExpansionUserPrompt` 等3関数と `LibraryContext` を削除し、`lib/buildExpansionPrompt.ts` からインポートに変更 |
+| `lib/generateLyrics.ts` | `GenerateLyricsParams` に `expansionUserPrompt?: string` 追加。Tauri invoke payload に `expansionUserPrompt` を追加 |
+| `app/page.tsx` | `buildExpansionUserPrompt` を import。`handleGenerate` PATH A / `handleRegenLyrics` で expansion 時に `buildExpansionUserPrompt()` を呼び出して `callGenerateLyrics()` に渡す |
+| `src-tauri/src/lib.rs` | `generate_lyrics` 引数に `expansion_user_prompt: String` を追加。expansion 有かつ prompt 空なら `Ok(None)` fallback、prompt が非空なら Gemini に送る。legacy path は `else` ブロックで維持 |
+
+---
+
+### 23-4. 各環境の挙動
+
+| 環境 | expansion なし（legacy） | expansion あり（World Forge後） |
+|---|---|---|
+| Web / `npm run dev` | 変更なし（route.ts 内で `buildLegacyUserPrompt`） | 変更なし（route.ts 内で `buildExpansionUserPrompt`） |
+| EXE / `tauri:dev` | 変更なし（`generate_lyrics` legacy path） | **TS側で組み立てた `expansionUserPrompt` を invoke 経由で Gemini に送る** |
+
+---
+
+### 23-5. `generate_lyrics` Rust command の最終仕様（EXE-4E後）
+
+```rust
+#[tauri::command]
+async fn generate_lyrics(
+    song_input: serde_json::Value,
+    expansion: Option<serde_json::Value>,
+    expansion_user_prompt: String,  // ← EXE-4E で追加
+    resolved_structure: String,
+    world_preset_deep_prompt: String,
+    library_style_addition: String,
+) -> Result<Option<Value>, String>
+```
+
+| 条件 | 動作 |
+|---|---|
+| `GEMINI_API_KEY` 未設定 | `Ok(None)` → rule-based fallback |
+| `expansion.is_some()` かつ `expansion_user_prompt` 空 | `Ok(None)` → `buildExpansionLyricsFallback` |
+| `expansion.is_some()` かつ `expansion_user_prompt` 非空 | `expansion_user_prompt` を user_prompt として Gemini に送る |
+| `expansion.is_none()` | 既存 legacy path（`buildLegacyUserPrompt` 相当を Rust で実行）|
+
+---
+
+### 23-6. 未対応のまま（意図的スコープ外）
+
+| 項目 | 状態 |
+|---|---|
+| `repairAbstractDrift`（第2Gemini呼び出し） | ❌ 未移植（EXE-4F で判断） |
+| `detectAbstractDrift` / `detectNearDuplicate` 等の品質検出 | ❌ 未移植 |
+| `applyDeterministicCleanup` | ❌ 未移植 |
+| domain leakage 検出 | ❌ 未移植 |
+
+---
+
+### 23-7. 手動確認結果（2026-05-31）
+
+| 確認項目 | 結果 |
+|---|---|
+| `tauri:dev` 起動 | ✅ |
+| World Forge 実行 → `AI` バッジ表示 | ✅ |
+| World Forge 後に Generate 実行 | ✅ 歌詞が生成された |
+| **"Gemini AI" バッジ表示** | ✅ 確認 |
+| 変更メモが表示された | ✅ |
+| エラー表示なし | ✅ |
+| Re-generate でも同様に Gemini 生成 | ✅ |
+
+---
+
+### 23-8. 現在の EXE 機能状態（Phase EXE-4E 完了後）
+
+| 機能 | EXE本番の挙動 |
+|---|---|
+| **generate（legacy path）** | ✅ `invoke("generate_lyrics")` → Gemini API |
+| **generate（expansion path）** | ✅ `invoke("generate_lyrics", expansionUserPrompt)` → Gemini API |
+| generate repair / deterministic cleanup / quality check | ❌ 未移植（EXE-4F で判断） |
+| **rewrite** | ✅ `invoke("rewrite_lyrics")` → Gemini API |
+| **forge（WorldForge）** | ✅ `invoke("forge_world")` → Gemini API |
+| **alchemy（SourceAlchemy）** | ✅ `invoke("alchemy_transform")` → Gemini API |
+
+---
+
+### 23-9. 次フェーズ候補
+
+| 優先度 | 内容 | 備考 |
+|---|---|---|
+| 中 | EXE-4F: repair / deterministic cleanup 対応判断 | 第2Gemini呼び出しを含むため、実施前に事前設計確認を行うこと |
+| 低 | APIキー設定 UI | 初回起動時の案内 UI |
+
+**EXE-4F はいきなり実装しない。まず事前設計確認（repair の移植規模・レイテンシ影響・品質向上幅）から。**

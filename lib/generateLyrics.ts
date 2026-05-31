@@ -15,6 +15,9 @@ export type GenerateLyricsParams = {
   // EXE-4A: TS側で事前解決済みの値（Tauri invoke 用）
   resolvedStructure?: string;
   worldPresetDeepPrompt?: string;
+
+  // EXE-4E: expansion path用 prompt 文字列（TS側で組み立て済み）
+  expansionUserPrompt?: string;
 };
 
 const isTauri =
@@ -31,6 +34,7 @@ export async function callGenerateLyrics(
       const result = await invoke<GenerateLyricsResult | null>("generate_lyrics", {
         songInput: params.songInput,
         expansion: params.expansion ?? null,
+        expansionUserPrompt: params.expansionUserPrompt ?? "",
         resolvedStructure: params.resolvedStructure ?? "",
         worldPresetDeepPrompt: params.worldPresetDeepPrompt ?? "",
         libraryStyleAddition: params.libraryStyleAddition ?? "",

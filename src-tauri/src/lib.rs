@@ -910,15 +910,19 @@ fn generate_lang_instruction(ratio: &str) -> &'static str {
 
 // ─── generate_lyrics command ──────────────────────────────────────────────────
 
-/// Call Gemini API to generate song lyrics (legacy path — no expansion).
+/// Call Gemini API to generate song lyrics.
+/// - legacy path (expansion is None): builds prompt from SongInput fields.
+/// - expansion path (expansion is Some, expansion_user_prompt non-empty): uses the
+///   pre-built prompt string from TS (mirrors buildExpansionUserPrompt in route.ts).
 /// Returns Ok(Some({ lyrics, notes })) on success.
-/// Returns Ok(None) when GEMINI_API_KEY is not set, or when expansion is present
-///   (expansion path not yet implemented — frontend uses buildExpansionLyricsFallback).
+/// Returns Ok(None) when GEMINI_API_KEY is not set, or when expansion is present but
+///   expansion_user_prompt is empty (frontend uses buildExpansionLyricsFallback).
 /// Returns Err(msg) on API or parse failure — frontend uses rule-based fallback.
 #[tauri::command]
 async fn generate_lyrics(
     song_input: serde_json::Value,
     expansion: Option<serde_json::Value>,
+    expansion_user_prompt: String,
     resolved_structure: String,
     world_preset_deep_prompt: String,
     library_style_addition: String,
@@ -928,80 +932,80 @@ async fn generate_lyrics(
         _ => return Ok(None),
     };
 
-    // expansion path は EXE-4E で実装予定 — フロント側 buildExpansionLyricsFallback に任せる
-    if expansion.is_some() {
+    // expansion path: TS 側で組み立てた prompt を使う。
+    // expansion_user_prompt が空なら buildExpansionLyricsFallback に任せる。
+    if expansion.is_some() && expansion_user_prompt.trim().is_empty() {
         return Ok(None);
     }
 
-    // Extract SongInput fields — missing/null fields use safe defaults, no panic
-    let title         = song_input["title"].as_str().unwrap_or("").to_string();
-    let theme         = song_input["theme"].as_str().unwrap_or("").trim().to_string();
-    let genre_lock    = song_input["genreLock"].as_str().unwrap_or("").trim().to_string();
-    let genre         = song_input["genre"].as_str().unwrap_or("").to_string();
-    let mood          = song_input["mood"].as_str().unwrap_or("").to_string();
-    let vocal_type    = song_input["vocalType"].as_str().unwrap_or("").to_string();
-    let bpm           = song_input["bpm"].as_str().unwrap_or("120").to_string();
-    let bpm           = if bpm.trim().is_empty() { "120".to_string() } else { bpm };
-    let key           = song_input["key"].as_str().unwrap_or("Am").to_string();
-    let key           = if key.trim().is_empty() { "Am".to_string() } else { key };
-    let english_ratio = song_input["englishRatio"].as_str().unwrap_or("low").to_string();
-    let reference_vibe = song_input["referenceVibe"].as_str().unwrap_or("").to_string();
-    let avoid_exprs   = song_input["avoidExpressions"].as_str().unwrap_or("").to_string();
-    let song_length   = song_input["songLength"].as_str().unwrap_or("full").to_string();
-
-    // Effective genre: genreLock takes priority (mirrors buildLegacyUserPrompt)
-    let effective_genre = if genre_lock.is_empty() { genre.as_str() } else { genre_lock.as_str() };
-
-    // Quick Idea: theme > title (mirrors buildLegacyUserPrompt)
-    let quick_idea = if !theme.is_empty() {
-        theme.clone()
+    // Determine the user prompt for Gemini
+    let user_prompt: String = if expansion.is_some() {
+        // expansion path: use the pre-built prompt from TS
+        expansion_user_prompt.clone()
     } else {
-        title.trim().to_string()
+        // legacy path: build from SongInput fields (mirrors buildLegacyUserPrompt in route.ts)
+        let title          = song_input["title"].as_str().unwrap_or("").to_string();
+        let theme          = song_input["theme"].as_str().unwrap_or("").trim().to_string();
+        let genre_lock     = song_input["genreLock"].as_str().unwrap_or("").trim().to_string();
+        let genre          = song_input["genre"].as_str().unwrap_or("").to_string();
+        let mood           = song_input["mood"].as_str().unwrap_or("").to_string();
+        let vocal_type     = song_input["vocalType"].as_str().unwrap_or("").to_string();
+        let bpm            = song_input["bpm"].as_str().unwrap_or("120").to_string();
+        let bpm            = if bpm.trim().is_empty() { "120".to_string() } else { bpm };
+        let key            = song_input["key"].as_str().unwrap_or("Am").to_string();
+        let key            = if key.trim().is_empty() { "Am".to_string() } else { key };
+        let english_ratio  = song_input["englishRatio"].as_str().unwrap_or("low").to_string();
+        let reference_vibe = song_input["referenceVibe"].as_str().unwrap_or("").to_string();
+        let avoid_exprs    = song_input["avoidExpressions"].as_str().unwrap_or("").to_string();
+        let song_length    = song_input["songLength"].as_str().unwrap_or("full").to_string();
+
+        let effective_genre = if genre_lock.is_empty() { genre.as_str() } else { genre_lock.as_str() };
+        let quick_idea = if !theme.is_empty() { theme.clone() } else { title.trim().to_string() };
+
+        let mut p = String::new();
+
+        if !quick_idea.is_empty() {
+            p.push_str(&format!(
+                "╔═══ QUICK IDEA (TOP PRIORITY) ═══╗\n{}\n╚══════════════════════════════════╝\n\n",
+                quick_idea
+            ));
+        }
+
+        p.push_str("Generate lyrics with these parameters:\n\n");
+        p.push_str(&format!("TITLE: {}\n", if title.is_empty() { "(未設定)" } else { &title }));
+        p.push_str(&format!("GENRE: {}\n", effective_genre));
+        p.push_str(&format!("MOOD: {}\n", mood));
+        p.push_str(&format!("VOCAL: {}\n", vocal_type));
+        p.push_str(&format!("BPM: {}\n", bpm));
+        p.push_str(&format!("KEY: {}\n", key));
+        p.push_str(&format!("SONG LENGTH: {}\n", song_length));
+        p.push_str(&format!("LANGUAGE: {}\n", generate_lang_instruction(&english_ratio)));
+        p.push_str(&format!("REFERENCE VIBE: {}\n", if reference_vibe.is_empty() { "(none)" } else { &reference_vibe }));
+        p.push_str(&format!("AVOID: {}\n", if avoid_exprs.is_empty() { "(none)" } else { &avoid_exprs }));
+        p.push_str(&format!("STRUCTURE: {}", resolved_structure));
+
+        if !library_style_addition.trim().is_empty() {
+            p.push_str(&format!("\nSTYLE TAGS: {}", library_style_addition));
+        }
+        if !world_preset_deep_prompt.trim().is_empty() {
+            p.push_str(&format!("\n\nWORLD PRESET LENS: {}", world_preset_deep_prompt));
+        }
+
+        p.push_str("\n\n");
+        if !quick_idea.is_empty() {
+            p.push_str(&format!(
+                "Every line must be traceable to the Quick Idea: \"{}\". No generic imagery.",
+                quick_idea
+            ));
+        } else {
+            p.push_str(&format!(
+                "Theme \"{}\" is the subject. Write from inside this world.",
+                title
+            ));
+        }
+        p.push_str("\n\nReturn JSON only.");
+        p
     };
-
-    // Build user prompt (mirrors buildLegacyUserPrompt in route.ts)
-    let mut user_prompt = String::new();
-
-    if !quick_idea.is_empty() {
-        user_prompt.push_str(&format!(
-            "╔═══ QUICK IDEA (TOP PRIORITY) ═══╗\n{}\n╚══════════════════════════════════╝\n\n",
-            quick_idea
-        ));
-    }
-
-    user_prompt.push_str("Generate lyrics with these parameters:\n\n");
-    user_prompt.push_str(&format!("TITLE: {}\n", if title.is_empty() { "(未設定)" } else { &title }));
-    user_prompt.push_str(&format!("GENRE: {}\n", effective_genre));
-    user_prompt.push_str(&format!("MOOD: {}\n", mood));
-    user_prompt.push_str(&format!("VOCAL: {}\n", vocal_type));
-    user_prompt.push_str(&format!("BPM: {}\n", bpm));
-    user_prompt.push_str(&format!("KEY: {}\n", key));
-    user_prompt.push_str(&format!("SONG LENGTH: {}\n", song_length));
-    user_prompt.push_str(&format!("LANGUAGE: {}\n", generate_lang_instruction(&english_ratio)));
-    user_prompt.push_str(&format!("REFERENCE VIBE: {}\n", if reference_vibe.is_empty() { "(none)" } else { &reference_vibe }));
-    user_prompt.push_str(&format!("AVOID: {}\n", if avoid_exprs.is_empty() { "(none)" } else { &avoid_exprs }));
-    user_prompt.push_str(&format!("STRUCTURE: {}", resolved_structure));
-
-    if !library_style_addition.trim().is_empty() {
-        user_prompt.push_str(&format!("\nSTYLE TAGS: {}", library_style_addition));
-    }
-    if !world_preset_deep_prompt.trim().is_empty() {
-        user_prompt.push_str(&format!("\n\nWORLD PRESET LENS: {}", world_preset_deep_prompt));
-    }
-
-    user_prompt.push_str("\n\n");
-    if !quick_idea.is_empty() {
-        user_prompt.push_str(&format!(
-            "Every line must be traceable to the Quick Idea: \"{}\". No generic imagery.",
-            quick_idea
-        ));
-    } else {
-        user_prompt.push_str(&format!(
-            "Theme \"{}\" is the subject. Write from inside this world.",
-            title
-        ));
-    }
-    user_prompt.push_str("\n\nReturn JSON only.");
 
     let body = serde_json::json!({
         "system_instruction": {

@@ -29,6 +29,7 @@ import { generateMoraSuggestions, applyLineFix } from "@/lib/moraTuner";
 import { applyRewriteMode, mergeSections } from "@/lib/rewriteModes";
 import { callClaudeRewrite } from "@/lib/claudeRewrite";
 import { callGenerateLyrics } from "@/lib/generateLyrics";
+import { buildExpansionUserPrompt } from "@/lib/buildExpansionPrompt";
 import { loadMemories, saveMemory, deleteMemory, PromptMemory } from "@/lib/promptMemory";
 import {
   getPromptItemById,
@@ -968,6 +969,13 @@ export default function Home() {
       const apiInput = lib.chorusFirst ? { ...input, startWithChorus: true } : input;
 
       const structOvr = resolvedStructureOverride();
+      const expansionUserPrompt = buildExpansionUserPrompt(
+        expansion,
+        apiInput,
+        lib,
+        structOvr,
+        structureMode === "builder" && !!structOvr,
+      );
       const dataA = await callGenerateLyrics({
         songInput: apiInput as unknown as Record<string, unknown>,
         expansion,
@@ -976,6 +984,7 @@ export default function Home() {
         libraryMetaTagHint:   lib.metaTagHint,
         structureOverride:    structOvr,
         isCustomBlueprint:    structureMode === "builder" && !!structOvr,
+        expansionUserPrompt,
       });
       if (dataA) {
         setLyricsRaw(dataA.lyrics);
@@ -1102,6 +1111,15 @@ export default function Home() {
     const regenInput = regenLib.chorusFirst ? { ...input, startWithChorus: true } : input;
     const regenStructOvr = resolvedStructureOverride();
 
+    const regenExpansionUserPrompt = expansion
+      ? buildExpansionUserPrompt(
+          expansion,
+          regenInput,
+          regenLib,
+          regenStructOvr,
+          structureMode === "builder" && !!regenStructOvr,
+        )
+      : undefined;
     const dataRegen = await callGenerateLyrics({
       songInput: regenInput as unknown as Record<string, unknown>,
       expansion,
@@ -1110,6 +1128,7 @@ export default function Home() {
       libraryMetaTagHint:   regenLib.metaTagHint,
       structureOverride:    regenStructOvr,
       isCustomBlueprint:    structureMode === "builder" && !!regenStructOvr,
+      expansionUserPrompt:  regenExpansionUserPrompt,
     });
     if (dataRegen) {
       setLyricsRaw(dataRegen.lyrics);
