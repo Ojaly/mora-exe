@@ -371,12 +371,13 @@ CHORUS RULE — applies to [Chorus] and [Final Chorus]:
   Good final line: 「おしぼりで首を拭く」「レシート七百八十円」
 
 FINAL CHORUS RULE — applies only to [Final Chorus]:
-- The Final Chorus is essentially a repeat of the main Chorus with at most ONE line changed.
+- The Final Chorus keeps the main hook line(s) from the main Chorus.
+- Vary 1–2 non-hook lines to carry more accumulated weight than Chorus 1: use a different
+  concrete object, number, action, or record from the source that deepens — not softens — the impact.
+- Do not add an extra line that the main Chorus did not have.
 - Do not use the Final Chorus as a place to resolve, conclude, uplift, or deliver a moral.
 - If the source is about loss, failure, or unresolved pain, the Final Chorus must not end on
   hope, positivity, or encouragement.
-- Do not add an extra line to the Final Chorus that the main Chorus did not have. If you vary
-  the last line, make it more specific or concrete — not broader or more universal.
 - BANNED in Final Chorus last line: slogans, motivational phrases, generic positive conclusions,
   community-inviting statements (「みんな絶対に〜」「楽しみたいんだ」「きっと次は」).
 - The 快感 (thrill/rush) word may appear at most ONCE across the entire song. If 快感 is used
@@ -423,7 +424,11 @@ A line that could appear in any song about any topic fails this check.
 Also check section balance:
 - If a Verse is shorter than the Pre-Chorus or Chorus without a clear reason, expand it with concrete source details.
 - If an Interlude, Breakdown, or Outro exceeds its target length with vague atmosphere, shorten it or replace with a concrete phrase or action.
-- If [Chorus] repeats in the structure, keep lyrics mostly consistent across repetitions — allow small variation only in [Final Chorus].
+- If [Chorus] repeats in the structure: keep 1–2 hook lines consistent across all Chorus occurrences.
+  For Chorus 2 and beyond, vary 1–2 non-hook lines using different concrete evidence from the source
+  (a different object, number, action, or record). Do not make every Chorus repetition identical.
+  Final Chorus: carry more accumulated weight — vary the non-hook lines to deepen, not resolve.
+  Do not add motivational uplift or clean resolution in the Final Chorus.
 Also scan for abstract emotion summaries in Chorus, Breakdown, Interlude, and Outro:
 if a line mainly states an abstract feeling (regret remains, hope is gone, dream ended,
 passion unrewarded, silence answers) — replace it with source-specific evidence:
@@ -1068,7 +1073,10 @@ async function repairAbstractDrift(
     `REPAIR RULES:\n` +
     `- Keep ALL [Section Tag] lines exactly as they appear.\n` +
     `- Keep the source core confession line in the Chorus.\n` +
-    `- Keep the Chorus hook mostly consistent across repetitions.\n` +
+    `- Keep the main hook line(s) of each Chorus consistent across repetitions.\n` +
+    `  Allow 1–2 non-hook lines to vary across Chorus 2 and Final Chorus.\n` +
+    `  Do not collapse all Chorus repetitions into identical text.\n` +
+    `  Preserve Chorus variation when it uses source-specific concrete evidence.\n` +
     `- Do not shorten sections aggressively. Keep each section close to its original line count.\n` +
     `- For Chorus sections in a full song, keep 5–6 lines. Do not compress a Chorus to 4 lines\n` +
     `  unless the original Chorus was already 4 lines and emotionally complete.\n` +
@@ -1145,8 +1153,8 @@ async function repairAbstractDrift(
     `  Weak final lines (too routine — replace if Chorus last): 「麦茶をひと口飲む」\n` +
     `  「おしぼりで首を拭く」「割り箸の袋を畳む」「レシートを財布に戻す」\n` +
     `  These belong in Verse/Pre-Chorus/Interlude, not as Chorus closings.\n` +
-    `  Good final line: 「レシート七百八十円」「焦げたタレが袖に残る」「山椒の粉が舌に残る」\n` +
-    `  「小銭を数えて暖簾を出る」\n` +
+    `  Good final line: use one source-specific concrete object, record, number, place, mark,\n` +
+    `  or physical trace from the current quick idea. Do not reuse examples from another theme.\n` +
     `  If the last Chorus line is a bare noun or routine daily action, replace it.\n` +
     `- CHORUS SELF-CONTAINED LINES: If a Chorus line ends with a dangling particle (が/を/に/で/は\n` +
     `  as the final character), fix it so the line stands alone grammatically.\n` +
