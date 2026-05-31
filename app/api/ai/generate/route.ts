@@ -591,6 +591,8 @@ const WEAK_POETIC_JP: RegExp[] = [
   /負け慣れた背中/,
   /人は去っていく/,
   /静かに.*離れていく/,
+  /人は.*離れていく/,
+  /人は.*から離れていく/,
   /夢を見せ/,
   /一言だけ残して/,
   /夏の終わり/,
@@ -1055,7 +1057,10 @@ async function repairAbstractDrift(
     `  A repaired line should still feel like a lyric, not a sentence that explains the theme.\n` +
     `- Replace weak poetic Japanese phrases with source evidence:\n` +
     `  「声が響く」「熱が冷めていく」「静かに閉じた」「胸に残る」「指先の熱」「光を探す」\n` +
-    `  These are emotional labels. Replace with a record, object, number, or action from SOURCE.\n` +
+    `  「人は静かに〜離れていく」「人は〜から離れていく」「夢を見せること」「期待だけが残る」\n` +
+    `  These are emotional labels — do not keep them. Replace each with a physical trace,\n` +
+    `  object, number, screen, note, record, or action from the CONCRETE POOL.\n` +
+    `  Prefer vocabulary already visible in the lyrics over inventing new words.\n` +
     `- Replace mixed-language lines where English and Japanese are grammatically fused unnaturally.\n` +
     `  If the surrounding lyrics are Japanese-dominant, translate the entire line into Japanese.\n\n` +
     `- FINAL CHORUS RULES:\n` +
@@ -1090,7 +1095,7 @@ async function repairAbstractDrift(
     `  「この安らぎがある」→「おしぼりで首を拭く」\n` +
     `  「満たされていく」→「米粒を最後まで拾う」\n` +
     `  「この夏を生きるただそれだけ」→「山椒ひと振り 麦茶で流す」\n` +
-    `  「今ここでいい」→「小銭を数えて暖簾を出る」\n` +
+    `  「今ここでいい」→ use a concrete action or object from the CONCRETE POOL\n` +
     `  「質素な贅沢、夏の終わり」→「タレ多めの並ひとつ」\n` +
     `  「ささやかな満足、また来週」→「レシート七百八十円」\n` +
     `  「日常の儀式、日が暮れて」→「割り箸の袋を畳んでる」\n` +
@@ -1118,7 +1123,7 @@ async function repairAbstractDrift(
     `  Replace with a concrete physical action the narrator performs:\n` +
     `  「今日の味覚を記憶する」→「割り箸の袋を畳んでる」\n` +
     `  「また来る理由を探してる」→「ポイントカードを財布に戻す」\n` +
-    `  「何を探してるか分からない」→「小銭を数えて暖簾を出る」\n` +
+    `  「何を探してるか分からない」→ use a concrete action or object from the CONCRETE POOL\n` +
     `  「この味が忘れられない」→「空の重箱に山椒だけ残った」\n` +
     breakdownOutroRule +
     `- SEASONAL FILLER: Replace weather/season filler with source-specific concrete details.\n` +
