@@ -481,6 +481,11 @@ function resolveStructure(
   isCustomBlueprint?: boolean,
 ): string {
   const base = structureOverride ?? pickStructureForClaude(input);
+  console.log(
+    `[MORA structure] songLength=${input.songLength},`,
+    `hasStructureOverride=${structureOverride !== undefined},`,
+    `structure="${base}"`,
+  );
   const hint = (!structureOverride && lib.structureHint)
     ? `\nSTRUCTURE PREFERENCE: ${lib.structureHint}`
     : "";
