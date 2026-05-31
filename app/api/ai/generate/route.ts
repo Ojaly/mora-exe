@@ -1171,32 +1171,47 @@ async function repairAbstractDrift(
 
 // ─── Deterministic cleanup ───────────────────────────────────────────────────
 
-const DETERMINISTIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
-  // Exact-phrase replacements (order matters: more specific first)
-  [/レシートまで含めた.*歌/g,             "レシート七百八十円"],
-  [/最高級じゃなくても/g,               "並の札を裏返す"],
-  [/あの夏の日と同じ/g,                 "麦茶の氷が鳴る"],
-  [/このままの夏/g,                     "タレ多めの並ひとつ"],
-  [/喉を静かに潤す/g,                   "麦茶をひと口飲む"],
-  [/この舌は知ってる/g,                 "山椒ひと振り"],
-  [/ざらざらした舌の記憶/g,             "焦げ目を奥歯で噛む"],
-  [/この味でいい/g,                     "タレ多めの並ひとつ"],
-  // Pattern replacements
-  [/^七百八十円[ \t]*$/gm,              "カサカサのレシート"],
-  [/冷たい麦茶で[ \t]*$/gm,               "冷たい麦茶をひと口飲む"],
-  [/ひやりと冷たい[ \t]+おしぼりが[ \t]*$/gm, "おしぼりで首を拭く"],
-  [/冷たいおしぼりが[ \t]*$/gm,         "おしぼりで首を拭く"],
-  [/冷たいおしぼり首筋に[ \t]*$/gm,     "おしぼりで首を拭く"],
-  [/舌が痺れ[ \t]*$/gm,                "舌が痺れる"],
-  [/赤提灯/g,                          "赤ちょうちん"],
+// Global replacements — safe for all themes (normalization only, no theme-specific output)
+const GLOBAL_DETERMINISTIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
+  [/赤提灯/g, "赤ちょうちん"],
 ];
 
-function applyDeterministicCleanup(lyrics: string): { text: string; replacedCount: number } {
+// Unagi-specific replacements — applied only when quickIdea contains unagi signals
+const UNAGI_INPUT_SIGNALS = [
+  "うなぎ", "鰻", "養殖", "タレ", "山椒", "赤ちょうちん", "おしぼり", "麦茶", "暖簾", "レシート七百八十円",
+];
+
+const UNAGI_SPECIFIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
+  // Exact-phrase replacements (order matters: more specific first)
+  [/レシートまで含めた.*歌/g,                  "レシート七百八十円"],
+  [/最高級じゃなくても/g,                    "並の札を裏返す"],
+  [/あの夏の日と同じ/g,                      "麦茶の氷が鳴る"],
+  [/このままの夏/g,                          "タレ多めの並ひとつ"],
+  [/喉を静かに潤す/g,                        "麦茶をひと口飲む"],
+  [/この舌は知ってる/g,                      "山椒ひと振り"],
+  [/ざらざらした舌の記憶/g,                  "焦げ目を奥歯で噛む"],
+  [/この味でいい/g,                          "タレ多めの並ひとつ"],
+  // Pattern replacements
+  [/^七百八十円[ \t]*$/gm,                   "カサカサのレシート"],
+  [/冷たい麦茶で[ \t]*$/gm,                  "冷たい麦茶をひと口飲む"],
+  [/ひやりと冷たい[ \t]+おしぼりが[ \t]*$/gm, "おしぼりで首を拭く"],
+  [/冷たいおしぼりが[ \t]*$/gm,              "おしぼりで首を拭く"],
+  [/冷たいおしぼり首筋に[ \t]*$/gm,          "おしぼりで首を拭く"],
+  [/舌が痺れ[ \t]*$/gm,                     "舌が痺れる"],
+];
+
+function applyDeterministicCleanup(lyrics: string, quickIdea: string): { text: string; replacedCount: number } {
   let text = lyrics;
   let replacedCount = 0;
-  for (const [pat, replacement] of DETERMINISTIC_REPLACEMENTS) {
+  for (const [pat, replacement] of GLOBAL_DETERMINISTIC_REPLACEMENTS) {
     const next = text.replace(pat, replacement);
     if (next !== text) { replacedCount++; text = next; }
+  }
+  if (UNAGI_INPUT_SIGNALS.some(s => quickIdea.includes(s))) {
+    for (const [pat, replacement] of UNAGI_SPECIFIC_REPLACEMENTS) {
+      const next = text.replace(pat, replacement);
+      if (next !== text) { replacedCount++; text = next; }
+    }
   }
   return { text, replacedCount };
 }
@@ -1343,7 +1358,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Always apply deterministic cleanup as final pass
-    const { text: cleanedLyrics, replacedCount: cleanCount } = applyDeterministicCleanup(finalLyrics);
+    const { text: cleanedLyrics, replacedCount: cleanCount } = applyDeterministicCleanup(finalLyrics, quickIdea);
     if (cleanCount > 0) {
       console.log(`[mora/generate] deterministic cleanup — ${cleanCount} pattern(s) replaced`);
       finalLyrics = cleanedLyrics;
