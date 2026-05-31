@@ -1346,6 +1346,8 @@ const UNAGI_SPECIFIC_REPLACEMENTS: ReadonlyArray<[RegExp, string]> = [
   [/冷たいおしぼりが[ \t]*$/gm,              "おしぼりで首を拭く"],
   [/冷たいおしぼり首筋に[ \t]*$/gm,          "おしぼりで首を拭く"],
   [/舌が痺れ[ \t]*$/gm,                     "舌が痺れる"],
+  // の-dangling: 赤ちょうちんの + fixed next line → merge (multiline)
+  [/赤ちょうちんの\n甘い匂い/g,              "赤ちょうちんの甘い匂い"],
 ];
 
 function applyDeterministicCleanup(lyrics: string, quickIdea: string): { text: string; replacedCount: number } {
