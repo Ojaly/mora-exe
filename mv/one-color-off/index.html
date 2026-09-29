@@ -10,6 +10,7 @@
   canvas{width:min(100vw,177.78vh);height:min(56.25vw,100vh);display:block;background:#efe6d4}
   #play{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:18px 34px;font-size:18px;
     border:0;background:#e8452c;color:#fff;letter-spacing:.2em;cursor:pointer}
+  body.portrait canvas{width:min(100vw,56.25vh);height:min(177.78vw,100vh)}
   body.render #play{display:none}
 </style>
 </head>
@@ -24,7 +25,9 @@
    Clip = original song 227.375s → 266.875s (final chorus + final post-chorus + outro)
    Grid: 123.047 BPM, one lyric line per bar. Everything is a pure function of time T.
    ============================================================ */
-const W = 1920, H = 1080;
+const QS = new URLSearchParams(location.search);
+const PORTRAIT = QS.get('ar') === '9x16';   // ?ar=9x16 → 1080×1920 vertical cut
+const W = PORTRAIT ? 1080 : 1920, H = PORTRAIT ? 1920 : 1080;
 const BPM = 123.046875, BEAT = 60 / BPM, BAR = BEAT * 4;
 const PRE = BAR / 2;                 // half-bar pre-roll before the first "One color off"
 const DUR = 39.5, FPS = 30;
@@ -35,6 +38,8 @@ const CHORDS = ['C', 'E♭', 'A♭', 'G', 'C', 'E♭', 'F', 'G'];
 
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
+cv.width = W; cv.height = H;
+if (PORTRAIT) document.body.classList.add('portrait');
 let T = 0;
 
 /* ---------- math ---------- */
@@ -501,20 +506,206 @@ function scOutro() {           // L16 → end : title
 function hud() {
   if (T > DUR - 1.9) return;
   const bar = Math.floor((T - PRE) / BAR);
-  label('● ONE COLOR OFF', 40, 44, { size: 20, alpha: .92 });
-  ctx.save(); ctx.fillStyle = C.red; ctx.font = fnt(F.mono, 20); ctx.textBaseline = 'middle'; ctx.fillText('●', 50, 45); ctx.restore();
+  const top = PORTRAIT ? 80 : 44, bot = PORTRAIT ? H - 80 : H - 44;
+  label('● ONE COLOR OFF', 40, top, { size: 20, alpha: .92 });
+  ctx.save(); ctx.fillStyle = C.red; ctx.font = fnt(F.mono, 20); ctx.textBaseline = 'middle'; ctx.fillText('●', 50, top + 1); ctx.restore();
   const cs = String(99 - Math.floor((T * 100) % 100)).padStart(2, '0');
-  label(`青信号まで あと 10.${cs}`, W - 40, 44, { f: F.dot, size: 24, align: 'right', alpha: .92 });
+  label(`青信号まで あと 10.${cs}`, W - 40, top, { f: F.dot, size: 24, align: 'right', alpha: .92 });
   if (bar >= 0 && bar < 16) {
     let x = 40;
-    CHORDS.forEach((c, i) => { x += label(c, x, H - 44, { size: 20, bg: i === bar % 8 ? C.red : C.paper, color: i === bar % 8 ? C.paper2 : C.ink, alpha: .92 }) + 4; });
-    label(`LINE ${String(bar + 1).padStart(2, '0')}/16`, W - 40, H - 44, { size: 20, align: 'right', alpha: .92 });
+    CHORDS.forEach((c, i) => { x += label(c, x, bot, { size: 20, bg: i === bar % 8 ? C.red : C.paper, color: i === bar % 8 ? C.paper2 : C.ink, alpha: .92 }) + 4; });
+    label(`LINE ${String(bar + 1).padStart(2, '0')}/16`, W - 40, bot, { size: 20, align: 'right', alpha: .92 });
   }
+}
+
+/* ============================================================
+   9:16 PORTRAIT LAYOUT (?ar=9x16) — same timing, scenes re-composed for 1080×1920.
+   Key text stays inside y≈220…1560 so Shorts / Reels / TikTok UI does not cover it.
+   ============================================================ */
+function vOCO1() {             // L0 → L2
+  const u = T - L0_;
+  if (u < BAR) {
+    const hit = Math.exp(-u * 5);
+    coverSplit(ctx, IM.crossing, { s: 1.1 - .06 * eOut(u / BAR) + .02 * beatPulse(), fx: .6, fy: .5 }, 30 * hit + 4 * beatPulse());
+    wordsOCO(L0_, 70, 560, 170, 0);
+    text('ワン・カラー・オフ', 990, 260, { f: F.zk, size: 46, t0: L0_ + .1, st: .05, d: .15, anim: 'drop', vertical: true, color: C.paper, stroke: C.ink, strokeW: 8 });
+  } else {
+    const v = u - BAR, hit = Math.exp(-v * 6);
+    coverSplit(ctx, IM.crossing.swapSet, { s: 1.5 - .2 * eOut(v / BAR), fx: .71, fy: .22 }, 22 * hit + 6);
+    const settle = 1 - eOut(clamp(v / (BEAT * 3)));
+    ONE_COLOR_OFF.forEach((wd, j) => {
+      const off = {};
+      [...wd].forEach((c, i) => off[i] = { y: (hash(j * 5 + i * 3.3 + beatIdx()) - .5) * 60 * settle });
+      if (j === 1) off[0] = { y: 24, r: -.08, box: C.red };
+      text(wd, W / 2, 760 + j * 230, { f: F.dela, size: 190, t0: L1_ + j * BEAT - .02, st: .03, d: .12, anim: 'slam', align: 'center', box: C.ink, color: C.paper, off });
+    });
+    label('R ⇄ B  SWAPPED', W / 2, 1470, { f: F.mono, size: 26, bg: C.red, color: C.paper2, align: 'center', alpha: prog(L1_ + BEAT * 2.5, .05) });
+  }
+}
+
+function vTown() {             // L2 → L4
+  const u = T - L(2), p = u / (BAR * 2);
+  coverSplit(ctx, IM.crossing, { s: 1.05, fx: lerp(.12, .5, eIO(p)), fy: .3 }, 0);
+  ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#9fb6d6'; ctx.fillRect(0, 0, W, H); ctx.restore();
+  const mis = T > L(3) ? eOut(prog(L(3), .15)) * 54 : 0;
+  grid(108, C.paper, .35, 0, 0);
+  if (mis) grid(108, C.red, .55, mis, mis * .5, 2);
+  text('街のどこかが', 890, 250, { f: F.zk, size: 128, t0: L(2) + .02, st: .2, d: .22, anim: 'drop', vertical: true, box: C.paper, boxPad: 14, lead: 1.14 });
+  if (T > L(3) - .05) {
+    text('合っていない', W / 2, 1420, { f: F.zk, size: 124, t0: L(3) + .05, st: .2, d: .22, anim: 'pop', align: 'center', box: C.paper, boxPad: 12, track: 18,
+      off: { 2: { x: 16, y: 38, r: .09, box: C.red } }, hl: { 2: C.paper2 } });
+    label('MISREGISTRATION  +1 COLOR', 70, 1250, { size: 24, bg: C.ink, color: C.paper, alpha: prog(L(3) + BEAT * 2, .05) });
+  }
+}
+
+function vProfile() {          // L4 → L6
+  const u = T - L(4), p = u / (BAR * 2);
+  cover(ctx, IM.profile.base, { s: 1.0 + .1 * eOut(p), fx: .45, fy: .36 });
+  ctx.fillStyle = C.red; ctx.fillRect(900, 0, 6, H * eOut(prog(L(4), BAR)));
+  text('君の横顔', 995, 240, { f: F.min, size: 128, t0: L(4) + .02, st: .3, d: .45, anim: 'rise', vertical: true, color: C.ink, stroke: C.paper, strokeW: 14, lead: 1.12 });
+  if (T > L(5) - .05)
+    text('それだけなぜか', 1020, 1480, { f: F.zk, size: 100, t0: L(5) - .05, st: .2, d: .2, anim: 'type', align: 'right', box: C.paper, boxPad: 8 });
+}
+
+function vPhoto() {            // L6 → L8
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  if (T < L(7)) {
+    grid(60, C.blue, .18);
+    const pw = 600, ph = 800, py = 330, px = 240 - (1 - eOut(prog(L(6) - .05, .35))) * 900;
+    idPhoto(px, py, pw, ph, IM.profile.base);
+    cropMarks(px - 12, py - 12, pw + 24, ph + 24);
+    label('30 × 40 mm', px - 12, py + ph + 56, { size: 26, bg: null });
+    label('証明写真 / ID PHOTO', px - 12, py - 64, { f: F.dot, size: 32, bg: C.ink, color: C.paper });
+    text('証明写真と', W / 2, 1400, { f: F.zk, size: 150, t0: L(6) + .02, st: .2, d: .2, anim: 'pop', align: 'center', box: C.paper2, boxPad: 8 });
+    const fl = 1 - prog(L(6), .22);
+    if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${fl})`; ctx.fillRect(0, 0, W, H); }
+  } else {
+    ctx.save(); ctx.globalAlpha = .9; cover(ctx, IM.crossing.swap, { s: 1.0, fx: .66, fy: .4 }); ctx.restore();
+    ctx.fillStyle = 'rgba(239,230,212,.35)'; ctx.fillRect(0, 0, W, H);
+    const pw = 360, ph = 480, gap = 36, gx = (W - 2 * (pw + 24) - gap) / 2 + 12, gy = 230;
+    for (let i = 0; i < 4; i++) {
+      const a = prog(L(7) + i * BEAT * .5, .08);
+      idPhoto(gx + (i % 2) * (pw + gap + 24), gy + Math.floor(i / 2) * (ph + gap + 24), pw, ph, IM.profile.base, a);
+    }
+    label('✓ COLOR MATCH', W / 2, 1300, { size: 28, bg: C.blue, color: C.paper2, align: 'center', alpha: prog(L(7) + BEAT * 2, .05) });
+    text('同じ色', W / 2, 1480, { f: F.zk, size: 230, t0: L(7) + .02, st: .24, d: .14, anim: 'slam', align: 'center', box: C.paper2, color: C.ink, boxPad: 12, hl: { 2: C.red } });
+  }
+}
+
+function vVending() {          // L8 → L10
+  const u = T - L(8);
+  const second = u >= BAR;
+  const set = second ? IM.vending.swapSet : IM.vending;
+  const v = second ? u - BAR : u;
+  coverSplit(ctx, set, { s: 1.0 + .05 * beatPulse() + (second ? .2 * eOut(v / BAR) : 0), fx: .64, fy: .45 }, (second ? 20 : 8) * beatPulse() + (second ? 6 : 0));
+  for (let r = 0; r < 11; r++) marquee(150 + r * 165, 100, 240 + r * 30, r % 2 ? 1 : -1, .28, r % 2 ? C.paper : C.ink);
+  const t0 = second ? L(9) : L(8);
+  const idx = Math.min(2, Math.floor((T - t0 + .02) / BEAT));
+  if (T >= t0 - .02) {
+    const wd = ONE_COLOR_OFF[idx], sz = idx === 1 ? 190 : 290;
+    const tilt = (hash(idx + (second ? 7 : 0)) - .5) * .14;
+    ctx.save(); ctx.translate(W / 2, H / 2 - 40); ctx.rotate(tilt);
+    text(wd, 0, 0, { f: F.dela, size: sz, t0: t0 + idx * BEAT - .02, st: .025, d: .1, anim: 'slam', align: 'center', box: second ? C.ink : C.paper, color: second ? C.paper : C.ink, boxPad: 16, hl: idx === 2 ? { 0: C.red } : null });
+    ctx.restore();
+  }
+  if (second) label('¥120 → ¥150', W - 60, 300, { f: F.dot, size: 44, bg: C.red, color: C.paper2, align: 'right' });
+  else label('¥120', W - 60, 300, { f: F.dot, size: 44, bg: C.paper, color: C.ink, align: 'right' });
+}
+
+function vSchedule() {         // L10 → L12
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  grid(60, C.blue, .2);
+  const x = 70, y = 330, w = 940, h = 1080;
+  const pin = eOut(prog(L(10) - .05, .3));
+  ctx.save(); ctx.translate(0, (1 - pin) * 80); ctx.globalAlpha = pin;
+  ctx.fillStyle = C.ink; ctx.fillRect(x + 16, y + 16, w, h);
+  ctx.fillStyle = C.paper2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 5; ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = C.blue; ctx.fillRect(x, y, w, 26);
+  ctx.restore();
+  text('明日の予定は', x + 55, y + 150, { f: F.zk, size: 112, t0: L(10) + .02, st: .2, d: .2, anim: 'type' });
+  const rows = [['08:00', 'ベル'], ['08:10', '青信号まで あと十秒'], ['12:00', '缶コーヒー 百二十円'], ['17:00', 'ベル']];
+  rows.forEach(([tm, ev], i) => {
+    const a = prog(L(10) + BEAT * (1 + i * .6), .08);
+    const yy = y + 330 + i * 110;
+    ctx.save(); ctx.strokeStyle = C.ink; ctx.globalAlpha = a * .3; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 55, yy + 50); ctx.lineTo(x + w - 55, yy + 50); ctx.stroke(); ctx.restore();
+    label(tm, x + 45, yy, { f: F.dot, size: 46, bg: null, color: C.blue, alpha: a });
+    label(ev, x + 235, yy, { f: F.zk, size: 46, bg: null, color: C.ink, alpha: a });
+  });
+  const st = L(11) + BEAT * .35;
+  if (T >= st) {
+    const p = prog(st, .12), sc = lerp(2.4, 1, eOut(p));
+    ctx.save(); ctx.translate(W / 2, 1200); ctx.rotate(-.12); ctx.scale(sc, sc); ctx.globalAlpha = clamp(p * 3) * .92;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.strokeStyle = C.red; ctx.lineWidth = 14; ctx.strokeRect(-330, -135, 660, 270);
+    ctx.lineWidth = 4; ctx.strokeRect(-305, -110, 610, 220);
+    ctx.restore();
+    ctx.save(); ctx.translate(W / 2, 1200); ctx.rotate(-.12);
+    text('変更', -150, 0, { f: F.zk, size: 150, t0: st, st: .05, d: .1, anim: 'slam', align: 'center', color: C.red });
+    text('なし', 150, 0, { f: F.zk, size: 150, t0: L(11) + BEAT * 1.75, st: .05, d: .1, anim: 'slam', align: 'center', color: C.red });
+    ctx.restore();
+  }
+}
+
+function vClock() {            // L12 → L14
+  const bell = T >= L(13);
+  const sh = bell ? beatPulse(9) * 16 : 0;
+  ctx.save(); ctx.translate((hash(beatIdx()) - .5) * sh, (hash(beatIdx() + 5) - .5) * sh);
+  cover(ctx, IM.crossing.duo, { s: 1.15 + .04 * eOut((T - L(12)) / (2 * BAR)), fx: .56, fy: .3 });
+  ctx.fillStyle = 'rgba(22,34,64,.64)'; ctx.fillRect(-40, -40, W + 80, H + 80);
+  if (bell) {
+    for (let k = 0; k < 4; k++) {
+      const bt = Math.floor((T - L(13)) / BEAT) - k; if (bt < 0) continue;
+      const age = T - (L(13) + bt * BEAT), r = 150 + age * 800;
+      ctx.save(); ctx.globalAlpha = clamp(1 - age / 1.6) * .8; ctx.strokeStyle = k % 2 ? C.red : C.paper; ctx.lineWidth = 10 - age * 5;
+      ctx.beginPath(); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+  }
+  digitsLED('08:00', W / 2, H / 2 + 10, 250, L(12) - .1, bell && beatPhase() < .25 ? C.red : C.paper);
+  label('AM', 110, H / 2 - 170, { f: F.mono, size: 40, bg: C.red, color: C.paper2, alpha: prog(L(12), .1) });
+  text('午前八時に', W / 2, 560, { f: F.zk, size: 116, t0: L(12) + .02, st: .2, d: .2, anim: 'pop', align: 'center', color: C.paper, track: 16 });
+  if (T > L(13) - .1)
+    text('ベルが鳴って', W / 2, 1380, { f: F.zk, size: 116, t0: L(13) - .06, st: .18, d: .16, anim: 'slam', align: 'center', box: C.red, color: C.paper2, boxPad: 8, jit: 24 });
+  ctx.restore();
+}
+
+function vDog() {              // L14 → L16
+  const u = T - L(14), p = u / (BAR * 2);
+  cover(ctx, IM.dog.base, { s: 1.0 + .08 * eOut(p), fx: .38, fy: .42 });
+  const g = ctx.createLinearGradient(0, H * .55, 0, H); g.addColorStop(0, 'rgba(21,23,28,0)'); g.addColorStop(1, 'rgba(21,23,28,.55)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const a = prog(L(14) - .05, .15);
+  const bx0 = 110, by0 = 1330, s = 96;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = C.paper2; ctx.fillRect(bx0 - 20, by0 - 20, s + 40, s + 40);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.strokeRect(bx0, by0, s, s);
+  if (Math.floor(T / BEAT) % 2 === 0 && T > L(15)) { ctx.fillStyle = C.red; ctx.fillRect(bx0 + s / 2 - 4, by0 + 18, 8, s - 36); }
+  ctx.restore();
+  text('誰も確認', 270, 1378, { f: F.zk, size: 112, t0: L(14) + .02, st: .22, d: .2, anim: 'type', box: C.paper2, boxPad: 8 });
+  if (T > L(15) - .1) text('しないまま', 270, 1530, { f: F.zk, size: 112, t0: L(15) - .06, st: .22, d: .2, anim: 'type', box: C.ink, color: C.paper2, boxPad: 8 });
+}
+
+function vOutro() {            // L16 → end
+  const u = T - L(16);
+  const d = clamp(u / 2.5), z = 1.08 + .06 * eOut(clamp(u / 7));
+  cover(ctx, IM.dog.base, { s: z, fx: .4, fy: .08 });
+  ctx.save(); ctx.globalAlpha = eIO(d); cover(ctx, IM.dog.duo, { s: z, fx: .4, fy: .08 }); ctx.restore();
+  const bp = eOut(prog(L(16) + .15, .5)), bh = 780, cy = H / 2 + 140;
+  ctx.fillStyle = C.paper; ctx.fillRect(0, cy - bh / 2, W * bp, bh);
+  ctx.fillStyle = C.ink; ctx.fillRect(0, cy - bh / 2 - 6, W * bp, 6); ctx.fillRect(W * (1 - bp), cy + bh / 2, W * bp, 6);
+  const tt = L(16) + .45;
+  ONE_COLOR_OFF.forEach((wd, j) => text(wd, W / 2, cy - 250 + j * 200, { f: F.dela, size: 180, t0: tt + j * .3, st: .07, d: .2, anim: 'pop', align: 'center', track: 6, hl: j === 1 ? { 0: C.red } : null }));
+  text('青信号まで あと十秒', W / 2, cy + 300, { f: F.dot, size: 46, t0: tt + 1.3, st: .06, d: .01, anim: 'type', align: 'center', color: C.blue, track: 8 });
+  const fo = prog(DUR - 1.9, 1.7);
+  if (fo > 0) { ctx.fillStyle = `rgba(13,14,17,${eIn(fo)})`; ctx.fillRect(0, 0, W, H); }
 }
 
 /* scene table: [start, fn, energetic] */
 const L0_ = L(0), L1_ = L(1);
-const SCENES = [
+const SCENES = PORTRAIT ? [
+  [0, scIntro, false], [L(0), vOCO1, true], [L(2), vTown, true], [L(4), vProfile, false], [L(6), vPhoto, false],
+  [L(8), vVending, true], [L(10), vSchedule, false], [L(12), vClock, true], [L(14), vDog, false], [L(16), vOutro, false],
+] : [
   [0, scIntro, false], [L(0), scOCO1, true], [L(2), scTown, true], [L(4), scProfile, false], [L(6), scPhoto, false],
   [L(8), scVending, true], [L(10), scSchedule, false], [L(12), scClock, true], [L(14), scDog, false], [L(16), scOutro, false],
 ];
@@ -545,7 +736,7 @@ function draw() {
 /* ---------- entry points ---------- */
 window.renderFrame = t => { T = t; draw(); };
 window.META = { W, H, FPS, DUR };
-const isRender = new URLSearchParams(location.search).has('render');
+const isRender = QS.has('render');
 if (isRender) document.body.classList.add('render');
 init().then(() => {
   T = 0; draw();

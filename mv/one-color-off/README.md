@@ -2,7 +2,9 @@
 
 Kinetic-typography lyric video in the style of a Vocaloid lyric MV, cut from the **final chorus + final post-chorus** of `ONE_COLOR_OFF.mp3`.
 
-- **Final video:** `ONE_COLOR_OFF_MV.mp4` (1920×1080 / 30fps / H.264 + AAC / 39.5s)
+- **Final videos:**
+  - `ONE_COLOR_OFF_MV.mp4`: 16:9 (1920×1080 / 30fps / H.264 + AAC / 39.5s)
+  - `ONE_COLOR_OFF_MV_9x16.mp4`: 9:16 vertical (1080×1920), for Shorts / Reels / TikTok
 - **Source section:** 227.375s → 266.875s of the original track (half a bar of pre-roll, then 16 bars of vocals, then the song's own outro, fading out)
 
 ## Section choice
@@ -48,7 +50,11 @@ cd mv/one-color-off && python3 -m http.server 8000   # → http://localhost:8000
 # Re-render the MP4
 npm i --no-save playwright-core
 FFMPEG=ffmpeg node mv/one-color-off/tools/render.mjs mv/one-color-off out.mp4
+# 9:16 version
+AR=9x16 FFMPEG=ffmpeg node mv/one-color-off/tools/render.mjs mv/one-color-off out_9x16.mp4
 ```
+
+The 9:16 version (`index.html?ar=9x16`) uses the same timing and effects. Each scene is re-laid out for 1080×1920, with the lyrics kept roughly between y=220 and y=1560 so the app UI does not cover them.
 
 The encoded MP4 was re-compressed with `-crf 22 -maxrate 8M`, because the grain overlay drives the bitrate up.
 

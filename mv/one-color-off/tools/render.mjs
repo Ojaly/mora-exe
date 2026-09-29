@@ -1,5 +1,6 @@
 // usage: node tools/render.mjs <mv dir> <out.mp4>   | node tools/render.mjs <mv dir> --stills <t...>  (STILLS=<dir>)
 // env: FFMPEG (ffmpeg path), CHROME_PATH (optional Chromium executable). Requires `npm i --no-save playwright-core`.
+// env AR=9x16 renders the vertical 1080×1920 cut.
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import { spawn } from 'node:child_process';
 import { chromium } from 'playwright-core';
 const [dir, out, ...times] = process.argv.slice(2);
@@ -9,7 +10,7 @@ const port = srv.address().port;
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--disable-web-security', '--font-render-hinting=none'] });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 page.on('console', m => console.log('[page]', m.text())); page.on('pageerror', e => console.log('[err]', e.message));
-await page.goto(`http://127.0.0.1:${port}/index.html?render`);
+await page.goto(`http://127.0.0.1:${port}/index.html?render${process.env.AR ? `&ar=${process.env.AR}` : ""}`);
 await page.waitForFunction(() => window.ready === true, null, { timeout: 120000 });
 const grab = t => page.evaluate(t => { renderFrame(t); return document.getElementById('c').toDataURL('image/jpeg', 0.95).split(',')[1]; }, t);
 if (out === '--stills') {
