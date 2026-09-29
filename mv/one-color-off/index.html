@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONE COLOR OFF — Lyric MV</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d0e11;color:#efe6d4;font-family:system-ui,sans-serif}
+  #wrap{position:fixed;inset:0;display:grid;place-items:center}
+  canvas{width:min(100vw,177.78vh);height:min(56.25vw,100vh);display:block;background:#efe6d4}
+  #play{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:18px 34px;font-size:18px;
+    border:0;background:#e8452c;color:#fff;letter-spacing:.2em;cursor:pointer}
+  body.portrait canvas{width:min(100vw,56.25vh);height:min(177.78vw,100vh)}
+  body.render #play{display:none}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<button id="play">▶ PLAY</button>
+<audio id="a" src="assets/clip.m4a" preload="auto"></audio>
+<script>
+'use strict';
+/* ============================================================
+   ONE COLOR OFF — lyric MV renderer
+   Clip = original song 227.375s → 266.875s (final chorus + final post-chorus + outro)
+   Grid: 123.047 BPM, one lyric line per bar. Everything is a pure function of time T.
+   ============================================================ */
+const QS = new URLSearchParams(location.search);
+const PORTRAIT = QS.get('ar') === '9x16';   // ?ar=9x16 → 1080×1920 vertical cut
+const W = PORTRAIT ? 1080 : 1920, H = PORTRAIT ? 1920 : 1080;
+const BPM = 123.046875, BEAT = 60 / BPM, BAR = BEAT * 4;
+const PRE = BAR / 2;                 // half-bar pre-roll before the first "One color off"
+const DUR = 39.5, FPS = 30;
+const L = k => PRE + k * BAR;        // start time of lyric line k
+const C = { paper: '#efe6d4', paper2: '#f7f1e3', ink: '#15171c', blue: '#3b6aa8', deep: '#1d2f55', red: '#e8452c' };
+const F = { zk: 'ZK', min: 'ZMin', dela: 'Dela', mono: 'SMono', dot: 'Dot' };
+const CHORDS = ['C', 'E♭', 'A♭', 'G', 'C', 'E♭', 'F', 'G'];
+
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+cv.width = W; cv.height = H;
+if (PORTRAIT) document.body.classList.add('portrait');
+let T = 0;
+
+/* ---------- math ---------- */
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const eOut = p => 1 - Math.pow(1 - p, 3);
+const eIn = p => p * p * p;
+const eIO = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const eBack = p => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); };
+const prog = (t0, d) => clamp((T - t0) / d);
+function hash(n) { n = Math.sin(n * 127.1 + 311.7) * 43758.5453; return n - Math.floor(n); }
+const beatIdx = () => Math.floor(T / BEAT + 1e-6);
+const beatPhase = () => (T / BEAT) - Math.floor(T / BEAT + 1e-6);   // 0..1 within the beat
+const beatPulse = (k = 7) => Math.exp(-beatPhase() * BEAT * k);        // 1 on the beat, decays
+
+/* ---------- canvas helpers ---------- */
+function mk(w = W, h = H) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+const BUF = mk(), BUF2 = mk(), BUF3 = mk();
+const bx = BUF.getContext('2d'), bx2 = BUF2.getContext('2d'), bx3 = BUF3.getContext('2d');
+
+function variant(img, fn) {
+  const c = mk(img.width, img.height), x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) fn(p, i);
+  x.putImageData(d, 0, 0);
+  return c;
+}
+function hex(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+function duo(img, dark, light) {
+  const a = hex(dark), b = hex(light);
+  return variant(img, (p, i) => {
+    const l = clamp((0.3 * p[i] + 0.59 * p[i + 1] + 0.11 * p[i + 2]) / 255 * 1.15 - 0.05);
+    p[i] = a[0] + (b[0] - a[0]) * l; p[i + 1] = a[1] + (b[1] - a[1]) * l; p[i + 2] = a[2] + (b[2] - a[2]) * l;
+  });
+}
+
+/* Draw an image covering the frame. focus fx,fy (0..1 in image) is kept at screen centre, s = extra zoom. */
+function cover(c, img, o = {}) {
+  const s0 = Math.max(W / img.width, H / img.height) * (o.s || 1);
+  const iw = img.width * s0, ih = img.height * s0;
+  let x = W / 2 - (o.fx ?? .5) * iw, y = H / 2 - (o.fy ?? .5) * ih;
+  x = Math.min(0, Math.max(W - iw, x)); y = Math.min(0, Math.max(H - ih, y));
+  c.drawImage(img, x + (o.ox || 0), y + (o.oy || 0), iw, ih);
+}
+/* Image with red/cyan registration offset (screen-print mis-registration look) */
+function coverSplit(c, set, o, dx, dy = 0) {
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { cover(c, set.base, o); return; }
+  c.save();
+  c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+  c.globalCompositeOperation = 'lighter';
+  cover(c, set.r, { ...o, ox: (o.ox || 0) + dx, oy: (o.oy || 0) + dy });
+  cover(c, set.c, { ...o, ox: (o.ox || 0) - dx, oy: (o.oy || 0) - dy });
+  c.restore();
+}
+/* Draw part of an image into a rect, with image point (fx,fy) at rect centre, ps = pixels per image px */
+function inRect(c, img, rx, ry, rw, rh, fx, fy, ps) {
+  c.save(); c.beginPath(); c.rect(rx, ry, rw, rh); c.clip();
+  c.drawImage(img, rx + rw / 2 - fx * img.width * ps, ry + rh / 2 - fy * img.height * ps, img.width * ps, img.height * ps);
+  c.restore();
+}
+
+/* Whole-frame post effects */
+function rgbSplitFrame(dx, dy = 0) {
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+  bx.globalCompositeOperation = 'source-over'; bx.drawImage(cv, 0, 0);
+  bx2.globalCompositeOperation = 'source-over'; bx2.drawImage(cv, 0, 0);
+  bx.globalCompositeOperation = 'multiply'; bx.fillStyle = '#f00'; bx.fillRect(0, 0, W, H);
+  bx2.globalCompositeOperation = 'multiply'; bx2.fillStyle = '#0ff'; bx2.fillRect(0, 0, W, H);
+  bx.globalCompositeOperation = bx2.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(BUF, dx, dy); ctx.drawImage(BUF2, -dx, -dy);
+  ctx.restore();
+}
+function glitchFrame(amount, seed, n = 9) {
+  if (amount < 1) return;
+  bx3.drawImage(cv, 0, 0);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (let i = 0; i < n; i++) {
+    const y = Math.floor(hash(seed * 13 + i) * H), h = 8 + Math.floor(hash(seed * 7 + i * 3) * 90);
+    const sh = (hash(seed * 3 + i * 11) - .5) * 2 * amount;
+    ctx.drawImage(BUF3, 0, y, W, h, sh, y, W, h);
+    if (hash(seed + i * 5) > .75) { ctx.fillStyle = hash(i + seed) > .5 ? C.red : C.blue; ctx.globalAlpha = .55; ctx.fillRect(0, y, W, Math.max(2, h / 6)); ctx.globalAlpha = 1; }
+  }
+  ctx.restore();
+}
+let GRAIN;
+function makeGrain() {
+  GRAIN = mk(512, 512); const x = GRAIN.getContext('2d'), d = x.createImageData(512, 512);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  x.putImageData(d, 0, 0);
+}
+function grain(a = .09) {
+  const f = Math.floor(T * FPS);
+  const ox = -Math.floor(hash(f) * 512), oy = -Math.floor(hash(f + 99) * 512);
+  ctx.save(); ctx.globalAlpha = a; ctx.globalCompositeOperation = 'overlay';
+  for (let x = ox; x < W; x += 512) for (let y = oy; y < H; y += 512) ctx.drawImage(GRAIN, x, y);
+  ctx.restore();
+}
+
+/* ---------- text ---------- */
+const SMALL = new Set([...'っゃゅょぁぃぅぇぉッャュョァィゥェォ']);
+const SCR = [...'アイウエオカキクケコサシスセソタチツテトナニヌネノ01ｦﾝ#%&□■◆'];
+const fnt = (f, s) => `${s}px ${f}`;
+/*
+  Per-character animated text.
+  o: f,size,color,t0,st(stagger),d(dur),anim,track,box(color),boxPad,hl{index:color},off{index:{x,y,r,box}},
+     stroke(color),strokeW, vertical, alpha, jit(per-beat jitter px)
+*/
+function text(str, x, y, o) {
+  const chars = [...str];
+  ctx.save();
+  ctx.font = fnt(o.f, o.size); ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  const tr = o.track ?? 0;
+  const step = o.vertical ? o.size * (o.lead ?? 1.08) : 0;
+  const ws = chars.map(c => o.vertical ? step : ctx.measureText(c).width + tr);
+  const total = ws.reduce((a, b) => a + b, 0) - (o.vertical ? 0 : tr);
+  let cur = o.vertical ? y : (o.align === 'center' ? x - total / 2 : o.align === 'right' ? x - total : x);
+  const bi = beatIdx();
+  chars.forEach((ch, i) => {
+    const w = ws[i];
+    const cx = o.vertical ? x : cur + (w - tr) / 2;
+    const cy = o.vertical ? cur + step / 2 : y;
+    cur += w;
+    if (ch === ' ') return;
+    const p = clamp((T - (o.t0 + i * (o.st ?? .06))) / (o.d ?? .2));
+    if (p <= 0) return;
+    const off = (o.off && o.off[i]) || {};
+    let sc = 1, dy = 0, dx = 0, a = 1, rot = off.r || 0, glyph = ch;
+    switch (o.anim || 'pop') {
+      case 'pop': sc = lerp(1.9, 1, eBack(p)); a = clamp(p * 4); break;
+      case 'slam': sc = lerp(3.2, 1, eOut(p)); a = clamp(p * 3); break;
+      case 'drop': dy = -(1 - eOut(p)) * o.size * .7; a = clamp(p * 2); break;
+      case 'rise': dy = (1 - eOut(p)) * o.size * .35; a = p; break;
+      case 'type': if (p < .5) glyph = SCR[Math.floor(hash(i * 31 + Math.floor(T * 30)) * SCR.length)]; break;
+    }
+    if (o.jit) { dx += (hash(bi * 17 + i) - .5) * o.jit * beatPulse(5); dy += (hash(bi * 29 + i) - .5) * o.jit * beatPulse(5); }
+    const sm = SMALL.has(ch) && o.vertical;
+    ctx.save();
+    ctx.translate(cx + dx + (off.x || 0) + (sm ? o.size * .14 : 0), cy + dy + (off.y || 0) - (sm ? o.size * .14 : 0));
+    ctx.rotate(rot); ctx.scale(sc, sc);
+    if (o.vertical && (ch === 'ー' || ch === '〜')) ctx.rotate(Math.PI / 2);
+    ctx.globalAlpha = a * (o.alpha ?? 1);
+    const boxC = off.box || (o.box && (o.boxHl && o.boxHl[i] || o.box));
+    if (boxC) {
+      const bw = (o.vertical ? o.size : w - tr) + (o.boxPad ?? o.size * .16) * 2, bh = o.size * 1.18;
+      const wp = o.anim === 'type' ? 1 : eOut(clamp(p * 1.6));
+      ctx.fillStyle = boxC; ctx.fillRect(-bw / 2, -bh / 2, bw * wp, bh);
+    }
+    ctx.fillStyle = (o.hl && o.hl[i]) || o.color || C.ink;
+    if (o.stroke) { ctx.lineJoin = 'round'; ctx.lineWidth = o.strokeW || 10; ctx.strokeStyle = o.stroke; ctx.strokeText(glyph, 0, o.size * .04); }
+    if (o.anim === 'type' && p < .5) ctx.fillStyle = C.red;
+    ctx.fillText(glyph, 0, o.size * .04);
+    ctx.restore();
+  });
+  ctx.restore();
+  return total;
+}
+function label(str, x, y, o = {}) {
+  ctx.save();
+  ctx.font = fnt(o.f || F.mono, o.size || 22); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const w = ctx.measureText(str).width, pad = o.pad ?? 10, h = (o.size || 22) * 1.5;
+  let xx = o.align === 'right' ? x - w - pad * 2 : o.align === 'center' ? x - w / 2 - pad : x;
+  ctx.globalAlpha = o.alpha ?? 1;
+  if (o.bg !== null) { ctx.fillStyle = o.bg || C.paper; ctx.fillRect(xx, y - h / 2, w + pad * 2, h); }
+  ctx.fillStyle = o.color || C.ink; ctx.fillText(str, xx + pad, y + 1);
+  ctx.restore();
+  return w + pad * 2;
+}
+
+/* ---------- assets ---------- */
+const IM = {};
+function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+async function loadFont(name, file) { const ff = new FontFace(name, `url(fonts/${file})`); await ff.load(); document.fonts.add(ff); }
+async function init() {
+  await Promise.all([
+    loadFont(F.zk, 'ZenKakuGothicNew-Black.ttf'), loadFont(F.min, 'ZenOldMincho-Black.ttf'),
+    loadFont(F.dela, 'DelaGothicOne-Regular.ttf'), loadFont(F.mono, 'SpaceMono-Bold.ttf'), loadFont(F.dot, 'DotGothic16-Regular.ttf'),
+  ]);
+  for (const k of ['crossing', 'profile', 'vending', 'dog']) {
+    const base = await loadImg(`assets/${k}.jpg`);
+    IM[k] = {
+      base,
+      r: variant(base, (p, i) => { p[i + 1] = 0; p[i + 2] = 0; }),
+      c: variant(base, (p, i) => { p[i] = 0; }),
+      swap: variant(base, (p, i) => { const r = p[i]; p[i] = p[i + 2]; p[i + 2] = r; }),
+      duo: duo(base, C.deep, C.paper),
+      gray: duo(base, '#1a1a1a', C.paper),
+    };
+  }
+  // colour-swapped split set (so the swapped image can also be mis-registered)
+  for (const k of ['crossing', 'vending']) {
+    const s = IM[k].swap;
+    IM[k].swapSet = { base: s, r: variant(s, (p, i) => { p[i + 1] = 0; p[i + 2] = 0; }), c: variant(s, (p, i) => { p[i] = 0; }) };
+  }
+  makeGrain();
+  window.ready = true;
+}
+
+/* ============================================================
+   SCENES
+   ============================================================ */
+const ONE_COLOR_OFF = ['ONE', 'COLOR', 'OFF'];
+function scIntro() {           // 0 → L0 : slit opens on the crossing
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  const p = eIO(prog(0.05, PRE - 0.05));
+  const h = 6 + p * (H * .42);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, H / 2 - h / 2, W, h); ctx.clip();
+  coverSplit(ctx, IM.crossing, { s: 1.5 - p * .2, fx: .71, fy: .22 }, 14 * (1 - p));
+  ctx.restore();
+  ctx.fillStyle = C.ink; ctx.fillRect(0, H / 2 - h / 2 - 4, W, 4); ctx.fillRect(0, H / 2 + h / 2, W, 4);
+  text('ONE COLOR OFF', W / 2, H / 2 - h / 2 - 60, { f: F.mono, size: 34, t0: .04, st: .035, d: .01, anim: 'type', align: 'center', track: 14 });
+  text('FINAL CHORUS', W / 2, H / 2 + h / 2 + 56, { f: F.mono, size: 22, t0: .3, st: .02, d: .01, anim: 'type', align: 'center', track: 10, color: C.red });
+}
+
+function wordsOCO(t0, x, y, size, redIdx) {   // "ONE / COLOR / OFF" stacked, words on beats 0,1,2
+  ONE_COLOR_OFF.forEach((wd, j) => {
+    text(wd, x, y + j * size * 1.22, { f: F.dela, size, t0: t0 + j * BEAT - .02, st: .035, d: .16, anim: 'pop', box: C.paper, boxPad: size * .06,
+      hl: j === 2 ? { [redIdx]: C.red } : null });
+  });
+}
+
+function scOCO1() {            // L0 → L2 : "One color off" ×2 on the crossing
+  const u = T - L0_;
+  if (u < BAR) {
+    const hit = Math.exp(-u * 5);
+    coverSplit(ctx, IM.crossing, { s: 1.22 - .08 * eOut(u / BAR) + .02 * beatPulse(), fx: .6, fy: .5 }, 36 * hit + 4 * beatPulse());
+    wordsOCO(L0_, 120, 300, 200, 0);
+    text('ワン・カラー・オフ', 1800, 170, { f: F.zk, size: 44, t0: L0_ + .1, st: .05, d: .15, anim: 'drop', vertical: true, color: C.paper, stroke: C.ink, strokeW: 8 });
+  } else {
+    const v = u - BAR, hit = Math.exp(-v * 6);
+    coverSplit(ctx, IM.crossing.swapSet, { s: 1.95 - .25 * eOut(v / BAR), fx: .71, fy: .2 }, 22 * hit + 6);
+    // big single-line, letters out of registration, one letter wrong colour
+    const s = 176, gap = 70;
+    ctx.save(); ctx.font = fnt(F.dela, s);
+    const ww = ONE_COLOR_OFF.map(w => ctx.measureText(w).width); ctx.restore();
+    let x = (W - (ww[0] + ww[1] + ww[2] + gap * 2)) / 2;
+    const settle = 1 - eOut(clamp(v / (BEAT * 3)));
+    ONE_COLOR_OFF.forEach((wd, j) => {
+      const off = {};
+      [...wd].forEach((c, i) => off[i] = { y: (hash(j * 5 + i * 3.3 + beatIdx()) - .5) * 70 * settle });
+      if (j === 1) off[0] = { y: 30, r: -.08, box: C.red };
+      text(wd, x, 610, { f: F.dela, size: s, t0: L1_ + j * BEAT - .02, st: .03, d: .12, anim: 'slam', box: C.ink, color: C.paper, off });
+      x += ww[j] + gap;
+    });
+    label('R ⇄ B  SWAPPED', 140, 830, { f: F.mono, size: 24, bg: C.red, color: C.paper2, alpha: prog(L1_ + BEAT * 2.5, .05) });
+  }
+}
+
+function grid(step, color, a, ox = 0, oy = 0, lw = 1.5) {
+  ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
+  for (let x = ox % step; x < W; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = oy % step; y < H; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke(); ctx.restore();
+}
+
+function scTown() {            // L2 → L4 : 街のどこかが / 合っていない
+  const u = T - L(2), p = u / (BAR * 2);
+  coverSplit(ctx, IM.crossing, { s: 1.55, fx: lerp(.12, .5, eIO(p)), fy: .3 }, 0);
+  ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#9fb6d6'; ctx.fillRect(0, 0, W, H); ctx.restore();
+  const mis = T > L(3) ? eOut(prog(L(3), .15)) * 60 : 0;
+  grid(120, C.paper, .35, 0, 0);
+  if (mis) grid(120, C.red, .55, mis, mis * .5, 2);
+  text('街のどこかが', 1600, 110, { f: F.zk, size: 138, t0: L(2) + .02, st: .2, d: .22, anim: 'drop', vertical: true, box: C.paper, boxPad: 14, lead: 1.14 });
+  if (T > L(3) - .05) {
+    text('合っていない', W / 2 - 170, 800, { f: F.zk, size: 168, t0: L(3) + .05, st: .2, d: .22, anim: 'pop', align: 'center', box: C.paper, boxPad: 18, track: 30,
+      off: { 2: { x: 22, y: 46, r: .09, box: C.red } }, hl: { 2: C.paper2 } });
+    label('MISREGISTRATION  +1 COLOR', 110, 620, { size: 24, bg: C.ink, color: C.paper, alpha: prog(L(3) + BEAT * 2, .05) });
+  }
+}
+
+function scProfile() {         // L4 → L6 : 君の横顔 / それだけなぜか
+  const u = T - L(4), p = u / (BAR * 2);
+  cover(ctx, IM.profile.base, { s: 1.06 + .12 * eOut(p), fx: .44, fy: .36 });
+  // thin red rule that slides down
+  ctx.fillStyle = C.red; ctx.fillRect(1470, 0, 6, H * eOut(prog(L(4), BAR)));
+  text('君の横顔', 1640, 170, { f: F.min, size: 150, t0: L(4) + .02, st: .3, d: .45, anim: 'rise', vertical: true, color: C.ink, stroke: C.paper, strokeW: 16, lead: 1.12 });
+  if (T > L(5) - .05)
+    text('それだけなぜか', 1400, 930, { f: F.zk, size: 96, t0: L(5) - .05, st: .2, d: .2, anim: 'type', align: 'right', box: C.paper, boxPad: 8 });
+}
+
+function idPhoto(x, y, w, h, img, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#fff'; ctx.fillRect(x - 12, y - 12, w + 24, h + 24);
+  inRect(ctx, img, x, y, w, h, .43, .36, h / 760);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.strokeRect(x - 12, y - 12, w + 24, h + 24);
+  ctx.restore();
+}
+function cropMarks(x, y, w, h, len = 40, col = C.ink) {
+  ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath();
+  for (const [px, py, sx, sy] of [[x, y, -1, -1], [x + w, y, 1, -1], [x, y + h, -1, 1], [x + w, y + h, 1, 1]]) {
+    ctx.moveTo(px + sx * 14, py); ctx.lineTo(px + sx * (14 + len), py);
+    ctx.moveTo(px, py + sy * 14); ctx.lineTo(px, py + sy * (14 + len));
+  }
+  ctx.stroke(); ctx.restore();
+}
+function scPhoto() {           // L6 → L8 : 証明写真と / 同じ色
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  if (T < L(7)) {
+    grid(60, C.blue, .18);
+    const pw = 480, ph = 640, py = 210, px = 250 - (1 - eOut(prog(L(6) - .05, .35))) * 700;
+    idPhoto(px, py, pw, ph, IM.profile.base);
+    cropMarks(px - 12, py - 12, pw + 24, ph + 24);
+    label('30 × 40 mm', px - 12, py + ph + 60, { size: 24, bg: null });
+    label('証明写真 / ID PHOTO', px - 12, py - 60, { f: F.dot, size: 30, bg: C.ink, color: C.paper });
+    text('証明写真と', 900, 540, { f: F.zk, size: 170, t0: L(6) + .02, st: .2, d: .2, anim: 'pop', box: C.paper2, boxPad: 10 });
+    // camera flash
+    const fl = 1 - prog(L(6), .22);
+    if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${fl})`; ctx.fillRect(0, 0, W, H); }
+  } else {
+    // the world around is colour-swapped; only the photos keep the true colour
+    ctx.save(); ctx.globalAlpha = .9; cover(ctx, IM.crossing.swap, { s: 1.3, fx: .5, fy: .4 }); ctx.restore();
+    ctx.fillStyle = 'rgba(239,230,212,.35)'; ctx.fillRect(0, 0, W, H);
+    const pw = 290, ph = 387, gx = 190, gy = 100, gap = 36;
+    for (let i = 0; i < 4; i++) {
+      const a = prog(L(7) + i * BEAT * .5, .08);
+      idPhoto(gx + (i % 2) * (pw + gap + 24), gy + Math.floor(i / 2) * (ph + gap + 24), pw, ph, IM.profile.base, a);
+    }
+    label('✓ COLOR MATCH', 1390, 790, { size: 26, bg: C.blue, color: C.paper2, align: 'center', alpha: prog(L(7) + BEAT * 2, .05) });
+    text('同じ色', 1390, 540, { f: F.zk, size: 250, t0: L(7) + .02, st: .24, d: .14, anim: 'slam', align: 'center', box: C.paper2, color: C.ink, boxPad: 14, hl: { 2: C.red } });
+  }
+}
+
+function marquee(y, size, speed, dir, a, col) {
+  ctx.save(); ctx.globalAlpha = a; ctx.font = fnt(F.dela, size); ctx.textBaseline = 'middle';
+  const s = 'ONE COLOR OFF   ', w = ctx.measureText(s).width;
+  let x = ((T * speed * dir) % w) - w;
+  ctx.lineWidth = 3; ctx.strokeStyle = col;
+  for (; x < W + w; x += w) ctx.strokeText(s, x, y);
+  ctx.restore();
+}
+function scVending() {         // L8 → L10 : "One color off" ×2 on the vending machine
+  const u = T - L(8);
+  const second = u >= BAR;
+  const set = second ? IM.vending.swapSet : IM.vending;
+  const v = second ? u - BAR : u;
+  coverSplit(ctx, set, { s: 1.12 + .05 * beatPulse() + (second ? .25 * eOut(v / BAR) : 0), fx: .64, fy: .45 }, (second ? 20 : 8) * beatPulse() + (second ? 6 : 0));
+  for (let r = 0; r < 6; r++) marquee(120 + r * 175, 110, 260 + r * 40, r % 2 ? 1 : -1, .28, r % 2 ? C.paper : C.ink);
+  const t0 = second ? L(9) : L(8);
+  const idx = Math.min(2, Math.floor((T - t0 + .02) / BEAT));
+  if (T >= t0 - .02) {
+    const wd = ONE_COLOR_OFF[idx], sz = 300;
+    const tilt = (hash(idx + (second ? 7 : 0)) - .5) * .12;
+    ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(tilt);
+    text(wd, 0, 0, { f: F.dela, size: sz, t0: t0 + idx * BEAT - .02, st: .025, d: .1, anim: 'slam', align: 'center', box: second ? C.ink : C.paper, color: second ? C.paper : C.ink, boxPad: 20, hl: idx === 2 ? { 0: C.red } : null });
+    ctx.restore();
+  }
+  if (second) {
+    label('¥120 → ¥150', 1500, 150, { f: F.dot, size: 40, bg: C.red, color: C.paper2 });
+  } else {
+    label('¥120', 1620, 150, { f: F.dot, size: 40, bg: C.paper, color: C.ink });
+  }
+}
+
+function scSchedule() {        // L10 → L12 : 明日の予定は / 変更なし
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  grid(60, C.blue, .2);
+  const x = 330, y = 150, w = 1260, h = 780;
+  const pin = eOut(prog(L(10) - .05, .3));
+  ctx.save(); ctx.translate(0, (1 - pin) * 80); ctx.globalAlpha = pin;
+  ctx.fillStyle = C.ink; ctx.fillRect(x + 16, y + 16, w, h);
+  ctx.fillStyle = C.paper2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 5; ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = C.blue; ctx.fillRect(x, y, w, 26);
+  ctx.restore();
+  text('明日の予定は', x + 70, y + 150, { f: F.zk, size: 120, t0: L(10) + .02, st: .2, d: .2, anim: 'type' });
+  const rows = [['08:00', 'ベル'], ['08:10', '青信号まで あと十秒'], ['12:00', '缶コーヒー 百二十円'], ['17:00', 'ベル']];
+  rows.forEach(([tm, ev], i) => {
+    const a = prog(L(10) + BEAT * (1 + i * .6), .08);
+    const yy = y + 330 + i * 105;
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.strokeStyle = C.ink; ctx.globalAlpha = a * .3; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 70, yy + 48); ctx.lineTo(x + w - 70, yy + 48); ctx.stroke();
+    ctx.restore();
+    label(tm, x + 60, yy, { f: F.dot, size: 50, bg: null, color: C.blue, alpha: a });
+    label(ev, x + 280, yy, { f: F.zk, size: 50, bg: null, color: C.ink, alpha: a });
+  });
+  // stamp: 変更 / なし on the syllable hits
+  const st = L(11) + BEAT * .35;
+  if (T >= st) {
+    const p = prog(st, .12), sc = lerp(2.4, 1, eOut(p));
+    ctx.save(); ctx.translate(1180, 690); ctx.rotate(-.12); ctx.scale(sc, sc); ctx.globalAlpha = clamp(p * 3) * .92;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.strokeStyle = C.red; ctx.lineWidth = 14; ctx.strokeRect(-330, -135, 660, 270);
+    ctx.lineWidth = 4; ctx.strokeRect(-305, -110, 610, 220);
+    ctx.restore();
+    ctx.save(); ctx.translate(1180, 690); ctx.rotate(-.12);
+    text('変更', -150, 0, { f: F.zk, size: 150, t0: st, st: .05, d: .1, anim: 'slam', align: 'center', color: C.red });
+    text('なし', 150, 0, { f: F.zk, size: 150, t0: L(11) + BEAT * 1.75, st: .05, d: .1, anim: 'slam', align: 'center', color: C.red });
+    ctx.restore();
+  }
+}
+
+function digitsLED(str, cx, cy, size, t0, col) {
+  ctx.save(); ctx.font = fnt(F.dot, size); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(str).width; let x = cx - w / 2;
+  [...str].forEach((ch, i) => {
+    const cw = ctx.measureText(ch).width;
+    const on = T > t0 + i * .05 && (T > t0 + i * .05 + .18 || hash(Math.floor(T * 60) + i) > .45);
+    ctx.globalAlpha = on ? 1 : .12; ctx.fillStyle = col;
+    ctx.fillText(ch, x + cw / 2, cy);
+    x += cw;
+  });
+  ctx.restore();
+}
+function scClock() {           // L12 → L14 : 午前八時に / ベルが鳴って
+  const bell = T >= L(13);
+  const sh = bell ? beatPulse(9) * 16 : 0;
+  ctx.save(); ctx.translate((hash(beatIdx()) - .5) * sh, (hash(beatIdx() + 5) - .5) * sh);
+  cover(ctx, IM.crossing.duo, { s: 1.35 + .04 * eOut((T - L(12)) / (2 * BAR)), fx: .55, fy: .3 });
+  ctx.fillStyle = 'rgba(22,34,64,.64)'; ctx.fillRect(-40, -40, W + 80, H + 80);
+  if (bell) {
+    for (let k = 0; k < 4; k++) {
+      const bt = Math.floor((T - L(13)) / BEAT) - k; if (bt < 0) continue;
+      const age = T - (L(13) + bt * BEAT), r = 180 + age * 900;
+      ctx.save(); ctx.globalAlpha = clamp(1 - age / 1.6) * .8; ctx.strokeStyle = k % 2 ? C.red : C.paper; ctx.lineWidth = 10 - age * 5;
+      ctx.beginPath(); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+  }
+  digitsLED('08:00', W / 2, H / 2 + 10, 330, L(12) - .1, bell && beatPhase() < .25 ? C.red : C.paper);
+  label('AM', W / 2 - 520, H / 2 - 120, { f: F.mono, size: 40, bg: C.red, color: C.paper2, alpha: prog(L(12), .1) });
+  text('午前八時に', W / 2, 170, { f: F.zk, size: 110, t0: L(12) + .02, st: .2, d: .2, anim: 'pop', align: 'center', color: C.paper, track: 20 });
+  if (T > L(13) - .1)
+    text('ベルが鳴って', W / 2, 900, { f: F.zk, size: 120, t0: L(13) - .06, st: .18, d: .16, anim: 'slam', align: 'center', box: C.red, color: C.paper2, boxPad: 10, jit: 26 });
+  ctx.restore();
+}
+
+function scDog() {             // L14 → L16 : 誰も確認 / しないまま
+  const u = T - L(14), p = u / (BAR * 2);
+  cover(ctx, IM.dog.base, { s: 1.08 + .1 * eOut(p), fx: .42, fy: .38 });
+  const g = ctx.createLinearGradient(0, H * .55, 0, H); g.addColorStop(0, 'rgba(21,23,28,0)'); g.addColorStop(1, 'rgba(21,23,28,.55)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // checkbox that nobody ticks
+  const a = prog(L(14) - .05, .15);
+  const bx0 = 1080, by0 = 700, s = 96;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = C.paper2; ctx.fillRect(bx0 - 20, by0 - 20, s + 40, s + 40);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.strokeRect(bx0, by0, s, s);
+  if (Math.floor(T / (BEAT)) % 2 === 0 && T > L(15)) { ctx.fillStyle = C.red; ctx.fillRect(bx0 + s / 2 - 4, by0 + 18, 8, s - 36); }
+  ctx.restore();
+  text('誰も確認', 1240, 748, { f: F.zk, size: 110, t0: L(14) + .02, st: .22, d: .2, anim: 'type', box: C.paper2, boxPad: 8 });
+  if (T > L(15) - .1) text('しないまま', 1240, 900, { f: F.zk, size: 110, t0: L(15) - .06, st: .22, d: .2, anim: 'type', box: C.ink, color: C.paper2, boxPad: 8 });
+}
+
+function scOutro() {           // L16 → end : title
+  const u = T - L(16);
+  const d = clamp(u / 2.5);
+  cover(ctx, IM.dog.base, { s: 1.18 + .06 * eOut(clamp(u / 7)), fx: .42, fy: .38 });
+  ctx.save(); ctx.globalAlpha = eIO(d); cover(ctx, IM.dog.duo, { s: 1.18 + .06 * eOut(clamp(u / 7)), fx: .42, fy: .38 }); ctx.restore();
+  // paper band
+  const bp = eOut(prog(L(16) + .15, .5));
+  ctx.fillStyle = C.paper; ctx.fillRect(0, H / 2 - 190, W * bp, 380);
+  ctx.fillStyle = C.ink; ctx.fillRect(0, H / 2 - 196, W * bp, 6); ctx.fillRect(W * (1 - bp), H / 2 + 190, W * bp, 6);
+  const tt = L(16) + .45;
+  text('ONE COLOR OFF', W / 2, H / 2 - 30, { f: F.dela, size: 170, t0: tt, st: .07, d: .2, anim: 'pop', align: 'center', track: 6, hl: { 4: C.red } });
+  text('青信号まで あと十秒', W / 2, H / 2 + 120, { f: F.dot, size: 44, t0: tt + 1.2, st: .06, d: .01, anim: 'type', align: 'center', color: C.blue, track: 8 });
+  // fade to ink
+  const fo = prog(DUR - 1.9, 1.7);
+  if (fo > 0) { ctx.fillStyle = `rgba(13,14,17,${eIn(fo)})`; ctx.fillRect(0, 0, W, H); }
+}
+
+/* HUD: small persistent interface — "あと10秒" never counts down */
+function hud() {
+  if (T > DUR - 1.9) return;
+  const bar = Math.floor((T - PRE) / BAR);
+  const top = PORTRAIT ? 80 : 44, bot = PORTRAIT ? H - 80 : H - 44;
+  label('● ONE COLOR OFF', 40, top, { size: 20, alpha: .92 });
+  ctx.save(); ctx.fillStyle = C.red; ctx.font = fnt(F.mono, 20); ctx.textBaseline = 'middle'; ctx.fillText('●', 50, top + 1); ctx.restore();
+  const cs = String(99 - Math.floor((T * 100) % 100)).padStart(2, '0');
+  label(`青信号まで あと 10.${cs}`, W - 40, top, { f: F.dot, size: 24, align: 'right', alpha: .92 });
+  if (bar >= 0 && bar < 16) {
+    let x = 40;
+    CHORDS.forEach((c, i) => { x += label(c, x, bot, { size: 20, bg: i === bar % 8 ? C.red : C.paper, color: i === bar % 8 ? C.paper2 : C.ink, alpha: .92 }) + 4; });
+    label(`LINE ${String(bar + 1).padStart(2, '0')}/16`, W - 40, bot, { size: 20, align: 'right', alpha: .92 });
+  }
+}
+
+/* ============================================================
+   9:16 PORTRAIT LAYOUT (?ar=9x16) — same timing, scenes re-composed for 1080×1920.
+   Key text stays inside y≈220…1560 so Shorts / Reels / TikTok UI does not cover it.
+   ============================================================ */
+function vOCO1() {             // L0 → L2
+  const u = T - L0_;
+  if (u < BAR) {
+    const hit = Math.exp(-u * 5);
+    coverSplit(ctx, IM.crossing, { s: 1.1 - .06 * eOut(u / BAR) + .02 * beatPulse(), fx: .6, fy: .5 }, 30 * hit + 4 * beatPulse());
+    wordsOCO(L0_, 70, 560, 170, 0);
+    text('ワン・カラー・オフ', 990, 260, { f: F.zk, size: 46, t0: L0_ + .1, st: .05, d: .15, anim: 'drop', vertical: true, color: C.paper, stroke: C.ink, strokeW: 8 });
+  } else {
+    const v = u - BAR, hit = Math.exp(-v * 6);
+    coverSplit(ctx, IM.crossing.swapSet, { s: 1.5 - .2 * eOut(v / BAR), fx: .71, fy: .22 }, 22 * hit + 6);
+    const settle = 1 - eOut(clamp(v / (BEAT * 3)));
+    ONE_COLOR_OFF.forEach((wd, j) => {
+      const off = {};
+      [...wd].forEach((c, i) => off[i] = { y: (hash(j * 5 + i * 3.3 + beatIdx()) - .5) * 60 * settle });
+      if (j === 1) off[0] = { y: 24, r: -.08, box: C.red };
+      text(wd, W / 2, 760 + j * 230, { f: F.dela, size: 190, t0: L1_ + j * BEAT - .02, st: .03, d: .12, anim: 'slam', align: 'center', box: C.ink, color: C.paper, off });
+    });
+    label('R ⇄ B  SWAPPED', W / 2, 1470, { f: F.mono, size: 26, bg: C.red, color: C.paper2, align: 'center', alpha: prog(L1_ + BEAT * 2.5, .05) });
+  }
+}
+
+function vTown() {             // L2 → L4
+  const u = T - L(2), p = u / (BAR * 2);
+  coverSplit(ctx, IM.crossing, { s: 1.05, fx: lerp(.12, .5, eIO(p)), fy: .3 }, 0);
+  ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#9fb6d6'; ctx.fillRect(0, 0, W, H); ctx.restore();
+  const mis = T > L(3) ? eOut(prog(L(3), .15)) * 54 : 0;
+  grid(108, C.paper, .35, 0, 0);
+  if (mis) grid(108, C.red, .55, mis, mis * .5, 2);
+  text('街のどこかが', 890, 250, { f: F.zk, size: 128, t0: L(2) + .02, st: .2, d: .22, anim: 'drop', vertical: true, box: C.paper, boxPad: 14, lead: 1.14 });
+  if (T > L(3) - .05) {
+    text('合っていない', W / 2, 1420, { f: F.zk, size: 124, t0: L(3) + .05, st: .2, d: .22, anim: 'pop', align: 'center', box: C.paper, boxPad: 12, track: 18,
+      off: { 2: { x: 16, y: 38, r: .09, box: C.red } }, hl: { 2: C.paper2 } });
+    label('MISREGISTRATION  +1 COLOR', 70, 1250, { size: 24, bg: C.ink, color: C.paper, alpha: prog(L(3) + BEAT * 2, .05) });
+  }
+}
+
+function vProfile() {          // L4 → L6
+  const u = T - L(4), p = u / (BAR * 2);
+  cover(ctx, IM.profile.base, { s: 1.0 + .1 * eOut(p), fx: .45, fy: .36 });
+  ctx.fillStyle = C.red; ctx.fillRect(900, 0, 6, H * eOut(prog(L(4), BAR)));
+  text('君の横顔', 995, 240, { f: F.min, size: 128, t0: L(4) + .02, st: .3, d: .45, anim: 'rise', vertical: true, color: C.ink, stroke: C.paper, strokeW: 14, lead: 1.12 });
+  if (T > L(5) - .05)
+    text('それだけなぜか', 1020, 1480, { f: F.zk, size: 100, t0: L(5) - .05, st: .2, d: .2, anim: 'type', align: 'right', box: C.paper, boxPad: 8 });
+}
+
+function vPhoto() {            // L6 → L8
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  if (T < L(7)) {
+    grid(60, C.blue, .18);
+    const pw = 600, ph = 800, py = 330, px = 240 - (1 - eOut(prog(L(6) - .05, .35))) * 900;
+    idPhoto(px, py, pw, ph, IM.profile.base);
+    cropMarks(px - 12, py - 12, pw + 24, ph + 24);
+    label('30 × 40 mm', px - 12, py + ph + 56, { size: 26, bg: null });
+    label('証明写真 / ID PHOTO', px - 12, py - 64, { f: F.dot, size: 32, bg: C.ink, color: C.paper });
+    text('証明写真と', W / 2, 1400, { f: F.zk, size: 150, t0: L(6) + .02, st: .2, d: .2, anim: 'pop', align: 'center', box: C.paper2, boxPad: 8 });
+    const fl = 1 - prog(L(6), .22);
+    if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${fl})`; ctx.fillRect(0, 0, W, H); }
+  } else {
+    ctx.save(); ctx.globalAlpha = .9; cover(ctx, IM.crossing.swap, { s: 1.0, fx: .66, fy: .4 }); ctx.restore();
+    ctx.fillStyle = 'rgba(239,230,212,.35)'; ctx.fillRect(0, 0, W, H);
+    const pw = 360, ph = 480, gap = 36, gx = (W - 2 * (pw + 24) - gap) / 2 + 12, gy = 230;
+    for (let i = 0; i < 4; i++) {
+      const a = prog(L(7) + i * BEAT * .5, .08);
+      idPhoto(gx + (i % 2) * (pw + gap + 24), gy + Math.floor(i / 2) * (ph + gap + 24), pw, ph, IM.profile.base, a);
+    }
+    label('✓ COLOR MATCH', W / 2, 1300, { size: 28, bg: C.blue, color: C.paper2, align: 'center', alpha: prog(L(7) + BEAT * 2, .05) });
+    text('同じ色', W / 2, 1480, { f: F.zk, size: 230, t0: L(7) + .02, st: .24, d: .14, anim: 'slam', align: 'center', box: C.paper2, color: C.ink, boxPad: 12, hl: { 2: C.red } });
+  }
+}
+
+function vVending() {          // L8 → L10
+  const u = T - L(8);
+  const second = u >= BAR;
+  const set = second ? IM.vending.swapSet : IM.vending;
+  const v = second ? u - BAR : u;
+  coverSplit(ctx, set, { s: 1.0 + .05 * beatPulse() + (second ? .2 * eOut(v / BAR) : 0), fx: .64, fy: .45 }, (second ? 20 : 8) * beatPulse() + (second ? 6 : 0));
+  for (let r = 0; r < 11; r++) marquee(150 + r * 165, 100, 240 + r * 30, r % 2 ? 1 : -1, .28, r % 2 ? C.paper : C.ink);
+  const t0 = second ? L(9) : L(8);
+  const idx = Math.min(2, Math.floor((T - t0 + .02) / BEAT));
+  if (T >= t0 - .02) {
+    const wd = ONE_COLOR_OFF[idx], sz = idx === 1 ? 190 : 290;
+    const tilt = (hash(idx + (second ? 7 : 0)) - .5) * .14;
+    ctx.save(); ctx.translate(W / 2, H / 2 - 40); ctx.rotate(tilt);
+    text(wd, 0, 0, { f: F.dela, size: sz, t0: t0 + idx * BEAT - .02, st: .025, d: .1, anim: 'slam', align: 'center', box: second ? C.ink : C.paper, color: second ? C.paper : C.ink, boxPad: 16, hl: idx === 2 ? { 0: C.red } : null });
+    ctx.restore();
+  }
+  if (second) label('¥120 → ¥150', W - 60, 300, { f: F.dot, size: 44, bg: C.red, color: C.paper2, align: 'right' });
+  else label('¥120', W - 60, 300, { f: F.dot, size: 44, bg: C.paper, color: C.ink, align: 'right' });
+}
+
+function vSchedule() {         // L10 → L12
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  grid(60, C.blue, .2);
+  const x = 70, y = 330, w = 940, h = 1080;
+  const pin = eOut(prog(L(10) - .05, .3));
+  ctx.save(); ctx.translate(0, (1 - pin) * 80); ctx.globalAlpha = pin;
+  ctx.fillStyle = C.ink; ctx.fillRect(x + 16, y + 16, w, h);
+  ctx.fillStyle = C.paper2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 5; ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = C.blue; ctx.fillRect(x, y, w, 26);
+  ctx.restore();
+  text('明日の予定は', x + 55, y + 150, { f: F.zk, size: 112, t0: L(10) + .02, st: .2, d: .2, anim: 'type' });
+  const rows = [['08:00', 'ベル'], ['08:10', '青信号まで あと十秒'], ['12:00', '缶コーヒー 百二十円'], ['17:00', 'ベル']];
+  rows.forEach(([tm, ev], i) => {
+    const a = prog(L(10) + BEAT * (1 + i * .6), .08);
+    const yy = y + 330 + i * 110;
+    ctx.save(); ctx.strokeStyle = C.ink; ctx.globalAlpha = a * .3; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 55, yy + 50); ctx.lineTo(x + w - 55, yy + 50); ctx.stroke(); ctx.restore();
+    label(tm, x + 45, yy, { f: F.dot, size: 46, bg: null, color: C.blue, alpha: a });
+    label(ev, x + 235, yy, { f: F.zk, size: 46, bg: null, color: C.ink, alpha: a });
+  });
+  const st = L(11) + BEAT * .35;
+  if (T >= st) {
+    const p = prog(st, .12), sc = lerp(2.4, 1, eOut(p));
+    ctx.save(); ctx.translate(W / 2, 1200); ctx.rotate(-.12); ctx.scale(sc, sc); ctx.globalAlpha = clamp(p * 3) * .92;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.strokeStyle = C.red; ctx.lineWidth = 14; ctx.strokeRect(-330, -135, 660, 270);
+    ctx.lineWidth = 4; ctx.strokeRect(-305, -110, 610, 220);
+    ctx.restore();
+    ctx.save(); ctx.translate(W / 2, 1200); ctx.rotate(-.12);
+    text('変更', -150, 0, { f: F.zk, size: 150, t0: st, st: .05, d: .1, anim: 'slam', align: 'center', color: C.red });
+    text('なし', 150, 0, { f: F.zk, size: 150, t0: L(11) + BEAT * 1.75, st: .05, d: .1, anim: 'slam', align: 'center', color: C.red });
+    ctx.restore();
+  }
+}
+
+function vClock() {            // L12 → L14
+  const bell = T >= L(13);
+  const sh = bell ? beatPulse(9) * 16 : 0;
+  ctx.save(); ctx.translate((hash(beatIdx()) - .5) * sh, (hash(beatIdx() + 5) - .5) * sh);
+  cover(ctx, IM.crossing.duo, { s: 1.15 + .04 * eOut((T - L(12)) / (2 * BAR)), fx: .56, fy: .3 });
+  ctx.fillStyle = 'rgba(22,34,64,.64)'; ctx.fillRect(-40, -40, W + 80, H + 80);
+  if (bell) {
+    for (let k = 0; k < 4; k++) {
+      const bt = Math.floor((T - L(13)) / BEAT) - k; if (bt < 0) continue;
+      const age = T - (L(13) + bt * BEAT), r = 150 + age * 800;
+      ctx.save(); ctx.globalAlpha = clamp(1 - age / 1.6) * .8; ctx.strokeStyle = k % 2 ? C.red : C.paper; ctx.lineWidth = 10 - age * 5;
+      ctx.beginPath(); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+  }
+  digitsLED('08:00', W / 2, H / 2 + 10, 250, L(12) - .1, bell && beatPhase() < .25 ? C.red : C.paper);
+  label('AM', 110, H / 2 - 170, { f: F.mono, size: 40, bg: C.red, color: C.paper2, alpha: prog(L(12), .1) });
+  text('午前八時に', W / 2, 560, { f: F.zk, size: 116, t0: L(12) + .02, st: .2, d: .2, anim: 'pop', align: 'center', color: C.paper, track: 16 });
+  if (T > L(13) - .1)
+    text('ベルが鳴って', W / 2, 1380, { f: F.zk, size: 116, t0: L(13) - .06, st: .18, d: .16, anim: 'slam', align: 'center', box: C.red, color: C.paper2, boxPad: 8, jit: 24 });
+  ctx.restore();
+}
+
+function vDog() {              // L14 → L16
+  const u = T - L(14), p = u / (BAR * 2);
+  cover(ctx, IM.dog.base, { s: 1.0 + .08 * eOut(p), fx: .38, fy: .42 });
+  const g = ctx.createLinearGradient(0, H * .55, 0, H); g.addColorStop(0, 'rgba(21,23,28,0)'); g.addColorStop(1, 'rgba(21,23,28,.55)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const a = prog(L(14) - .05, .15);
+  const bx0 = 110, by0 = 1330, s = 96;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = C.paper2; ctx.fillRect(bx0 - 20, by0 - 20, s + 40, s + 40);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.strokeRect(bx0, by0, s, s);
+  if (Math.floor(T / BEAT) % 2 === 0 && T > L(15)) { ctx.fillStyle = C.red; ctx.fillRect(bx0 + s / 2 - 4, by0 + 18, 8, s - 36); }
+  ctx.restore();
+  text('誰も確認', 270, 1378, { f: F.zk, size: 112, t0: L(14) + .02, st: .22, d: .2, anim: 'type', box: C.paper2, boxPad: 8 });
+  if (T > L(15) - .1) text('しないまま', 270, 1530, { f: F.zk, size: 112, t0: L(15) - .06, st: .22, d: .2, anim: 'type', box: C.ink, color: C.paper2, boxPad: 8 });
+}
+
+function vOutro() {            // L16 → end
+  const u = T - L(16);
+  const d = clamp(u / 2.5), z = 1.08 + .06 * eOut(clamp(u / 7));
+  cover(ctx, IM.dog.base, { s: z, fx: .4, fy: .08 });
+  ctx.save(); ctx.globalAlpha = eIO(d); cover(ctx, IM.dog.duo, { s: z, fx: .4, fy: .08 }); ctx.restore();
+  const bp = eOut(prog(L(16) + .15, .5)), bh = 780, cy = H / 2 + 140;
+  ctx.fillStyle = C.paper; ctx.fillRect(0, cy - bh / 2, W * bp, bh);
+  ctx.fillStyle = C.ink; ctx.fillRect(0, cy - bh / 2 - 6, W * bp, 6); ctx.fillRect(W * (1 - bp), cy + bh / 2, W * bp, 6);
+  const tt = L(16) + .45;
+  ONE_COLOR_OFF.forEach((wd, j) => text(wd, W / 2, cy - 250 + j * 200, { f: F.dela, size: 180, t0: tt + j * .3, st: .07, d: .2, anim: 'pop', align: 'center', track: 6, hl: j === 1 ? { 0: C.red } : null }));
+  text('青信号まで あと十秒', W / 2, cy + 300, { f: F.dot, size: 46, t0: tt + 1.3, st: .06, d: .01, anim: 'type', align: 'center', color: C.blue, track: 8 });
+  const fo = prog(DUR - 1.9, 1.7);
+  if (fo > 0) { ctx.fillStyle = `rgba(13,14,17,${eIn(fo)})`; ctx.fillRect(0, 0, W, H); }
+}
+
+/* scene table: [start, fn, energetic] */
+const L0_ = L(0), L1_ = L(1);
+const SCENES = PORTRAIT ? [
+  [0, scIntro, false], [L(0), vOCO1, true], [L(2), vTown, true], [L(4), vProfile, false], [L(6), vPhoto, false],
+  [L(8), vVending, true], [L(10), vSchedule, false], [L(12), vClock, true], [L(14), vDog, false], [L(16), vOutro, false],
+] : [
+  [0, scIntro, false], [L(0), scOCO1, true], [L(2), scTown, true], [L(4), scProfile, false], [L(6), scPhoto, false],
+  [L(8), scVending, true], [L(10), scSchedule, false], [L(12), scClock, true], [L(14), scDog, false], [L(16), scOutro, false],
+];
+function draw() {
+  let si = 0; for (let i = 0; i < SCENES.length; i++) if (T >= SCENES[i][0] - 1e-6) si = i;
+  const [s0, fn, hot] = SCENES[si];
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  if (hot) { const z = 1 + .014 * beatPulse(8); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2); }
+  fn();
+  ctx.restore();
+  // post: cut hit — RGB split + glitch right on scene changes and on "One color off" bars
+  const since = T - s0;
+  if (si > 0 && since < .18) { rgbSplitFrame(28 * (1 - since / .18)); glitchFrame(90 * (1 - since / .18), Math.floor(T * FPS), 12); }
+  if ((si === 1 || si === 5) && beatPhase() < .12) glitchFrame(40, Math.floor(T * FPS) + 3, 6);
+  if (si === 2 && T > L(3) && T < L(3) + .25) rgbSplitFrame(16);
+  grain(.1);
+  hud();
+  // wipe bars at cuts
+  if (si > 0 && since < .1) {
+    ctx.save(); ctx.globalAlpha = 1 - since / .1;
+    for (let i = 0; i < 5; i++) { ctx.fillStyle = i % 2 ? C.red : C.ink; ctx.fillRect(0, hash(si * 10 + i) * H, W, 10 + hash(si + i) * 40); }
+    ctx.restore();
+  }
+}
+
+/* ---------- entry points ---------- */
+window.renderFrame = t => { T = t; draw(); };
+window.META = { W, H, FPS, DUR };
+const isRender = QS.has('render');
+if (isRender) document.body.classList.add('render');
+init().then(() => {
+  T = 0; draw();
+  if (isRender) return;
+  const au = document.getElementById('a'), btn = document.getElementById('play');
+  btn.onclick = () => { au.currentTime = 0; au.play(); btn.style.display = 'none'; };
+  au.onended = () => { btn.style.display = ''; btn.textContent = '↻ REPLAY'; };
+  const loop = () => { if (!au.paused) { T = au.currentTime; draw(); } requestAnimationFrame(loop); };
+  loop();
+});
+</script>
+</body>
+</html>
